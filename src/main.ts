@@ -7,7 +7,8 @@ import { mostrarPropiedades, mostrarSinSeleccion } from './ui/panelPropiedades';
 import { confirmar, pedirExportarPdf, pedirFilasColumnas, pedirMargenes, pedirNombreArchivo, pedirNuevoProyecto } from './ui/modales';
 import { montarPanelCampos } from './ui/panelCampos';
 import { deshacer, inicializarHistorial, puedeDeshacer, puedeRehacer, registrarSnapshot, rehacer } from './editor/historial';
-import { aplicarConfigPagina, configActual, dibujarGuiaMargenes } from './editor/documento';
+import { aplicarConfigPagina, configActual } from './editor/documento';
+import { activarVista, configurarVista, establecerZoom, vistaActual } from './editor/vista';
 import { configPorDefecto, type Orientacion, type TamanoPagina } from './editor/pagina';
 import { cargarProyecto, descargarProyecto, leerProyecto, serializarProyecto } from './editor/proyecto';
 
@@ -19,7 +20,7 @@ const panelCampos = montarPanelCampos(espacio.panelCampos, async (nombre) => {
   await agregarAlLienzo(lienzo, elemento);
   registrarSnapshot(lienzo);
 });
-dibujarGuiaMargenes(lienzo);
+activarVista(lienzo);
 aplicarConfigPagina(lienzo, configPorDefecto());
 inicializarHistorial(lienzo);
 
@@ -166,6 +167,32 @@ document.getElementById('ed-margenes')!.addEventListener('click', async () => {
 });
 
 reflejarPagina();
+
+// ---------- Ver y zoom ----------
+
+const chkCuadricula = document.getElementById('ed-cuadricula') as HTMLInputElement;
+const numPaso = document.getElementById('ed-paso') as HTMLInputElement;
+const chkReglas = document.getElementById('ed-reglas') as HTMLInputElement;
+const chkGuias = document.getElementById('ed-guias') as HTMLInputElement;
+
+chkCuadricula.addEventListener('change', () => configurarVista(lienzo, { cuadricula: chkCuadricula.checked }));
+numPaso.addEventListener('change', () => configurarVista(lienzo, { paso: Math.max(2, Number(numPaso.value) || 5) }));
+chkReglas.addEventListener('change', () => configurarVista(lienzo, { reglas: chkReglas.checked }));
+chkGuias.addEventListener('change', () => configurarVista(lienzo, { guias: chkGuias.checked }));
+
+const rangoZoom = document.getElementById('ed-zoom') as HTMLInputElement;
+const valorZoom = document.getElementById('ed-zoom-val')!;
+
+function aplicarZoom(porcentaje: number): void {
+  establecerZoom(lienzo, porcentaje / 100);
+  const real = Math.round(vistaActual().zoom * 100);
+  rangoZoom.value = String(real);
+  valorZoom.textContent = `${real}%`;
+}
+
+rangoZoom.addEventListener('input', () => aplicarZoom(Number(rangoZoom.value)));
+document.getElementById('ed-zoom-menos')!.addEventListener('click', () => aplicarZoom(Math.round(vistaActual().zoom * 100) - 10));
+document.getElementById('ed-zoom-mas')!.addEventListener('click', () => aplicarZoom(Math.round(vistaActual().zoom * 100) + 10));
 
 // ---------- Archivo ----------
 

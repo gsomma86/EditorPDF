@@ -17,9 +17,12 @@ const MENU_EDITAR = `
 `;
 
 const MENU_VER = `
-  <label class="ed-dd-check"><input type="checkbox" /> Cuadrícula</label>
-  <label class="ed-dd-check"><input type="checkbox" /> Reglas</label>
-  <label class="ed-dd-check"><input type="checkbox" checked /> Alineación</label>
+  <div class="ed-dd-item ed-dd-persistente">
+    <label class="ed-dd-check"><input type="checkbox" id="ed-cuadricula" /> Cuadrícula</label>
+    <input type="number" id="ed-paso" value="5" min="2" max="50" title="Separación (pt)" />
+  </div>
+  <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-reglas" /> Reglas</label>
+  <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-guias" checked /> Alineación</label>
 `;
 
 const MENU_PAGINA = `
@@ -134,7 +137,12 @@ export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
         <div class="ed-status-divisor"></div>
         <button type="button" class="ed-status-peso">Verificar</button>
         <div class="ed-status-divisor"></div>
-        <div class="ed-zoom-slider"><button type="button">−</button><input type="range" min="50" max="300" value="100" /><button type="button">+</button><span>100%</span></div>
+        <div class="ed-zoom-slider">
+          <button type="button" id="ed-zoom-menos" title="Alejar">−</button>
+          <input type="range" id="ed-zoom" min="25" max="300" step="5" value="100" title="Zoom" />
+          <button type="button" id="ed-zoom-mas" title="Acercar">+</button>
+          <span id="ed-zoom-val">100%</span>
+        </div>
       </div>
     </div>
   `;
