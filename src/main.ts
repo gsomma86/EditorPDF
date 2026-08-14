@@ -11,6 +11,7 @@ import { confirmar, mostrarAyuda, mostrarPreflight, pedirExportarPdf, pedirFilas
 import { formatearPeso, pesoDelPdf, verificarDiseno } from './editor/preflight';
 import { montarPanelCampos } from './ui/panelCampos';
 import { cablearAyuda } from './ui/ayuda';
+import { montarColumnas } from './ui/columnas';
 import { deshacer, inicializarHistorial, puedeDeshacer, puedeRehacer, registrarSnapshot, rehacer } from './editor/historial';
 import { aplicarConfigPagina, configActual } from './editor/documento';
 import { activarVista, configurarVista, establecerZoom, vistaActual } from './editor/vista';
@@ -27,6 +28,7 @@ const panelCampos = montarPanelCampos(espacio.panelCampos, async (nombre) => {
   guardar();
 });
 const ayuda = cablearAyuda();
+montarColumnas(espacio.raiz);
 activarVista(lienzo);
 aplicarConfigPagina(lienzo, configPorDefecto());
 inicializarHistorial(lienzo);

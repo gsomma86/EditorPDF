@@ -114,8 +114,8 @@ export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
     </div>
 
     <div class="ed-layout">
-      <aside class="ed-panel izq">
-        <div class="ed-panel-head"><button type="button" class="ed-panel-toggle">‹</button></div>
+      <aside class="ed-panel izq" id="ed-panel-izq">
+        <div class="ed-panel-head"><button type="button" class="ed-panel-toggle" id="ed-toggle-izq" title="Colapsar panel">‹</button></div>
         <div class="ed-panel-cont" id="ed-panel-campos">
           <div class="ed-col"><span class="ed-col-ic">−</span><span class="ed-col-t">Campos AcroForm</span><span class="ed-col-n">0</span></div>
           <div class="ed-campos-add"><input type="text" id="ed-campo-nuevo" placeholder="ID del campo" /><button type="button" id="ed-campo-agregar">+</button></div>
@@ -124,12 +124,16 @@ export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
         </div>
       </aside>
 
+      <div class="ed-separador" id="ed-separador-izq" title="Arrastrar para cambiar el ancho"></div>
+
       <div class="ed-lienzo-cont">
         <div class="ed-lienzo-scroll" id="ed-lienzo-scroll"></div>
       </div>
 
-      <aside class="ed-panel der">
-        <div class="ed-panel-head"><button type="button" class="ed-panel-toggle">›</button></div>
+      <div class="ed-separador" id="ed-separador-der" title="Arrastrar para cambiar el ancho"></div>
+
+      <aside class="ed-panel der" id="ed-panel-der">
+        <div class="ed-panel-head"><button type="button" class="ed-panel-toggle" id="ed-toggle-der" title="Colapsar panel">›</button></div>
         <div class="ed-panel-cont" id="ed-panel-propiedades">
           <div class="ed-props-tit"><strong>Propiedades</strong></div>
           <div class="ed-sinsel">Seleccioná un elemento del lienzo. Con Ctrl o Shift agregás varios; también podés arrastrar un recuadro sobre el lienzo.</div>

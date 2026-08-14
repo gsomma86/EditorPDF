@@ -192,13 +192,37 @@ button {
 }
 
 /* ---------- Layout de 3 columnas ---------- */
+/* Los anchos los maneja `ui/columnas.ts` escribiendo estas variables: así el arrastre y el
+   colapso pasan por un solo lugar y no se pisan entre sí. */
 .ed-layout {
   display: grid;
-  grid-template-columns: 210px 1fr 230px;
-  gap: 12px;
+  grid-template-columns: var(--ancho-izq, 210px) 5px 1fr 5px var(--ancho-der, 230px);
+  gap: 6px;
   padding: 12px;
   flex: 1;
   min-height: 0;
+}
+.ed-separador {
+  cursor: col-resize;
+  border-radius: 3px;
+  background: transparent;
+  transition: background 0.15s;
+}
+.ed-separador:hover,
+.ed-separador.arrastrando {
+  background: var(--acento);
+}
+/* Colapsado no se arrastra: no hay ancho que ajustar. */
+.ed-panel.colapsado + .ed-separador,
+.ed-separador.inerte {
+  cursor: default;
+  pointer-events: none;
+}
+.ed-panel.colapsado .ed-panel-cont {
+  display: none;
+}
+.ed-panel.colapsado .ed-panel-head {
+  justify-content: center;
 }
 .ed-panel {
   background: var(--fondo);
