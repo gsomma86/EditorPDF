@@ -133,9 +133,9 @@ export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
       <div class="ed-status-der">
         <span class="ed-status-vista"><b id="ed-status-tam">A4</b> · <span id="ed-status-orient">Vertical</span></span>
         <div class="ed-status-divisor"></div>
-        <button type="button" class="ed-status-peso">Peso: calcular</button>
+        <button type="button" class="ed-status-peso" id="ed-peso-btn">Peso: calcular</button>
         <div class="ed-status-divisor"></div>
-        <button type="button" class="ed-status-peso">Verificar</button>
+        <button type="button" class="ed-status-peso" id="ed-preflight-btn">Verificar</button>
         <div class="ed-status-divisor"></div>
         <div class="ed-zoom-slider">
           <button type="button" id="ed-zoom-menos" title="Alejar">−</button>

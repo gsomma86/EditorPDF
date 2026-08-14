@@ -7,7 +7,8 @@ import { mostrarMultiSeleccion, mostrarPropiedades, mostrarSinSeleccion } from '
 import { ActiveSelection, type FabricObject } from 'fabric';
 import { borrarAutoguardado, hayAutoguardado, programarAutoguardado, restaurarAutoguardado } from './editor/autoguardado';
 import { camposDesdeCsv, csvDesdeCampos, descargarCsv } from './editor/csvCampos';
-import { confirmar, pedirExportarPdf, pedirFilasColumnas, pedirMargenes, pedirNombreArchivo, pedirNuevoProyecto } from './ui/modales';
+import { confirmar, mostrarPreflight, pedirExportarPdf, pedirFilasColumnas, pedirMargenes, pedirNombreArchivo, pedirNuevoProyecto } from './ui/modales';
+import { formatearPeso, pesoDelPdf, verificarDiseno } from './editor/preflight';
 import { montarPanelCampos } from './ui/panelCampos';
 import { deshacer, inicializarHistorial, puedeDeshacer, puedeRehacer, registrarSnapshot, rehacer } from './editor/historial';
 import { aplicarConfigPagina, configActual } from './editor/documento';
@@ -314,7 +315,27 @@ document.getElementById('ed-importar-proyecto')!.addEventListener('click', async
   inputProyecto.click();
 });
 
-document.getElementById('ed-exportar-pdf')!.addEventListener('click', async () => {
+document.getElementById('ed-verificar')!.addEventListener('click', async () => {
+  await verificarYExportar();
+});
+
+const botonPeso = document.getElementById('ed-peso-btn')!;
+botonPeso.addEventListener('click', async () => {
+  botonPeso.textContent = 'Calculando…';
+  try {
+    botonPeso.textContent = `Peso: ${formatearPeso(await pesoDelPdf(lienzo))}`;
+  } catch {
+    botonPeso.textContent = 'Peso: no se pudo calcular';
+  }
+});
+
+async function verificarYExportar(): Promise<void> {
+  const hallazgos = verificarDiseno(lienzo);
+  if (!(await mostrarPreflight(hallazgos))) return;
+  await exportarConDialogo();
+}
+
+async function exportarConDialogo(): Promise<void> {
   const opciones = await pedirExportarPdf('documento');
   if (!opciones) return;
   try {
@@ -325,7 +346,11 @@ document.getElementById('ed-exportar-pdf')!.addEventListener('click', async () =
   } catch (error) {
     await confirmar('No se pudo exportar', error instanceof Error ? error.message : 'Ocurrió un error al generar el PDF.', 'Entendido');
   }
-});
+}
+
+// Exportar pasa antes por la verificación, así los problemas se ven antes de generar el archivo.
+document.getElementById('ed-exportar-pdf')!.addEventListener('click', verificarYExportar);
+document.getElementById('ed-preflight-btn')!.addEventListener('click', verificarYExportar);
 
 inputProyecto.addEventListener('change', async () => {
   const archivo = inputProyecto.files?.[0];

@@ -133,6 +133,42 @@ export function pedirExportarPdf(sugerido: string): Promise<{ nombre: string; co
   ) as Promise<{ nombre: string; conFormulario: boolean } | null>;
 }
 
+export function mostrarPreflight(hallazgos: { gravedad: 'error' | 'advertencia'; mensaje: string }[]): Promise<boolean> {
+  const errores = hallazgos.filter((h) => h.gravedad === 'error');
+  const advertencias = hallazgos.filter((h) => h.gravedad === 'advertencia');
+
+  const lista = (items: typeof hallazgos, clase: string, icono: string) =>
+    items.map((h) => `<div class="ed-pf-item ${clase}"><span>${icono}</span><span>${h.mensaje}</span></div>`).join('');
+
+  const cuerpo = hallazgos.length
+    ? `${errores.length ? `<div class="ed-pf-tit errores">✕ Errores (${errores.length})</div>${lista(errores, 'errores', '✕')}` : ''}
+       ${advertencias.length ? `<div class="ed-pf-tit adv">⚠ Advertencias (${advertencias.length})</div>${lista(advertencias, 'adv', '⚠')}` : ''}`
+    : '<div class="ed-pf-ok">✓ El diseño no tiene problemas.</div>';
+
+  return abrir(
+    `<div class="ed-modal-tit">Verificar diseño</div>
+     <div class="ed-modal-sub">Revisión previa a exportar. Los errores conviene corregirlos; las advertencias son recomendaciones.</div>
+     <div class="ed-pf-lista">${cuerpo}</div>
+     <div class="ed-modal-acciones">
+       <button type="button" data-cancelar>Cerrar</button>
+       <button type="button" class="primario" data-confirmar>${errores.length ? 'Exportar igual' : 'Exportar'}</button>
+     </div>`,
+    () => true
+  ).then((r) => r === true);
+}
+
+export function mostrarAyuda(titulo: string, html: string): Promise<unknown> {
+  return abrir(
+    `<div class="ed-modal-tit">${titulo}</div>
+     <div class="ed-ayuda">${html}</div>
+     <div class="ed-modal-acciones">
+       <button type="button" data-cancelar style="display:none"></button>
+       <button type="button" class="primario" data-confirmar>Entendido</button>
+     </div>`,
+    () => true
+  );
+}
+
 export function confirmar(titulo: string, mensaje: string, etiquetaAceptar = 'Aceptar'): Promise<boolean> {
   return abrir(
     `<div class="ed-modal-tit">${titulo}</div>
