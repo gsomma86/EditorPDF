@@ -21,7 +21,7 @@ Todo corre 100% del lado del cliente (WASM en el navegador o en Tauri) — no re
 
 ## Estado
 
-En diseño. Todavía no hay código de producto — ver el roadmap de fases en curso.
+En desarrollo — Fase 1 (MVP) en curso. Ver [ROADMAP.md](ROADMAP.md) para el detalle de fases.
 
 ## Licencia
 
