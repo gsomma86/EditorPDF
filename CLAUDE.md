@@ -1,5 +1,8 @@
 # EditorPDF — guía para agentes
 
+> **¿Retomás el proyecto?** Leé primero [TRASPASO.md](TRASPASO.md): dice exactamente dónde se dejó,
+> qué falta probar, qué falta implementar y las deudas técnicas conocidas.
+
 Editor de PDF real, gratuito y open source (AGPL-3.0), al estilo Sejda PDF / Nitro PDF.
 Repo: [gsomma86/EditorPDF](https://github.com/gsomma86/EditorPDF). Autor: Germán Somma.
 
@@ -80,30 +83,43 @@ src/
                           lienzo, el menú Campos, la carga de imágenes y los atajos de teclado.
   style.css               Todos los estilos. Copia fiel de la paleta del editor público.
   editor/
+    elemento.ts           EL MODELO. Tipos de cada elemento (texto/linea/rect/qr/tabla/imagen/
+                          campo), sus constructores con valores por defecto, y el área útil que
+                          acota dónde caen los elementos nuevos.
+    objetosFabric.ts      Traduce modelo -> objeto de Fabric. Mantiene el WeakMap objeto->modelo
+                          (`elementoDe`), reconstruye el lienzo y sincroniza geometría. También
+                          genera el QR (`generarQr`), compartido con el exportador.
+    lineaObjeto.ts        \
+    rectObjeto.ts          | Clases propias de Fabric que se dibujan desde el modelo. Existen
+    tablaObjeto.ts        /  porque una forma de Fabric traza su borde una sola vez y el estilo
+                          "doble" necesita dos. La tabla además lleva controles nativos por fila
+                          y columna. Ver "Lecciones aprendidas".
+    trazos.ts             Trazado de bordes compartido por los tres (sólido/punteado/doble) y el
+                          grosor mínimo para que "doble" se distinga.
     pagina.ts             Tamaños de hoja (A4/Carta/Oficio/A5), orientación y márgenes.
-    documento.ts          Config de página vigente: la aplica al lienzo y dibuja la guía de
-                          márgenes (en 'after:render', no como objeto, para que no se pueda
-                          seleccionar ni entre al historial ni al PDF).
+    documento.ts          Config de página vigente y su aplicación al lienzo.
+    vista.ts              Zoom, cuadrícula con enganche, reglas y guías de alineación. Dibuja los
+                          adornos que no son parte del documento (cuadrícula, márgenes, guías) en
+                          'after:render', no como objetos, para que no se puedan seleccionar ni
+                          entren al historial ni al PDF.
+    historial.ts          Deshacer/rehacer por snapshots del documento completo.
+    autoguardado.ts       Guardado en localStorage con un respiro, y restauración al abrir.
     proyecto.ts           Serializar/leer el .json del proyecto (página + elementos + catálogo).
+    csvCampos.ts          Importar/exportar el catálogo de campos en CSV.
+    preflight.ts          Verificación previa a exportar y peso real del PDF.
     exportarPdf.ts        Genera el PDF con pdf-lib. Se carga con import dinámico desde main.ts
                           porque pesa ~1,5 MB y solo hace falta al exportar.
+    fuentes.ts            Catálogo de fuentes: carga on-demand para la pantalla y bytes para
+                          incrustar en el PDF.
     lienzo.ts             Crea el canvas de Fabric con el tamaño de página en puntos.
-    elemento.ts           EL MODELO. Tipos de cada elemento (texto/linea/rect/qr/tabla/imagen/
-                          campo) y sus constructores con valores por defecto.
-    objetosFabric.ts      Traduce modelo -> objeto de Fabric. Mantiene el WeakMap objeto->modelo
-                          (`elementoDe`). Reconstrucción del lienzo y sincronización de geometría.
-    tablaObjeto.ts        La tabla como clase propia de Fabric, con controles nativos por fila
-                          y columna. Ver "Lecciones aprendidas".
-    fuentes.ts            Catálogo de fuentes y carga on-demand.
-    historial.ts          Deshacer/rehacer por snapshots del documento completo.
   ui/
     shell.ts              Encabezado, barra de menús, layout de 3 columnas, barra de estado.
-    panelPropiedades.ts   Panel derecho: campos por tipo de elemento + acciones (duplicar,
-                          borrar, al frente, enviar atrás).
+    panelPropiedades.ts   Panel derecho: campos por tipo de elemento, acciones (duplicar, borrar,
+                          al frente, enviar atrás) y el panel de selección múltiple.
     panelCampos.ts        Panel izquierdo: catálogo de IDs de campos AcroForm.
     modales.ts            Todos los modales (nuevo proyecto, márgenes, nombre de archivo,
-                          filas × columnas, confirmación). Usar `abrir()` de acá para
-                          cualquier modal nuevo en vez de armar otro sistema.
+                          filas × columnas, exportar, preflight, ayuda, confirmación). Usar
+                          `abrir()` de acá para cualquier modal nuevo en vez de armar otro sistema.
 ```
 
 **Arquitectura**: el modelo (`elemento.ts`) es la fuente de verdad; los objetos de Fabric son su

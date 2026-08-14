@@ -43,16 +43,18 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
 - [x] Guardar proyecto (.json) / Importar proyecto (.json)
 - [x] **Exportar PDF** con AcroForm real, vía `pdf-lib`. Incrusta las fuentes web (fontkit acepta
       los `.woff2` de `@fontsource`, no hicieron falta `.ttf`). Opción de exportar aplanado.
-- [ ] Selección múltiple (Ctrl/Shift y recuadro de arrastre) y sus acciones de grupo
-- [ ] Menú Ver: cuadrícula, reglas, guías de alineación (los checkboxes existen, no hacen nada)
-- [ ] Zoom (el control de la barra de estado existe, no hace nada)
-- [ ] Autoguardado en localStorage (la barra de estado ya lo anuncia)
-- [ ] Importar/exportar catálogo de campos en CSV
-- [ ] Modo "Completar campos"
-- [ ] Verificar diseño (preflight) y cálculo de peso del PDF
-- [ ] Modales de Ayuda (guía rápida, atajos, FAQ, acerca de)
-- [ ] Multiidioma ES/EN/PT (el editor público lo tiene; el selector ya está en el encabezado)
-- [ ] Rendimiento con documentos grandes
+- [x] Selección múltiple (Ctrl/Shift y recuadro de arrastre) y sus acciones de grupo
+- [x] Menú Ver: cuadrícula con enganche, reglas, guías de alineación
+- [x] Zoom (25%–300%)
+- [x] Autoguardado en localStorage, con opción de retomar al abrir
+- [x] Importar/exportar catálogo de campos en CSV
+- [x] Verificar diseño (preflight) y peso real del PDF
+- [ ] Modo "Completar campos" — el checkbox `#ed-completar` existe pero no está cableado
+- [ ] Modales de Ayuda (guía rápida, atajos, FAQ, acerca de) — el helper `mostrarAyuda()` y su CSS
+      ya están listos en `ui/modales.ts`; falta escribir los contenidos y cablear los clics
+- [ ] Campo repetible con comodín `#` (expansión en filas) — lo único que falta de AcroForm
+- [ ] Multiidioma ES/EN/PT — el más grande, conviene dejarlo último (ver TRASPASO.md)
+- [ ] Rendimiento con documentos grandes — sin medir todavía
 
 ## Fase 2 — Edición real de texto preexistente
 
