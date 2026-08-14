@@ -667,7 +667,7 @@ async function exportarConDialogo(): Promise<void> {
   try {
     // pdf-lib y fontkit pesan bastante y solo hacen falta al exportar: se cargan recién acá.
     const { exportarPdf, descargarPdf } = await import('./editor/exportarPdf');
-    const bytes = await exportarPdf(lienzo, { conFormulario: opciones.conFormulario });
+    const bytes = await exportarPdf(lienzo, { conFormulario: opciones.conFormulario, sinApariencias: opciones.sinApariencias });
     descargarPdf(bytes, opciones.nombre);
   } catch (error) {
     await confirmar('No se pudo exportar', error instanceof Error ? error.message : 'Ocurrió un error al generar el PDF.', 'Entendido');

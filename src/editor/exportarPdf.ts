@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, TextAlignment, degrees, rgb, type PDFFont, type PDFPage, type PDFTextField, type RGB } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFName, StandardFonts, TextAlignment, degrees, rgb, type PDFFont, type PDFPage, type PDFTextField, type RGB } from '@cantoo/pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import type { Canvas } from 'fabric';
 import {
@@ -23,6 +23,12 @@ import { generarQr } from './objetosFabric';
 export interface OpcionesExportar {
   /** Los campos AcroForm quedan como formulario rellenable; si no, se dibujan aplanados. */
   conFormulario: boolean;
+  /**
+   * Borra del PDF las apariencias (`/AP`) de los campos. Sirve para los campos invisibles: hay
+   * visores que ignoran la bandera de oculto y dibujan igual la apariencia guardada, así que sin
+   * esto un campo marcado como invisible puede terminar viéndose.
+   */
+  sinApariencias?: boolean;
 }
 
 function color(hex: string): RGB {
@@ -361,6 +367,17 @@ export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): P
         break;
       }
     }
+  }
+
+  if (opciones.sinApariencias) {
+    for (const campo of camposCreados.values()) {
+      for (const widget of campo.acroField.getWidgets()) {
+        widget.dict.delete(PDFName.of('AP'));
+      }
+    }
+    // Sin esto no serviría de nada: al guardar, pdf-lib regenera las apariencias de los campos y
+    // volvería a escribir justo lo que se acaba de borrar.
+    return doc.save({ updateFieldAppearances: false });
   }
 
   return doc.save();

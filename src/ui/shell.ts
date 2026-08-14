@@ -73,6 +73,11 @@ const MENU_CAMPOS = `
 const MENU_AYUDA = `
   <div class="ed-dd-item" id="ed-ayuda-guia">🚀 Guía rápida</div>
   <div class="ed-dd-item" id="ed-ayuda-atajos">⌨️ Atajos de teclado <span class="ed-dd-tecla">Ctrl+/</span></div>
+  <div class="ed-dd-sep"></div>
+  <div class="ed-dd-item" id="ed-ayuda-csv">📄 Cargar campos desde CSV</div>
+  <div class="ed-dd-item" id="ed-ayuda-repetibles">🔁 Campos repetibles (#)</div>
+  <div class="ed-dd-item" id="ed-ayuda-apariencias">🧾 Eliminar apariencias</div>
+  <div class="ed-dd-sep"></div>
   <div class="ed-dd-item" id="ed-ayuda-faq">❓ Preguntas frecuentes</div>
   <div class="ed-dd-sep"></div>
   <div class="ed-dd-item" id="ed-ayuda-acerca">ℹ️ Acerca de...</div>

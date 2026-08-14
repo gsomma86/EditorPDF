@@ -82,6 +82,71 @@ const FAQ = `
   el PDF igual.</p>
 `;
 
+const CSV = `
+  <p>El catálogo de IDs del panel izquierdo se puede llevar y traer como CSV, para no cargarlo a
+  mano cuando ya existe en otro lado.</p>
+
+  <h4>Formato</h4>
+  <p>Un ID por línea. La primera línea puede ser un encabezado —se descarta si dice algo como
+  <code>id</code> o <code>campo</code>— y si hay varias columnas se toma la primera.</p>
+  <p>Ejemplo:</p>
+  <pre><code>legajo
+apellido_nombre
+importe_neto
+fecha_pago</code></pre>
+
+  <h4>Al importar</h4>
+  <ul>
+    <li>Los IDs que ya estaban <b>no se duplican</b>.</li>
+    <li>Los campos ya colocados en la hoja <b>no se tocan</b>: el CSV solo llena el catálogo.</li>
+  </ul>
+  <p>Está en <b>Campos → Importar campos (CSV)</b> y <b>Exportar campos (CSV)</b>.</p>
+`;
+
+const REPETIBLES = `
+  <p>Sirve para lo que se repite fila por fila —los conceptos de un recibo, los ítems de una
+  factura— sin tener que colocar el campo veinte veces a mano.</p>
+
+  <h4>Cómo se usa</h4>
+  <ol>
+    <li>Colocá un campo en la hoja y seleccionalo.</li>
+    <li>En el panel, tocá <b>Hacer repetible</b>.</li>
+    <li>Poné un ID que contenga el comodín, por ejemplo <code>concepto_#</code>, y decí cuántas
+    filas y cuánta separación entre ellas.</li>
+  </ol>
+  <p>En el PDF eso baja como <code>concepto_1</code>, <code>concepto_2</code>, … un campo por fila,
+  cada uno separado del anterior por el alto del campo más la separación que hayas puesto.</p>
+
+  <h4>Qué esperar</h4>
+  <ul>
+    <li>En la hoja, las filas 2 en adelante se dibujan punteadas: son una previsualización, no se
+    pueden seleccionar ni mover por separado. Se mueven con el campo.</li>
+    <li>El ID <b>tiene que</b> contener el comodín: si no, todas las filas se llamarían igual y en
+    el PDF serían un solo campo.</li>
+    <li><b>Verificar</b> avisa si las últimas filas se caen de la hoja.</li>
+  </ul>
+`;
+
+const APARIENCIAS = `
+  <p>Es una opción del cuadro de <b>Exportar PDF</b>, pensada para los campos marcados como
+  invisibles.</p>
+
+  <h4>Qué hace</h4>
+  <p>Borra del PDF la <i>apariencia</i> guardada de cada campo (la entrada <code>/AP</code>, que es
+  el dibujo ya resuelto de cómo se ve). Un campo invisible lleva una bandera de oculto, pero hay
+  visores que la ignoran y dibujan igual esa apariencia: sin ella, no tienen qué dibujar.</p>
+
+  <h4>Cuándo usarla</h4>
+  <ul>
+    <li><b>Sí</b>: si tenés campos invisibles y el PDF va a abrirse en visores variados, o si al
+    probarlo aparecen campos que deberían estar ocultos.</li>
+    <li><b>No</b>: si no usás campos invisibles. Sin apariencias, algunos visores dibujan los campos
+    con su estilo propio en vez del que definiste.</li>
+  </ul>
+  <p><b>No se puede deshacer</b> en el PDF exportado. El diseño no se toca: alcanza con exportar de
+  nuevo sin la opción.</p>
+`;
+
 const ACERCA = `
   <p><b>EditorPDF</b> — editor de PDF libre y de código abierto, sin servidor: todo se procesa en
   el navegador.</p>
@@ -106,6 +171,9 @@ export function cablearAyuda(): { verAtajos: () => void } {
   const items: [string, string, string][] = [
     ['ed-ayuda-guia', '🚀 Guía rápida', GUIA],
     ['ed-ayuda-atajos', '⌨️ Atajos de teclado', ATAJOS],
+    ['ed-ayuda-csv', '📄 Cargar campos desde CSV', CSV],
+    ['ed-ayuda-repetibles', '🔁 Campos repetibles (#)', REPETIBLES],
+    ['ed-ayuda-apariencias', '🧾 Eliminar apariencias', APARIENCIAS],
     ['ed-ayuda-faq', '❓ Preguntas frecuentes', FAQ],
     ['ed-ayuda-acerca', 'ℹ️ Acerca de EditorPDF', ACERCA],
   ];

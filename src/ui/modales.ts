@@ -180,7 +180,7 @@ export function pedirCampoRepetible(actual: Repeticion): Promise<Repeticion | nu
   ) as Promise<Repeticion | null>;
 }
 
-export function pedirExportarPdf(sugerido: string): Promise<{ nombre: string; conFormulario: boolean } | null> {
+export function pedirExportarPdf(sugerido: string): Promise<{ nombre: string; conFormulario: boolean; sinApariencias: boolean } | null> {
   return abrir(
     `<div class="ed-modal-tit">Exportar PDF</div>
      <div class="ed-modal-sub">Se genera y descarga el PDF final del diseño.</div>
@@ -188,6 +188,8 @@ export function pedirExportarPdf(sugerido: string): Promise<{ nombre: string; co
      <input type="text" data-nombre value="${sugerido}" maxlength="120">
      <label class="ed-check" style="margin-top:12px;"><input type="checkbox" data-formulario checked> Conservar campos editables (AcroForm)</label>
      <p class="nota" style="margin-top:6px;">Sin esto, los campos se dibujan aplanados con su valor por defecto y el PDF deja de ser rellenable.</p>
+     <label class="ed-check" style="margin-top:10px;"><input type="checkbox" data-sinap> Eliminar apariencias de los campos</label>
+     <p class="nota" style="margin-top:6px;">Para que los campos invisibles no se vean en visores que ignoran la bandera de oculto. No se puede deshacer en el PDF exportado.</p>
      <div class="ed-modal-acciones">
        <button type="button" data-cancelar>Cancelar</button>
        <button type="button" class="primario" data-confirmar>Exportar</button>
@@ -195,8 +197,9 @@ export function pedirExportarPdf(sugerido: string): Promise<{ nombre: string; co
     (raiz) => ({
       nombre: raiz.querySelector<HTMLInputElement>('[data-nombre]')!.value,
       conFormulario: raiz.querySelector<HTMLInputElement>('[data-formulario]')!.checked,
+      sinApariencias: raiz.querySelector<HTMLInputElement>('[data-sinap]')!.checked,
     })
-  ) as Promise<{ nombre: string; conFormulario: boolean } | null>;
+  ) as Promise<{ nombre: string; conFormulario: boolean; sinApariencias: boolean } | null>;
 }
 
 export function mostrarPreflight(hallazgos: { gravedad: 'error' | 'advertencia'; mensaje: string }[]): Promise<boolean> {
