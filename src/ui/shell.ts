@@ -42,6 +42,13 @@ const MENU_PAGINA = `
       <option value="horizontal">Horizontal</option>
     </select>
   </div>
+  <div class="ed-dd-item ed-dd-persistente">
+    <span>Fondo</span>
+    <select id="ed-fondo-modo">
+      <option value="blanco">Hoja en blanco</option>
+      <option value="imagen">Imagen…</option>
+    </select>
+  </div>
   <div class="ed-dd-sep"></div>
   <div class="ed-dd-item" id="ed-margenes">Configurar márgenes…</div>
 `;

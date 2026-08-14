@@ -209,6 +209,13 @@ export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): P
   const formulario = doc.getForm();
   const camposCreados = new Map<string, PDFTextField>();
 
+  // El fondo va primero, estirado a toda la hoja, para que todo lo demás quede encima.
+  if (config.fondo) {
+    const bytes = await fetch(config.fondo).then((r) => r.arrayBuffer());
+    const imagen = config.fondo.startsWith('data:image/png') ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
+    pagina.drawImage(imagen, { x: 0, y: 0, width: anchoPagina, height: altoPagina });
+  }
+
   const elementos = lienzo
     .getObjects()
     .map((o) => elementoDe(o))

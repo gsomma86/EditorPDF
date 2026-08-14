@@ -386,10 +386,13 @@ const selOrient = document.getElementById('ed-orient') as HTMLSelectElement;
 const estadoTam = document.getElementById('ed-status-tam')!;
 const estadoOrient = document.getElementById('ed-status-orient')!;
 
+const selFondo = document.getElementById('ed-fondo-modo') as HTMLSelectElement;
+
 function reflejarPagina(): void {
   const config = configActual();
   selTamano.value = config.tamano;
   selOrient.value = config.orientacion;
+  selFondo.value = config.fondo ? 'imagen' : 'blanco';
   estadoTam.textContent = config.tamano;
   estadoOrient.textContent = config.orientacion === 'horizontal' ? 'Horizontal' : 'Vertical';
 }
@@ -397,7 +400,39 @@ function reflejarPagina(): void {
 function cambiarPagina(cambio: Partial<ReturnType<typeof configActual>>): void {
   aplicarConfigPagina(lienzo, { ...configActual(), ...cambio });
   reflejarPagina();
+  guardar();
 }
+
+// ---------- Fondo de la hoja ----------
+
+const inputFondo = document.createElement('input');
+inputFondo.type = 'file';
+inputFondo.accept = 'image/png,image/jpeg';
+inputFondo.style.display = 'none';
+document.body.appendChild(inputFondo);
+
+inputFondo.addEventListener('change', async () => {
+  const archivo = inputFondo.files?.[0];
+  if (!archivo) {
+    reflejarPagina(); // canceló el diálogo: el select vuelve a lo que hay
+    return;
+  }
+  const fondo = await new Promise<string>((resolve) => {
+    const lector = new FileReader();
+    lector.onload = () => resolve(lector.result as string);
+    lector.readAsDataURL(archivo);
+  });
+  cambiarPagina({ fondo });
+});
+
+selFondo.addEventListener('change', () => {
+  if (selFondo.value === 'blanco') {
+    cambiarPagina({ fondo: null });
+    return;
+  }
+  inputFondo.value = '';
+  inputFondo.click();
+});
 
 selTamano.addEventListener('change', () => cambiarPagina({ tamano: selTamano.value as TamanoPagina }));
 selOrient.addEventListener('change', () => cambiarPagina({ orientacion: selOrient.value as Orientacion }));
