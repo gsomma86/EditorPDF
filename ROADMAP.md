@@ -69,7 +69,9 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
 - [x] Rendimiento con documentos grandes — **medido, no hace falta optimizar**. Con
       `npm run medir-rendimiento`: 1000 elementos (5 hojas A4 llenas) arman en 86 ms y redibujan
       en ~21 ms, o sea unos 48 cuadros por segundo. Una hoja llena de verdad ronda los 200.
-- [ ] Multiidioma ES/EN/PT — el más grande, conviene dejarlo último (ver TRASPASO.md)
+- [x] Multiidioma ES/EN/PT — `ui/i18n.ts` (diccionario + `data-i18n*` + selector en el encabezado),
+      cableado en `shell.ts`, `modales.ts`, `panelPropiedades.ts`, `panelCampos.ts`, `main.ts` y los
+      textos largos de `ayuda.ts`. Falta: probar el selector en el navegador (no se probó todavía)
 
 ## Fase 2 — Edición real de texto preexistente
 

@@ -21,10 +21,13 @@ nuevo como texto extraíble, y el viejo ya no está.
 
 ## Lo que falta
 
-1. **Multiidioma ES/EN/PT** — lo único que falta de la fase 1, y se dejó para el final porque toca
-   cada texto de la interfaz. El selector ya está en el encabezado pero no hace nada. El editor
-   público tiene su diccionario en `i18n.js`, que sirve de base. Los textos largos (guía, atajos,
-   preguntas frecuentes, acerca de) están juntos en `ui/ayuda.ts`.
+1. **Multiidioma ES/EN/PT** — implementado el 14/08/2026 en `ui/i18n.ts` (mismo patrón que
+   `i18n.js` del editor público: diccionario plano, `data-i18n`/`-title`/`-placeholder`/`-label`,
+   persistido en localStorage). El selector del encabezado ya funciona. Cableado en `shell.ts`,
+   `modales.ts`, `panelPropiedades.ts`, `panelCampos.ts`, `main.ts` y los 7 bloques largos de
+   `ui/ayuda.ts` (guía, atajos, CSV, repetibles, apariencias, FAQ, acerca de). **Falta probarlo en
+   el navegador** — no se verificó todavía que el selector cambie todo correctamente ni que un
+   PDF con texto en otro idioma se vea bien.
 2. **Afinar el reemplazo de texto de la fase 2**:
    - La posición estima la ascendente en 0,75 × el cuerpo. Medido contra un caso real, el
      reemplazo cayó 2 pt más arriba que el original.

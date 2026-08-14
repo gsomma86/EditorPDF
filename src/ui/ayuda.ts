@@ -1,12 +1,15 @@
 import { mostrarAyuda } from './modales';
+import { idiomaActual, t, type Idioma } from './i18n';
 
 /**
  * Contenidos del menú Ayuda. Están acá y no en `modales.ts` para no mezclar el mecanismo con el
- * texto: los modales son el cómo, esto es el qué. Cuando se sume el multiidioma, este archivo es
- * el que hay que traducir.
+ * texto: los modales son el cómo, esto es el qué. Es el archivo a traducir para el multiidioma:
+ * cada bloque tiene sus tres variantes (ES/EN/PT) y se elige la vigente al abrir el modal, no hace
+ * falta re-render en caliente porque estos modales son transitorios.
  */
 
-const GUIA = `
+const GUIA: Record<Idioma, string> = {
+  es: `
   <h4>1 · Preparar la hoja</h4>
   <p>En el menú <b>Página</b> se elige tamaño (A4, Carta, Oficio, A5), orientación y márgenes. Los
   márgenes se dibujan punteados en la hoja y son la referencia de dónde conviene poner las cosas:
@@ -34,9 +37,69 @@ const GUIA = `
   </ul>
   <p>Además, el trabajo se autoguarda en este navegador, así que si se cierra la pestaña por error
   se ofrece retomarlo al volver.</p>
-`;
+`,
+  en: `
+  <h4>1 · Set up the sheet</h4>
+  <p>In the <b>Page</b> menu you choose the size (A4, Letter, Legal, A5), orientation and margins.
+  Margins are drawn as a dotted guide on the sheet and are just a reference for where things
+  should go: they don't crop anything.</p>
 
-const ATAJOS = `
+  <h4>2 · Add elements</h4>
+  <p>From the <b>Fields</b> menu you add text, line, box, table, image and QR. Each one is adjusted
+  in the panel on the right: position and size in points, angle, colors and typography.
+  With <b>View → Grid</b> elements snap to a grid as you move them.</p>
+
+  <h4>3 · Form fields</h4>
+  <p>The panel on the left keeps the catalog of IDs (<code>employee_id</code>,
+  <code>amount</code>…) and a click places them on the sheet. The same ID can be placed several
+  times: in the PDF it's a single field shown in several places. If the ID carries a wildcard
+  (<code>item_#</code>), the <b>Make repeatable</b> button lays it out in several numbered rows.</p>
+  <p>The <b>Fill in fields</b> checkbox in the Fields menu lets you type a sample value inside each
+  field, right on the sheet, to preview how it'll look with real data.</p>
+
+  <h4>4 · Save and export (two different things)</h4>
+  <ul>
+    <li><b>Save project</b> downloads a <code>.json</code> with the design to keep editing it
+    later, here or on another computer.</li>
+    <li><b>Export PDF</b> generates the final PDF. It's the file that gets used; it can't be
+    edited here again.</li>
+  </ul>
+  <p>The work is also auto-saved in this browser, so if the tab closes by accident you'll be
+  offered to resume it when you come back.</p>
+`,
+  pt: `
+  <h4>1 · Preparar a folha</h4>
+  <p>No menu <b>Página</b> você escolhe o tamanho (A4, Carta, Ofício, A5), a orientação e as
+  margens. As margens são desenhadas como um guia pontilhado na folha e servem apenas de
+  referência de onde colocar as coisas: não recortam nada.</p>
+
+  <h4>2 · Colocar elementos</h4>
+  <p>No menu <b>Campos</b> você adiciona texto, linha, retângulo, tabela, imagem e QR. Cada um se
+  ajusta no painel da direita: posição e tamanho em pontos, ângulo, cores e tipografia.
+  Com <b>Exibir → Grade</b> os elementos se encaixam em uma grade ao movê-los.</p>
+
+  <h4>3 · Campos do formulário</h4>
+  <p>No painel da esquerda fica o catálogo de IDs (<code>matricula</code>,
+  <code>valor</code>…) e um clique os coloca na folha. O mesmo ID pode ser colocado várias vezes:
+  no PDF é um único campo que aparece em vários lugares. Se o ID tiver um coringa
+  (<code>item_#</code>), o botão <b>Tornar repetível</b> o distribui em várias linhas numeradas.</p>
+  <p>A opção <b>Preencher campos</b> do menu Campos permite digitar um valor de exemplo dentro de
+  cada campo, na própria folha, para ver como vai ficar com dados reais.</p>
+
+  <h4>4 · Salvar e exportar (são duas coisas diferentes)</h4>
+  <ul>
+    <li><b>Salvar projeto</b> baixa um <code>.json</code> com o modelo para continuar editando
+    depois, aqui ou em outro computador.</li>
+    <li><b>Exportar PDF</b> gera o PDF final. É o arquivo que se usa; não pode ser editado aqui de
+    novo.</li>
+  </ul>
+  <p>Além disso, o trabalho é salvo automaticamente neste navegador, então se a aba fechar por
+  engano você poderá retomá-lo ao voltar.</p>
+`,
+};
+
+const ATAJOS: Record<Idioma, string> = {
+  es: `
   <table class="ed-atajos">
     <tbody>
       <tr><td><kbd>Ctrl</kbd> + <kbd>Z</kbd> / <kbd>Ctrl</kbd> + <kbd>Y</kbd></td><td>Deshacer / Rehacer</td></tr>
@@ -53,9 +116,47 @@ const ATAJOS = `
   </table>
   <p>Para seleccionar varios elementos: <kbd>Ctrl</kbd> o <kbd>Shift</kbd> mientras se hace clic, o
   arrastrar un recuadro sobre la hoja.</p>
-`;
+`,
+  en: `
+  <table class="ed-atajos">
+    <tbody>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>Z</kbd> / <kbd>Ctrl</kbd> + <kbd>Y</kbd></td><td>Undo / Redo</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>C</kbd> / <kbd>Ctrl</kbd> + <kbd>V</kbd></td><td>Copy / Paste</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>X</kbd></td><td>Cut</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>A</kbd></td><td>Select everything on the sheet</td></tr>
+      <tr><td><kbd>Supr</kbd> / <kbd>Delete</kbd></td><td>Delete the selection</td></tr>
+      <tr><td><kbd>Arrows</kbd></td><td>Move 1 pt</td></tr>
+      <tr><td><kbd>Shift</kbd> + <kbd>Arrows</kbd></td><td>Move 10 pt</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + mouse wheel</td><td>Zoom in / out</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd></td><td>Redo (same as Ctrl+Y)</td></tr>
+      <tr><td><kbd>Escape</kbd></td><td>Close whatever dialog is open</td></tr>
+    </tbody>
+  </table>
+  <p>To select several elements: <kbd>Ctrl</kbd> or <kbd>Shift</kbd> while clicking, or drag a box
+  over the sheet.</p>
+`,
+  pt: `
+  <table class="ed-atajos">
+    <tbody>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>Z</kbd> / <kbd>Ctrl</kbd> + <kbd>Y</kbd></td><td>Desfazer / Refazer</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>C</kbd> / <kbd>Ctrl</kbd> + <kbd>V</kbd></td><td>Copiar / Colar</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>X</kbd></td><td>Recortar</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>A</kbd></td><td>Selecionar tudo o que há na folha</td></tr>
+      <tr><td><kbd>Supr</kbd> / <kbd>Delete</kbd></td><td>Excluir a seleção</td></tr>
+      <tr><td><kbd>Setas</kbd></td><td>Mover 1 pt</td></tr>
+      <tr><td><kbd>Shift</kbd> + <kbd>Setas</kbd></td><td>Mover 10 pt</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + roda do mouse</td><td>Aproximar / afastar</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd></td><td>Refazer (igual a Ctrl+Y)</td></tr>
+      <tr><td><kbd>Escape</kbd></td><td>Fechar a caixa que estiver aberta</td></tr>
+    </tbody>
+  </table>
+  <p>Para selecionar vários elementos: <kbd>Ctrl</kbd> ou <kbd>Shift</kbd> enquanto clica, ou
+  arraste um retângulo sobre a folha.</p>
+`,
+};
 
-const FAQ = `
+const FAQ: Record<Idioma, string> = {
+  es: `
   <h4>¿Se sube algo a un servidor?</h4>
   <p>No. Todo corre en el navegador: no hay backend y nada del diseño sale de la máquina. El
   autoguardado usa el almacenamiento local del propio navegador.</p>
@@ -80,9 +181,63 @@ const FAQ = `
   <h4>¿Qué pasa si un elemento se sale de la hoja?</h4>
   <p><b>Verificar</b> lo marca como error. Fuera de los márgenes es solo una advertencia: entra en
   el PDF igual.</p>
-`;
+`,
+  en: `
+  <h4>Does anything get uploaded to a server?</h4>
+  <p>No. Everything runs in the browser: there's no backend and nothing about the design leaves
+  the machine. Auto-save uses the browser's own local storage.</p>
 
-const CSV = `
+  <h4>How do I continue a design on another computer?</h4>
+  <p><b>File → Save project</b> downloads a <code>.json</code>. On the other machine,
+  <b>File → Import project</b> opens it exactly as it was.</p>
+
+  <h4>Do fields stay editable in Acrobat or Edge?</h4>
+  <p>Yes: they're exported as standard AcroForm. When exporting you can uncheck <b>Keep fields
+  editable</b> so their default value is drawn in place of the fields, and the PDF stays fixed.</p>
+
+  <h4>Can I open a PDF made in another tool and edit it?</h4>
+  <p>Not yet. That's the project's goal and it's under development: today the editor generates its
+  own PDFs, but doesn't modify the content of an existing one.</p>
+
+  <h4>Why doesn't the exported text look the same as on screen?</h4>
+  <p>Web fonts are embedded in the PDF, so they should look the same. If something's off,
+  <b>Verify</b> (in the bottom bar) reviews the design and flags anything that could cause trouble
+  before exporting.</p>
+
+  <h4>What happens if an element falls outside the sheet?</h4>
+  <p><b>Verify</b> flags it as an error. Outside the margins is only a warning: it still goes into
+  the PDF.</p>
+`,
+  pt: `
+  <h4>Alguma coisa é enviada para um servidor?</h4>
+  <p>Não. Tudo roda no navegador: não há backend e nada do modelo sai da máquina. O salvamento
+  automático usa o armazenamento local do próprio navegador.</p>
+
+  <h4>Como continuo um modelo em outro computador?</h4>
+  <p><b>Arquivo → Salvar projeto</b> baixa um <code>.json</code>. No outro computador,
+  <b>Arquivo → Importar projeto</b> o abre exatamente como estava.</p>
+
+  <h4>Os campos ficam editáveis no Acrobat ou no Edge?</h4>
+  <p>Sim: são exportados como AcroForm padrão. Ao exportar você pode desmarcar <b>Manter campos
+  editáveis</b> para que, em vez de campos, seja desenhado o valor padrão, e o PDF fique fixo.</p>
+
+  <h4>Posso abrir um PDF feito em outra ferramenta e editá-lo?</h4>
+  <p>Ainda não. É o objetivo do projeto e está em desenvolvimento: hoje o editor gera PDFs
+  próprios, mas não modifica o conteúdo de um já existente.</p>
+
+  <h4>Por que o texto exportado não fica igual ao da tela?</h4>
+  <p>As tipografias web são incorporadas ao PDF, então deveriam ficar iguais. Se algo não bater,
+  <b>Verificar</b> (na barra de baixo) revisa o modelo e avisa o que pode dar problema antes de
+  exportar.</p>
+
+  <h4>O que acontece se um elemento sair da folha?</h4>
+  <p><b>Verificar</b> marca isso como erro. Fora das margens é apenas um aviso: entra no PDF do
+  mesmo jeito.</p>
+`,
+};
+
+const CSV: Record<Idioma, string> = {
+  es: `
   <p>El catálogo de IDs del panel izquierdo se puede llevar y traer como CSV, para no cargarlo a
   mano cuando ya existe en otro lado.</p>
 
@@ -101,9 +256,51 @@ fecha_pago</code></pre>
     <li>Los campos ya colocados en la hoja <b>no se tocan</b>: el CSV solo llena el catálogo.</li>
   </ul>
   <p>Está en <b>Campos → Importar campos (CSV)</b> y <b>Exportar campos (CSV)</b>.</p>
-`;
+`,
+  en: `
+  <p>The ID catalog on the left panel can be brought in and taken out as CSV, so you don't have to
+  type it by hand when it already exists somewhere else.</p>
 
-const REPETIBLES = `
+  <h4>Format</h4>
+  <p>One ID per line. The first line can be a header —it's discarded if it says something like
+  <code>id</code> or <code>field</code>— and if there are several columns, the first one is used.</p>
+  <p>Example:</p>
+  <pre><code>employee_id
+last_first_name
+net_amount
+payment_date</code></pre>
+
+  <h4>On import</h4>
+  <ul>
+    <li>IDs that were already there <b>aren't duplicated</b>.</li>
+    <li>Fields already placed on the sheet <b>aren't touched</b>: the CSV only fills the catalog.</li>
+  </ul>
+  <p>It's under <b>Fields → Import fields (CSV)</b> and <b>Export fields (CSV)</b>.</p>
+`,
+  pt: `
+  <p>O catálogo de IDs do painel esquerdo pode ser levado e trazido como CSV, para não ter que
+  digitá-lo à mão quando já existe em outro lugar.</p>
+
+  <h4>Formato</h4>
+  <p>Um ID por linha. A primeira linha pode ser um cabeçalho —é descartada se disser algo como
+  <code>id</code> ou <code>campo</code>— e, se houver várias colunas, a primeira é usada.</p>
+  <p>Exemplo:</p>
+  <pre><code>matricula
+sobrenome_nome
+valor_liquido
+data_pagamento</code></pre>
+
+  <h4>Ao importar</h4>
+  <ul>
+    <li>Os IDs que já existiam <b>não são duplicados</b>.</li>
+    <li>Os campos já colocados na folha <b>não são alterados</b>: o CSV só preenche o catálogo.</li>
+  </ul>
+  <p>Está em <b>Campos → Importar campos (CSV)</b> e <b>Exportar campos (CSV)</b>.</p>
+`,
+};
+
+const REPETIBLES: Record<Idioma, string> = {
+  es: `
   <p>Sirve para lo que se repite fila por fila —los conceptos de un recibo, los ítems de una
   factura— sin tener que colocar el campo veinte veces a mano.</p>
 
@@ -125,9 +322,57 @@ const REPETIBLES = `
     el PDF serían un solo campo.</li>
     <li><b>Verificar</b> avisa si las últimas filas se caen de la hoja.</li>
   </ul>
-`;
+`,
+  en: `
+  <p>It's for whatever repeats row by row —the line items of a receipt, the items of an
+  invoice— without having to place the field twenty times by hand.</p>
 
-const APARIENCIAS = `
+  <h4>How to use it</h4>
+  <ol>
+    <li>Place a field on the sheet and select it.</li>
+    <li>In the panel, tap <b>Make repeatable</b>.</li>
+    <li>Set an ID that contains the wildcard, for example <code>item_#</code>, and say how many
+    rows and how much spacing between them.</li>
+  </ol>
+  <p>In the PDF that goes in as <code>item_1</code>, <code>item_2</code>, … one field per row, each
+  one separated from the previous by the field's height plus the spacing you set.</p>
+
+  <h4>What to expect</h4>
+  <ul>
+    <li>On the sheet, rows 2 onward are drawn dotted: they're a preview, they can't be selected or
+    moved separately. They move along with the field.</li>
+    <li>The ID <b>must</b> contain the wildcard: otherwise every row would be named the same and in
+    the PDF they'd be a single field.</li>
+    <li><b>Verify</b> warns if the last rows fall off the sheet.</li>
+  </ul>
+`,
+  pt: `
+  <p>Serve para o que se repete linha por linha —os itens de um recibo, os itens de uma
+  nota fiscal— sem ter que colocar o campo vinte vezes à mão.</p>
+
+  <h4>Como se usa</h4>
+  <ol>
+    <li>Coloque um campo na folha e selecione-o.</li>
+    <li>No painel, toque em <b>Tornar repetível</b>.</li>
+    <li>Defina um ID que contenha o coringa, por exemplo <code>item_#</code>, e diga quantas
+    linhas e qual o espaçamento entre elas.</li>
+  </ol>
+  <p>No PDF isso desce como <code>item_1</code>, <code>item_2</code>, … um campo por linha, cada um
+  separado do anterior pela altura do campo mais o espaçamento definido.</p>
+
+  <h4>O que esperar</h4>
+  <ul>
+    <li>Na folha, as linhas a partir da 2ª são desenhadas pontilhadas: são uma pré-visualização,
+    não podem ser selecionadas nem movidas separadamente. Se movem junto com o campo.</li>
+    <li>O ID <b>precisa</b> conter o coringa: caso contrário, todas as linhas teriam o mesmo nome
+    e no PDF seriam um único campo.</li>
+    <li><b>Verificar</b> avisa se as últimas linhas caírem fora da folha.</li>
+  </ul>
+`,
+};
+
+const APARIENCIAS: Record<Idioma, string> = {
+  es: `
   <p>Es una opción del cuadro de <b>Exportar PDF</b>, pensada para los campos marcados como
   invisibles.</p>
 
@@ -145,9 +390,49 @@ const APARIENCIAS = `
   </ul>
   <p><b>No se puede deshacer</b> en el PDF exportado. El diseño no se toca: alcanza con exportar de
   nuevo sin la opción.</p>
-`;
+`,
+  en: `
+  <p>It's an option in the <b>Export PDF</b> dialog, meant for fields marked as invisible.</p>
 
-const ACERCA = `
+  <h4>What it does</h4>
+  <p>It removes each field's stored <i>appearance</i> from the PDF (the <code>/AP</code> entry,
+  which is the already-resolved drawing of what it looks like). An invisible field carries a
+  hidden flag, but some viewers ignore it and draw that appearance anyway: without it, they have
+  nothing to draw.</p>
+
+  <h4>When to use it</h4>
+  <ul>
+    <li><b>Yes</b>: if you have invisible fields and the PDF will be opened in a variety of
+    viewers, or if fields that should be hidden show up when you test it.</li>
+    <li><b>No</b>: if you don't use invisible fields. Without appearances, some viewers draw
+    fields with their own style instead of the one you set.</li>
+  </ul>
+  <p>It <b>cannot be undone</b> in the exported PDF. The design itself isn't touched: exporting
+  again without the option is enough.</p>
+`,
+  pt: `
+  <p>É uma opção da caixa de <b>Exportar PDF</b>, pensada para campos marcados como invisíveis.</p>
+
+  <h4>O que faz</h4>
+  <p>Remove do PDF a <i>aparência</i> salva de cada campo (a entrada <code>/AP</code>, que é o
+  desenho já resolvido de como ele se parece). Um campo invisível carrega uma marca de oculto, mas
+  há visualizadores que a ignoram e desenham essa aparência mesmo assim: sem ela, não têm o que
+  desenhar.</p>
+
+  <h4>Quando usar</h4>
+  <ul>
+    <li><b>Sim</b>: se você tem campos invisíveis e o PDF vai ser aberto em visualizadores
+    variados, ou se ao testá-lo aparecem campos que deveriam estar ocultos.</li>
+    <li><b>Não</b>: se você não usa campos invisíveis. Sem aparências, alguns visualizadores
+    desenham os campos com seu próprio estilo em vez do que você definiu.</li>
+  </ul>
+  <p><b>Não pode ser desfeito</b> no PDF exportado. O modelo em si não é alterado: basta exportar
+  de novo sem a opção.</p>
+`,
+};
+
+const ACERCA: Record<Idioma, string> = {
+  es: `
   <p><b>EditorPDF</b> — editor de PDF libre y de código abierto, sin servidor: todo se procesa en
   el navegador.</p>
   <ul>
@@ -164,23 +449,60 @@ const ACERCA = `
     <li><b>pdf.js</b> y <b>mupdf</b> para leer y editar PDFs existentes</li>
     <li><b>qrcode</b> para los códigos QR, y tipografías de <b>Fontsource</b> con licencia OFL</li>
   </ul>
-`;
+`,
+  en: `
+  <p><b>EditorPDF</b> — a free, open-source PDF editor with no server: everything runs in the
+  browser.</p>
+  <ul>
+    <li>Version 0.1.0 (in development)</li>
+    <li>Author: Germán Somma</li>
+    <li>License: <b>AGPL-3.0</b> — anyone who receives this program can request its full source
+    code.</li>
+    <li>Code: <code>github.com/gsomma86/EditorPDF</code></li>
+  </ul>
+  <h4>Built with</h4>
+  <ul>
+    <li><b>Fabric.js</b> for the editing surface</li>
+    <li><b>pdf-lib</b> and <b>fontkit</b> to generate the PDF and its forms</li>
+    <li><b>pdf.js</b> and <b>mupdf</b> to read and edit existing PDFs</li>
+    <li><b>qrcode</b> for QR codes, and <b>Fontsource</b> typefaces under the OFL license</li>
+  </ul>
+`,
+  pt: `
+  <p><b>EditorPDF</b> — editor de PDF livre e de código aberto, sem servidor: tudo é processado no
+  navegador.</p>
+  <ul>
+    <li>Versão 0.1.0 (em desenvolvimento)</li>
+    <li>Autor: Germán Somma</li>
+    <li>Licença: <b>AGPL-3.0</b> — qualquer pessoa que receba este programa pode solicitar seu
+    código-fonte completo.</li>
+    <li>Código: <code>github.com/gsomma86/EditorPDF</code></li>
+  </ul>
+  <h4>Construído com</h4>
+  <ul>
+    <li><b>Fabric.js</b> para a superfície de edição</li>
+    <li><b>pdf-lib</b> e <b>fontkit</b> para gerar o PDF e seus formulários</li>
+    <li><b>pdf.js</b> e <b>mupdf</b> para ler e editar PDFs existentes</li>
+    <li><b>qrcode</b> para os códigos QR, e tipografias do <b>Fontsource</b> com licença OFL</li>
+  </ul>
+`,
+};
 
 /** Deja los ítems del menú Ayuda funcionando. Devuelve el modal de atajos para el atajo Ctrl+/. */
 export function cablearAyuda(): { verAtajos: () => void } {
-  const items: [string, string, string][] = [
-    ['ed-ayuda-guia', '🚀 Guía rápida', GUIA],
-    ['ed-ayuda-atajos', '⌨️ Atajos de teclado', ATAJOS],
-    ['ed-ayuda-csv', '📄 Cargar campos desde CSV', CSV],
-    ['ed-ayuda-repetibles', '🔁 Campos repetibles (#)', REPETIBLES],
-    ['ed-ayuda-apariencias', '🧾 Eliminar apariencias', APARIENCIAS],
-    ['ed-ayuda-faq', '❓ Preguntas frecuentes', FAQ],
-    ['ed-ayuda-acerca', 'ℹ️ Acerca de EditorPDF', ACERCA],
+  const items: [string, Parameters<typeof t>[0], Record<Idioma, string>][] = [
+    ['ed-ayuda-guia', 'ayuda.menu.guia', GUIA],
+    ['ed-ayuda-atajos', 'ayuda.menu.atajos', ATAJOS],
+    ['ed-ayuda-csv', 'ayuda.menu.csv', CSV],
+    ['ed-ayuda-repetibles', 'ayuda.menu.repetibles', REPETIBLES],
+    ['ed-ayuda-apariencias', 'ayuda.menu.apariencias', APARIENCIAS],
+    ['ed-ayuda-faq', 'ayuda.menu.faq', FAQ],
+    ['ed-ayuda-acerca', 'ayuda.menu.acerca', ACERCA],
   ];
 
-  for (const [id, titulo, contenido] of items) {
-    document.getElementById(id)?.addEventListener('click', () => void mostrarAyuda(titulo, contenido));
+  for (const [id, claveTitulo, contenido] of items) {
+    document.getElementById(id)?.addEventListener('click', () => void mostrarAyuda(t(claveTitulo), contenido[idiomaActual()]));
   }
 
-  return { verAtajos: () => void mostrarAyuda('⌨️ Atajos de teclado', ATAJOS) };
+  return { verAtajos: () => void mostrarAyuda(t('ayuda.menu.atajos'), ATAJOS[idiomaActual()]) };
 }

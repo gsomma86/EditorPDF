@@ -283,6 +283,16 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
     siempre derecho y la rotación aparte, en la apariencia (`/MK /R`); pdf-lib directamente tira
     error con cualquier otro ángulo. Se redondea al más cercano y el preflight lo avisa. Aplanado
     no tiene esa limitación, porque ahí se dibuja como cualquier otra forma.
+27. **Un elemento con `data-i18n*` que después se sobreescribe a mano con texto calculado queda con
+    una trampa activa.** `aplicarIdioma()` recorre TODO el documento con ese atributo cada vez que
+    se cambia de idioma, así que si el código pisa el `textContent` de un elemento tageado (el botón
+    de peso del PDF una vez calculado, el estado "PDF recuperado", tamaño/orientación en la barra de
+    estado) sin tocar el atributo, un cambio de idioma posterior vuelve a pisarlo con la traducción
+    genérica del atributo viejo — no rompe nada visible en el momento, así que es fácil no notarlo.
+    Dos salidas válidas: sacar `data-i18n` con `removeAttribute` cuando el texto pasa a depender de
+    un valor en tiempo de ejecución (peso, PDF recuperado), o actualizar el atributo junto con el
+    texto si el valor sigue siendo una de las claves del diccionario (tamaño/orientación de página,
+    en `reflejarPagina()` de `main.ts`). Ver `src/ui/i18n.ts` y los usos en `main.ts`.
 
 ## Cómo verificar cambios
 
