@@ -85,6 +85,104 @@ export function mostrarSinSeleccion(panel: HTMLElement): void {
   `;
 }
 
+type Alineacion = 'izq' | 'centroH' | 'der' | 'arriba' | 'centroV' | 'abajo';
+
+/**
+ * Panel para varios elementos a la vez. Las acciones operan sobre los objetos sueltos: primero se
+ * deshace la selección (ahí Fabric escribe las coordenadas absolutas en cada uno) y después se
+ * vuelve a armar, porque dentro de una selección las posiciones son relativas al grupo.
+ */
+export function mostrarMultiSeleccion(
+  panel: HTMLElement,
+  lienzo: Canvas,
+  objetos: FabricObject[],
+  alTerminar: (objetos: FabricObject[]) => void
+): void {
+  panel.innerHTML = `
+    <div class="ed-props-tit"><strong>Propiedades</strong><span class="ed-chip-tipo">${objetos.length} elementos</span></div>
+    <div class="ed-sec">
+      <div class="ed-sec-tit">Alinear entre sí</div>
+      <div class="ed-fila-toggle">
+        <button type="button" class="ed-toggle" data-alinear="izq" title="Izquierda">⇤</button>
+        <button type="button" class="ed-toggle" data-alinear="centroH" title="Centro horizontal">≡</button>
+        <button type="button" class="ed-toggle" data-alinear="der" title="Derecha">⇥</button>
+      </div>
+      <div class="ed-fila-toggle">
+        <button type="button" class="ed-toggle" data-alinear="arriba" title="Arriba">⤒</button>
+        <button type="button" class="ed-toggle" data-alinear="centroV" title="Centro vertical">⇕</button>
+        <button type="button" class="ed-toggle" data-alinear="abajo" title="Abajo">⤓</button>
+      </div>
+    </div>
+    <div class="ed-acciones2">
+      <button type="button" id="ed-multi-duplicar">Duplicar</button>
+      <button type="button" id="ed-multi-borrar" class="peligro">Borrar</button>
+      <button type="button" id="ed-multi-frente">Al frente</button>
+      <button type="button" id="ed-multi-atras">Enviar atrás</button>
+    </div>
+  `;
+
+  /** Devuelve los objetos con sus coordenadas ya absolutas, sin selección activa. */
+  const soltar = (): FabricObject[] => {
+    const lista = [...objetos];
+    lienzo.discardActiveObject();
+    lienzo.requestRenderAll();
+    return lista;
+  };
+
+  panel.querySelectorAll<HTMLButtonElement>('[data-alinear]').forEach((boton) => {
+    boton.addEventListener('click', () => {
+      const modo = boton.dataset.alinear as Alineacion;
+      const lista = soltar();
+      const cajas = lista.map((o) => o.getBoundingRect());
+      const minX = Math.min(...cajas.map((c) => c.left));
+      const maxX = Math.max(...cajas.map((c) => c.left + c.width));
+      const minY = Math.min(...cajas.map((c) => c.top));
+      const maxY = Math.max(...cajas.map((c) => c.top + c.height));
+
+      lista.forEach((objeto, i) => {
+        const caja = cajas[i];
+        if (modo === 'izq') objeto.set({ left: (objeto.left ?? 0) + (minX - caja.left) });
+        if (modo === 'der') objeto.set({ left: (objeto.left ?? 0) + (maxX - (caja.left + caja.width)) });
+        if (modo === 'centroH') objeto.set({ left: (objeto.left ?? 0) + ((minX + maxX) / 2 - (caja.left + caja.width / 2)) });
+        if (modo === 'arriba') objeto.set({ top: (objeto.top ?? 0) + (minY - caja.top) });
+        if (modo === 'abajo') objeto.set({ top: (objeto.top ?? 0) + (maxY - (caja.top + caja.height)) });
+        if (modo === 'centroV') objeto.set({ top: (objeto.top ?? 0) + ((minY + maxY) / 2 - (caja.top + caja.height / 2)) });
+        objeto.setCoords();
+      });
+      alTerminar(lista);
+    });
+  });
+
+  panel.querySelector<HTMLButtonElement>('#ed-multi-duplicar')!.addEventListener('click', async () => {
+    const lista = soltar();
+    const nuevos: FabricObject[] = [];
+    for (const objeto of lista) {
+      const elemento = elementoDe(objeto);
+      if (elemento) nuevos.push(await agregarAlLienzo(lienzo, duplicarElemento(elemento)));
+    }
+    alTerminar(nuevos);
+  });
+
+  panel.querySelector<HTMLButtonElement>('#ed-multi-borrar')!.addEventListener('click', () => {
+    const lista = soltar();
+    lienzo.remove(...lista);
+    lienzo.requestRenderAll();
+    alTerminar([]);
+  });
+
+  panel.querySelector<HTMLButtonElement>('#ed-multi-frente')!.addEventListener('click', () => {
+    const lista = soltar();
+    lista.forEach((o) => lienzo.bringObjectToFront(o));
+    alTerminar(lista);
+  });
+
+  panel.querySelector<HTMLButtonElement>('#ed-multi-atras')!.addEventListener('click', () => {
+    const lista = soltar();
+    [...lista].reverse().forEach((o) => lienzo.sendObjectToBack(o));
+    alTerminar(lista);
+  });
+}
+
 export function mostrarPropiedades(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject): void {
   const elemento = elementoDe(objeto);
   if (!elemento) {

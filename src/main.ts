@@ -3,7 +3,10 @@ import { montarEspacioTrabajo } from './ui/shell';
 import { crearLienzo } from './editor/lienzo';
 import { crearElemento, crearElementoCampo, crearElementoImagen, crearElementoTabla, type ClaseSimple } from './editor/elemento';
 import { agregarAlLienzo, elementoDe, reconstruirLienzo, sincronizarGeometria } from './editor/objetosFabric';
-import { mostrarPropiedades, mostrarSinSeleccion } from './ui/panelPropiedades';
+import { mostrarMultiSeleccion, mostrarPropiedades, mostrarSinSeleccion } from './ui/panelPropiedades';
+import { ActiveSelection, type FabricObject } from 'fabric';
+import { borrarAutoguardado, hayAutoguardado, programarAutoguardado, restaurarAutoguardado } from './editor/autoguardado';
+import { camposDesdeCsv, csvDesdeCampos, descargarCsv } from './editor/csvCampos';
 import { confirmar, pedirExportarPdf, pedirFilasColumnas, pedirMargenes, pedirNombreArchivo, pedirNuevoProyecto } from './ui/modales';
 import { montarPanelCampos } from './ui/panelCampos';
 import { deshacer, inicializarHistorial, puedeDeshacer, puedeRehacer, registrarSnapshot, rehacer } from './editor/historial';
@@ -19,6 +22,7 @@ const panelCampos = montarPanelCampos(espacio.panelCampos, async (nombre) => {
   const elemento = crearElementoCampo(nombre);
   await agregarAlLienzo(lienzo, elemento);
   registrarSnapshot(lienzo);
+  guardar();
 });
 activarVista(lienzo);
 aplicarConfigPagina(lienzo, configPorDefecto());
@@ -29,32 +33,74 @@ function actualizarEscaladoUniforme(objeto: import('fabric').FabricObject): void
   lienzo.uniformScaling = elemento?.clase === 'imagen' ? elemento.proporcion : true;
 }
 
-lienzo.on('selection:created', (e) => {
-  const objeto = e.selected?.[0];
+function guardar(): void {
+  programarAutoguardado(lienzo, panelCampos.obtenerCatalogo);
+}
+
+/** Vuelve a seleccionar un conjunto tras una acción de grupo, o limpia si quedó vacío. */
+function reseleccionar(objetos: FabricObject[]): void {
+  registrarSnapshot(lienzo);
+  guardar();
+  if (!objetos.length) {
+    lienzo.discardActiveObject();
+    lienzo.requestRenderAll();
+    mostrarSinSeleccion(espacio.panelPropiedades);
+    return;
+  }
+  if (objetos.length === 1) {
+    lienzo.setActiveObject(objetos[0]);
+  } else {
+    lienzo.setActiveObject(new ActiveSelection(objetos, { canvas: lienzo }));
+  }
+  lienzo.requestRenderAll();
+}
+
+function alSeleccionar(e: { selected?: FabricObject[] }): void {
+  const seleccion = e.selected ?? [];
+  const activo = lienzo.getActiveObject();
+  const varios = activo instanceof ActiveSelection ? activo.getObjects() : seleccion;
+
+  if (varios.length > 1) {
+    mostrarMultiSeleccion(espacio.panelPropiedades, lienzo, varios, reseleccionar);
+    return;
+  }
+  const objeto = varios[0];
   if (objeto) {
     mostrarPropiedades(espacio.panelPropiedades, lienzo, objeto);
     actualizarEscaladoUniforme(objeto);
   }
-});
-lienzo.on('selection:updated', (e) => {
-  const objeto = e.selected?.[0];
-  if (objeto) {
-    mostrarPropiedades(espacio.panelPropiedades, lienzo, objeto);
-    actualizarEscaladoUniforme(objeto);
-  }
-});
+}
+
+lienzo.on('selection:created', alSeleccionar);
+lienzo.on('selection:updated', alSeleccionar);
 lienzo.on('selection:cleared', () => {
   mostrarSinSeleccion(espacio.panelPropiedades);
 });
+
 lienzo.on('object:modified', async (e) => {
   const objeto = e.target;
   if (!objeto) return;
+
+  // Al mover varios juntos, las posiciones de cada uno son relativas al grupo: hay que deshacer
+  // la selección para que Fabric escriba las absolutas, sincronizar y volver a armarla.
+  if (objeto instanceof ActiveSelection) {
+    const hijos = objeto.getObjects();
+    lienzo.discardActiveObject();
+    for (const hijo of hijos) await sincronizarGeometria(lienzo, hijo);
+    lienzo.setActiveObject(new ActiveSelection(hijos, { canvas: lienzo }));
+    lienzo.requestRenderAll();
+    registrarSnapshot(lienzo);
+    guardar();
+    return;
+  }
+
   const vigente = await sincronizarGeometria(lienzo, objeto);
   lienzo.requestRenderAll();
   if (lienzo.getActiveObject() === vigente && elementoDe(vigente)) {
     mostrarPropiedades(espacio.panelPropiedades, lienzo, vigente);
   }
   registrarSnapshot(lienzo);
+  guardar();
 });
 
 const SIMPLES: ClaseSimple[] = ['texto', 'linea', 'rect', 'qr'];
@@ -81,6 +127,7 @@ inputImagen.addEventListener('change', async () => {
   const elemento = crearElementoImagen(src, dimensiones.ancho, dimensiones.alto);
   await agregarAlLienzo(lienzo, elemento);
   registrarSnapshot(lienzo);
+  guardar();
 });
 
 espacio.menubar.querySelectorAll<HTMLElement>('[data-dib]').forEach((boton) => {
@@ -99,6 +146,7 @@ espacio.menubar.querySelectorAll<HTMLElement>('[data-dib]').forEach((boton) => {
       const elemento = crearElementoTabla(resultado.filas, resultado.columnas);
       await agregarAlLienzo(lienzo, elemento);
       registrarSnapshot(lienzo);
+      guardar();
       return;
     }
 
@@ -106,6 +154,7 @@ espacio.menubar.querySelectorAll<HTMLElement>('[data-dib]').forEach((boton) => {
       const elemento = crearElemento(clase as ClaseSimple);
       await agregarAlLienzo(lienzo, elemento);
       registrarSnapshot(lienzo);
+      guardar();
     }
   });
 });
@@ -167,6 +216,41 @@ document.getElementById('ed-margenes')!.addEventListener('click', async () => {
 });
 
 reflejarPagina();
+
+// ---------- Catálogo de campos en CSV ----------
+
+const inputCsv = document.createElement('input');
+inputCsv.type = 'file';
+inputCsv.accept = '.csv,text/csv';
+inputCsv.style.display = 'none';
+document.body.appendChild(inputCsv);
+
+document.getElementById('ed-csv-importar')!.addEventListener('click', () => {
+  inputCsv.value = '';
+  inputCsv.click();
+});
+
+inputCsv.addEventListener('change', async () => {
+  const archivo = inputCsv.files?.[0];
+  if (!archivo) return;
+  const nombres = camposDesdeCsv(await archivo.text());
+  if (!nombres.length) {
+    await confirmar('CSV sin campos', 'No se encontró ningún nombre de campo en el archivo.', 'Entendido');
+    return;
+  }
+  // Se suman a los que ya estaban, sin repetir.
+  panelCampos.establecerCatalogo([...new Set([...panelCampos.obtenerCatalogo(), ...nombres])]);
+  guardar();
+});
+
+document.getElementById('ed-csv-exportar')!.addEventListener('click', async () => {
+  const campos = panelCampos.obtenerCatalogo();
+  if (!campos.length) {
+    await confirmar('Catálogo vacío', 'Todavía no hay campos en el catálogo para exportar.', 'Entendido');
+    return;
+  }
+  descargarCsv(csvDesdeCampos(campos), 'campos');
+});
 
 // ---------- Ver y zoom ----------
 
@@ -257,3 +341,27 @@ inputProyecto.addEventListener('change', async () => {
     await confirmar('No se pudo importar', error instanceof Error ? error.message : 'El archivo no se pudo leer.', 'Entendido');
   }
 });
+
+// ---------- Autoguardado ----------
+
+document.getElementById('ed-nuevo')!.addEventListener('click', borrarAutoguardado);
+
+// Al abrir, ofrecer seguir donde se dejó. Se pregunta en vez de restaurar solo, para no
+// pisar sin aviso a quien esperaba empezar en blanco.
+if (hayAutoguardado()) {
+  const seguir = await confirmar(
+    'Continuar donde dejaste',
+    'Encontramos un diseño guardado automáticamente en este navegador. ¿Querés retomarlo?',
+    'Retomar'
+  );
+  if (seguir) {
+    const proyecto = await restaurarAutoguardado(lienzo);
+    if (proyecto) {
+      panelCampos.establecerCatalogo(proyecto.campos);
+      reflejarPagina();
+      inicializarHistorial(lienzo);
+    }
+  } else {
+    borrarAutoguardado();
+  }
+}

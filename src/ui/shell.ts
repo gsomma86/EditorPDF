@@ -55,10 +55,10 @@ const MENU_CAMPOS = `
   <div class="ed-dd-item" data-dib="imagen">🖼 Imagen</div>
   <div class="ed-dd-item" data-dib="qr">▪ QR</div>
   <div class="ed-dd-sep"></div>
-  <div class="ed-dd-item">⬆ Importar campos (CSV)</div>
-  <div class="ed-dd-item">⬇ Exportar campos (CSV)</div>
+  <div class="ed-dd-item" id="ed-csv-importar">⬆ Importar campos (CSV)</div>
+  <div class="ed-dd-item" id="ed-csv-exportar">⬇ Exportar campos (CSV)</div>
   <div class="ed-dd-sep"></div>
-  <label class="ed-dd-check"><input type="checkbox" /> Completar campos</label>
+  <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-completar" /> Completar campos</label>
 `;
 
 const MENU_AYUDA = `
