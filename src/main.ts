@@ -111,6 +111,14 @@ function alSeleccionar(e: { selected?: FabricObject[] }): void {
   }
 }
 
+/**
+ * Agregar o sacar objetos también es un cambio que hay que guardar. Hace falta porque hay caminos
+ * que no pasan por el panel ni por `object:modified`: por ejemplo hacer repetible un campo, donde
+ * el clic del botón ocurre antes de confirmar el modal y después ya no hay ningún evento.
+ */
+lienzo.on('object:added', () => guardar());
+lienzo.on('object:removed', () => guardar());
+
 lienzo.on('selection:created', alSeleccionar);
 lienzo.on('selection:updated', alSeleccionar);
 lienzo.on('selection:cleared', () => {
