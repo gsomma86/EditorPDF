@@ -9,37 +9,38 @@ import type { LineaObjeto } from '../editor/lineaObjeto';
 import type { RectObjeto } from '../editor/rectObjeto';
 import { GROSOR_MINIMO_DOBLE } from '../editor/trazos';
 import { pedirCampoRepetible } from './modales';
+import { aplicarIdioma, t } from './i18n';
 
-const ETIQUETA_TIPO: Record<Elemento['clase'], string> = {
-  texto: 'Texto',
-  linea: 'Línea',
-  rect: 'Recuadro',
-  qr: 'QR',
-  tabla: 'Tabla',
-  imagen: 'Imagen',
-  campo: 'Campo',
+const ETIQUETA_TIPO: Record<Elemento['clase'], Parameters<typeof t>[0]> = {
+  texto: 'tipo.texto',
+  linea: 'tipo.linea',
+  rect: 'tipo.rect',
+  qr: 'tipo.qr',
+  tabla: 'tipo.tabla',
+  imagen: 'tipo.imagen',
+  campo: 'tipo.campo',
 };
 
 function bloqueTipografia(elemento: { familia: string; negrita: boolean; cursiva: boolean; subrayado: boolean; align: 'left' | 'center' | 'right' }): string {
   return `
-    <div><label class="ed-lbl">Familia</label><select id="ed-p-familia">
-      <optgroup label="Estándar (PDF)">
+    <div><label class="ed-lbl" data-i18n="props.familia"></label><select id="ed-p-familia">
+      <optgroup data-i18n-label="props.familiaEstandar">
         ${FAMILIAS_BASE.map((f) => `<option ${f === elemento.familia ? 'selected' : ''}>${f}</option>`).join('')}
       </optgroup>
-      <optgroup label="Web (se incrustan al exportar)">
+      <optgroup data-i18n-label="props.familiaWeb">
         ${FAMILIAS_WEB.map((f) => `<option ${f === elemento.familia ? 'selected' : ''}>${f}</option>`).join('')}
       </optgroup>
     </select></div>
     <div class="ed-fila-toggle">
-      <button type="button" class="ed-toggle ${elemento.negrita ? 'activo' : ''}" id="ed-p-negrita" title="Negrita"><b>N</b></button>
-      <button type="button" class="ed-toggle ${elemento.cursiva ? 'activo' : ''}" id="ed-p-cursiva" title="Cursiva"><i>K</i></button>
-      <button type="button" class="ed-toggle ${elemento.subrayado ? 'activo' : ''}" id="ed-p-subrayado" title="Subrayado"><u>S</u></button>
+      <button type="button" class="ed-toggle ${elemento.negrita ? 'activo' : ''}" id="ed-p-negrita" data-i18n-title="props.negritaTt"><b>N</b></button>
+      <button type="button" class="ed-toggle ${elemento.cursiva ? 'activo' : ''}" id="ed-p-cursiva" data-i18n-title="props.cursivaTt"><i>K</i></button>
+      <button type="button" class="ed-toggle ${elemento.subrayado ? 'activo' : ''}" id="ed-p-subrayado" data-i18n-title="props.subrayadoTt"><u>S</u></button>
     </div>
-    <label class="ed-lbl" style="margin-top:8px;">Alineación</label>
+    <label class="ed-lbl" style="margin-top:8px;" data-i18n="props.alineacion"></label>
     <div class="ed-fila-toggle">
-      <button type="button" class="ed-toggle ${elemento.align === 'left' ? 'activo' : ''}" id="ed-p-al-izq" title="Izquierda">⇤</button>
-      <button type="button" class="ed-toggle ${elemento.align === 'center' ? 'activo' : ''}" id="ed-p-al-centro" title="Centro">≡</button>
-      <button type="button" class="ed-toggle ${elemento.align === 'right' ? 'activo' : ''}" id="ed-p-al-der" title="Derecha">⇥</button>
+      <button type="button" class="ed-toggle ${elemento.align === 'left' ? 'activo' : ''}" id="ed-p-al-izq" data-i18n-title="props.alIzqTt">⇤</button>
+      <button type="button" class="ed-toggle ${elemento.align === 'center' ? 'activo' : ''}" id="ed-p-al-centro" data-i18n-title="props.alCentroTt">≡</button>
+      <button type="button" class="ed-toggle ${elemento.align === 'right' ? 'activo' : ''}" id="ed-p-al-der" data-i18n-title="props.alDerTt">⇥</button>
     </div>`;
 }
 
@@ -81,9 +82,10 @@ function wireTipografia(
 
 export function mostrarSinSeleccion(panel: HTMLElement): void {
   panel.innerHTML = `
-    <div class="ed-props-tit"><strong>Propiedades</strong></div>
-    <div class="ed-sinsel">Seleccioná un elemento del lienzo. Con Ctrl o Shift agregás varios; también podés arrastrar un recuadro sobre el lienzo.</div>
+    <div class="ed-props-tit"><strong data-i18n="shell.propiedades.titulo"></strong></div>
+    <div class="ed-sinsel" data-i18n="shell.sinSeleccion"></div>
   `;
+  aplicarIdioma(panel);
 }
 
 type Alineacion = 'izq' | 'centroH' | 'der' | 'arriba' | 'centroV' | 'abajo';
@@ -106,32 +108,34 @@ export function mostrarMultiSeleccion(
   alTerminar: (objetos: FabricObject[]) => void
 ): void {
   panel.innerHTML = `
-    <div class="ed-props-tit"><strong>Propiedades</strong><span class="ed-chip-tipo">${objetos.length} elementos</span></div>
+    <div class="ed-props-tit"><strong data-i18n="shell.propiedades.titulo"></strong><span class="ed-chip-tipo"></span></div>
     <div class="ed-sec">
-      <div class="ed-sec-tit">Alinear entre sí</div>
+      <div class="ed-sec-tit" data-i18n="props.multi.alinearEntreSi"></div>
       <div class="ed-fila-toggle">
-        <button type="button" class="ed-toggle" data-alinear="izq" title="Izquierda">⇤</button>
-        <button type="button" class="ed-toggle" data-alinear="centroH" title="Centro horizontal">≡</button>
-        <button type="button" class="ed-toggle" data-alinear="der" title="Derecha">⇥</button>
+        <button type="button" class="ed-toggle" data-alinear="izq" data-i18n-title="props.alIzqTt">⇤</button>
+        <button type="button" class="ed-toggle" data-alinear="centroH" data-i18n-title="props.multi.centroHTt">≡</button>
+        <button type="button" class="ed-toggle" data-alinear="der" data-i18n-title="props.alDerTt">⇥</button>
       </div>
       <div class="ed-fila-toggle">
-        <button type="button" class="ed-toggle" data-alinear="arriba" title="Arriba">⤒</button>
-        <button type="button" class="ed-toggle" data-alinear="centroV" title="Centro vertical">⇕</button>
-        <button type="button" class="ed-toggle" data-alinear="abajo" title="Abajo">⤓</button>
+        <button type="button" class="ed-toggle" data-alinear="arriba" data-i18n-title="props.multi.arribaTt">⤒</button>
+        <button type="button" class="ed-toggle" data-alinear="centroV" data-i18n-title="props.multi.centroVTt">⇕</button>
+        <button type="button" class="ed-toggle" data-alinear="abajo" data-i18n-title="props.multi.abajoTt">⤓</button>
       </div>
     </div>
     <div class="ed-sec">
-      <div class="ed-sec-tit">Rotación</div>
-      <div><label class="ed-lbl">Ángulo (°)</label><input type="number" id="ed-multi-angulo" class="mono" value="${anguloComun(objetos) ?? ''}" step="1" placeholder="varios"></div>
-      <p class="nota">Cada elemento rota sobre su propia esquina, no alrededor del conjunto.</p>
+      <div class="ed-sec-tit" data-i18n="props.multi.rotacion"></div>
+      <div><label class="ed-lbl" data-i18n="props.multi.angulo"></label><input type="number" id="ed-multi-angulo" class="mono" value="${anguloComun(objetos) ?? ''}" step="1" data-i18n-placeholder="props.multi.anguloPlaceholder"></div>
+      <p class="nota" data-i18n="props.multi.anguloNota"></p>
     </div>
     <div class="ed-acciones2">
-      <button type="button" id="ed-multi-duplicar">Duplicar</button>
-      <button type="button" id="ed-multi-borrar" class="peligro">Borrar</button>
-      <button type="button" id="ed-multi-frente">Al frente</button>
-      <button type="button" id="ed-multi-atras">Enviar atrás</button>
+      <button type="button" id="ed-multi-duplicar" data-i18n="props.acciones.duplicar"></button>
+      <button type="button" id="ed-multi-borrar" class="peligro" data-i18n="props.acciones.borrar"></button>
+      <button type="button" id="ed-multi-frente" data-i18n="props.acciones.alFrente"></button>
+      <button type="button" id="ed-multi-atras" data-i18n="props.acciones.enviarAtras"></button>
     </div>
   `;
+  panel.querySelector('.ed-chip-tipo')!.textContent = t('props.multi.elementos', { n: objetos.length });
+  aplicarIdioma(panel);
 
   /** Devuelve los objetos con sus coordenadas ya absolutas, sin selección activa. */
   const soltar = (): FabricObject[] => {
@@ -221,39 +225,40 @@ export function mostrarPropiedades(panel: HTMLElement, lienzo: Canvas, objeto: F
   }
 
   panel.innerHTML = `
-    <div class="ed-props-tit"><strong>Propiedades</strong><span class="ed-chip-tipo">${ETIQUETA_TIPO[elemento.clase]}</span></div>
+    <div class="ed-props-tit"><strong data-i18n="shell.propiedades.titulo"></strong><span class="ed-chip-tipo" data-i18n="${ETIQUETA_TIPO[elemento.clase]}"></span></div>
     ${camposPara(elemento)}
     ${seccionPosicion(elemento)}
     <div class="ed-acciones2">
-      <button type="button" id="ed-p-duplicar">Duplicar</button>
-      <button type="button" id="ed-p-borrar" class="peligro">Borrar</button>
-      <button type="button" id="ed-p-frente">Al frente</button>
-      <button type="button" id="ed-p-atras">Enviar atrás</button>
+      <button type="button" id="ed-p-duplicar" data-i18n="props.acciones.duplicar"></button>
+      <button type="button" id="ed-p-borrar" class="peligro" data-i18n="props.acciones.borrar"></button>
+      <button type="button" id="ed-p-frente" data-i18n="props.acciones.alFrente"></button>
+      <button type="button" id="ed-p-atras" data-i18n="props.acciones.enviarAtras"></button>
     </div>
   `;
+  aplicarIdioma(panel);
 
   wireCampos(panel, lienzo, objeto, elemento);
   wireAcciones(panel, lienzo, objeto, elemento);
 }
 
-function seccion(titulo: string, contenido: string): string {
-  return `<div class="ed-sec"><div class="ed-sec-tit">${titulo}</div>${contenido}</div>`;
+function seccion(claveTitulo: Parameters<typeof t>[0], contenido: string): string {
+  return `<div class="ed-sec"><div class="ed-sec-tit" data-i18n="${claveTitulo}"></div>${contenido}</div>`;
 }
 
 function seccionPosicion(elemento: Elemento): string {
   const conTamano = elemento.clase !== 'texto' && elemento.clase !== 'tabla';
   return seccion(
-    'Posición y tamaño (pt)',
+    'props.posicionTitulo',
     `<div class="ed-grid2">
-      <div><label class="ed-lbl">X</label><input type="number" id="ed-p-x" class="mono" value="${elemento.x}"></div>
-      <div><label class="ed-lbl">Y</label><input type="number" id="ed-p-y" class="mono" value="${elemento.y}"></div>
+      <div><label class="ed-lbl" data-i18n="props.lbl.x"></label><input type="number" id="ed-p-x" class="mono" value="${elemento.x}"></div>
+      <div><label class="ed-lbl" data-i18n="props.lbl.y"></label><input type="number" id="ed-p-y" class="mono" value="${elemento.y}"></div>
       ${
         conTamano && 'w' in elemento
-          ? `<div><label class="ed-lbl">Ancho</label><input type="number" id="ed-p-w" class="mono" value="${elemento.w}" min="1"></div>
-             <div><label class="ed-lbl">Alto</label><input type="number" id="ed-p-h" class="mono" value="${elemento.h}" min="1"></div>`
+          ? `<div><label class="ed-lbl" data-i18n="props.lbl.ancho"></label><input type="number" id="ed-p-w" class="mono" value="${elemento.w}" min="1"></div>
+             <div><label class="ed-lbl" data-i18n="props.lbl.alto"></label><input type="number" id="ed-p-h" class="mono" value="${elemento.h}" min="1"></div>`
           : ''
       }
-      <div><label class="ed-lbl">Ángulo (°)</label><input type="number" id="ed-p-angulo" class="mono" value="${elemento.angulo}" step="1"></div>
+      <div><label class="ed-lbl" data-i18n="props.multi.angulo"></label><input type="number" id="ed-p-angulo" class="mono" value="${elemento.angulo}" step="1"></div>
     </div>`
   );
 }
@@ -261,23 +266,23 @@ function seccionPosicion(elemento: Elemento): string {
 function campoTexto(elemento: Elemento & { clase: 'texto' }): string {
   return (
     seccion(
-      'Contenido',
-      `<div><label class="ed-lbl">Texto</label>${
+      'comun.contenido',
+      `<div><label class="ed-lbl" data-i18n="props.lbl.texto"></label>${
         elemento.multilinea
           ? `<textarea id="ed-p-texto" rows="3">${escapeHtml(elemento.text)}</textarea>`
           : `<input type="text" id="ed-p-texto" value="${escapeHtml(elemento.text)}">`
       }</div>
-      <label class="ed-check"><input type="checkbox" id="ed-p-multilinea" ${elemento.multilinea ? 'checked' : ''}> Varias líneas</label>`
+      <label class="ed-check"><input type="checkbox" id="ed-p-multilinea" ${elemento.multilinea ? 'checked' : ''}> <span data-i18n="props.variasLineas"></span></label>`
     ) +
     seccion(
-      'Formato',
+      'comun.formato',
       `<div class="ed-row2">
-        <div><label class="ed-lbl">Tamaño</label><input type="number" id="ed-p-size" class="mono" value="${elemento.size}" min="5" max="72"></div>
-        <div><label class="ed-lbl">Color</label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
+        <div><label class="ed-lbl" data-i18n="comun.tamano"></label><input type="number" id="ed-p-size" class="mono" value="${elemento.size}" min="5" max="72"></div>
+        <div><label class="ed-lbl" data-i18n="comun.color"></label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
       </div>
       ${bloqueTipografia(elemento)}
-      <label class="ed-check"><input type="checkbox" id="ed-p-vertical" ${elemento.vertical ? 'checked' : ''}> Texto vertical (una letra por renglón)</label>
-      <div><label class="ed-lbl">Separación (pt)</label><input type="number" id="ed-p-separacion" class="mono" value="${elemento.separacion}" step="0.5"></div>`
+      <label class="ed-check"><input type="checkbox" id="ed-p-vertical" ${elemento.vertical ? 'checked' : ''}> <span data-i18n="props.textoVertical"></span></label>
+      <div><label class="ed-lbl" data-i18n="props.separacionPt"></label><input type="number" id="ed-p-separacion" class="mono" value="${elemento.separacion}" step="0.5"></div>`
     )
   );
 }
@@ -285,31 +290,33 @@ function campoTexto(elemento: Elemento & { clase: 'texto' }): string {
 function campoCampo(elemento: Elemento & { clase: 'campo' }): string {
   return (
     seccion(
-      'Contenido',
-      `<div><label class="ed-lbl">Campo (ID)</label><input type="text" id="ed-p-nombre" value="${escapeHtml(elemento.name)}"></div>
-      <div><label class="ed-lbl">Tipo de dato</label><select id="ed-p-tipodato">
-        ${['Texto', 'Numero', 'Moneda', 'Fecha'].map((t) => `<option value="${t}" ${t === elemento.tipo ? 'selected' : ''}>${t}</option>`).join('')}
+      'comun.contenido',
+      `<div><label class="ed-lbl" data-i18n="props.campo.id"></label><input type="text" id="ed-p-nombre" value="${escapeHtml(elemento.name)}"></div>
+      <div><label class="ed-lbl" data-i18n="props.campo.tipoDato"></label><select id="ed-p-tipodato">
+        ${['Texto', 'Numero', 'Moneda', 'Fecha']
+          .map((td) => `<option value="${td}" ${td === elemento.tipo ? 'selected' : ''} data-i18n="tipoDato.${td}"></option>`)
+          .join('')}
       </select></div>
-      <label class="ed-check"><input type="checkbox" id="ed-p-invisible" ${elemento.invisible ? 'checked' : ''}> Campo invisible</label>
-      <div><label class="ed-lbl">Valor por defecto</label><input type="text" id="ed-p-default" value="${escapeHtml(elemento.defaultValue)}" placeholder="Valor que aparecerá por defecto"></div>
-      <label class="ed-check"><input type="checkbox" id="ed-p-readonly" ${elemento.readonly ? 'checked' : ''}> Sólo lectura (visual)</label>
-      <label class="ed-check"><input type="checkbox" id="ed-p-campo-multilinea" ${elemento.multilinea ? 'checked' : ''}> Varias líneas</label>
+      <label class="ed-check"><input type="checkbox" id="ed-p-invisible" ${elemento.invisible ? 'checked' : ''}> <span data-i18n="props.campo.invisible"></span></label>
+      <div><label class="ed-lbl" data-i18n="props.campo.valorDefecto"></label><input type="text" id="ed-p-default" value="${escapeHtml(elemento.defaultValue)}" data-i18n-placeholder="props.campo.valorDefectoPlaceholder"></div>
+      <label class="ed-check"><input type="checkbox" id="ed-p-readonly" ${elemento.readonly ? 'checked' : ''}> <span data-i18n="props.campo.readonly"></span></label>
+      <label class="ed-check"><input type="checkbox" id="ed-p-campo-multilinea" ${elemento.multilinea ? 'checked' : ''}> <span data-i18n="props.variasLineas"></span></label>
       <button type="button" id="ed-p-rep-btn" class="ed-toggle" style="width:100%;margin-top:8px;">${
-        elemento.repFilas > 1 ? `Editar repetición (×${elemento.repFilas})` : 'Hacer repetible…'
+        elemento.repFilas > 1 ? t('props.campo.editarRepeticion', { n: elemento.repFilas }) : t('props.campo.hacerRepetible')
       }</button>`
     ) +
     seccion(
-      'Formato',
+      'comun.formato',
       `<div class="ed-row2">
-        <div><label class="ed-lbl">Tamaño</label><input type="number" id="ed-p-size" class="mono" value="${elemento.size}" min="5" max="72"></div>
-        <div><label class="ed-lbl">Color</label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
+        <div><label class="ed-lbl" data-i18n="comun.tamano"></label><input type="number" id="ed-p-size" class="mono" value="${elemento.size}" min="5" max="72"></div>
+        <div><label class="ed-lbl" data-i18n="comun.color"></label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
       </div>
       <div class="ed-row2">
-        <div><label class="ed-lbl">Color de borde</label><input type="color" id="ed-p-campo-bordecolor" value="${elemento.bordeColor}"></div>
-        <div><label class="ed-lbl">Grosor de borde (pt)</label><input type="number" id="ed-p-campo-bordegrosor" class="mono" value="${elemento.bordeGrosor}" min="0" step="0.5"></div>
+        <div><label class="ed-lbl" data-i18n="comun.colorBorde"></label><input type="color" id="ed-p-campo-bordecolor" value="${elemento.bordeColor}"></div>
+        <div><label class="ed-lbl" data-i18n="comun.grosorBordePt"></label><input type="number" id="ed-p-campo-bordegrosor" class="mono" value="${elemento.bordeGrosor}" min="0" step="0.5"></div>
       </div>
-      <label class="ed-check"><input type="checkbox" id="ed-p-campo-fondo" ${elemento.conFondo ? 'checked' : ''}> Con fondo</label>
-      <div><label class="ed-lbl">Color de fondo</label><input type="color" id="ed-p-campo-fondocolor" value="${elemento.fondoColor}"></div>
+      <label class="ed-check"><input type="checkbox" id="ed-p-campo-fondo" ${elemento.conFondo ? 'checked' : ''}> <span data-i18n="comun.conFondo"></span></label>
+      <div><label class="ed-lbl" data-i18n="comun.colorFondo"></label><input type="color" id="ed-p-campo-fondocolor" value="${elemento.fondoColor}"></div>
       ${bloqueTipografia(elemento)}`
     )
   );
@@ -317,82 +324,82 @@ function campoCampo(elemento: Elemento & { clase: 'campo' }): string {
 
 function campoLinea(elemento: Elemento & { clase: 'linea' }): string {
   return seccion(
-    'Formato',
+    'comun.formato',
     // La orientación se resuelve con el ángulo (90° = vertical), así que no hacen falta
     // botones Horizontal/Vertical aparte: eran una segunda forma de hacer lo mismo y
     // quedaban desfasados cuando la línea tenía rotación.
     // El ángulo vive en la sección Posición, junto al resto de la geometría y como en todos los
     // demás tipos: acá quedaría un segundo control con el mismo id.
-    `<div><label class="ed-lbl">Color</label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
-    <div><label class="ed-lbl">Estilo</label><select id="ed-p-estilo">
-      ${['solido', 'punteado', 'doble'].map((e) => `<option value="${e}" ${e === elemento.estilo ? 'selected' : ''}>${etiquetaEstilo(e)}</option>`).join('')}
+    `<div><label class="ed-lbl" data-i18n="comun.color"></label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
+    <div><label class="ed-lbl" data-i18n="comun.estilo"></label><select id="ed-p-estilo">
+      ${opcionesEstilo(elemento.estilo)}
     </select></div>`
   );
 }
 
 function campoRect(elemento: Elemento & { clase: 'rect' }): string {
   return seccion(
-    'Formato',
+    'comun.formato',
     `<div class="ed-row2">
-      <div><label class="ed-lbl">Grosor de borde (pt)</label><input type="number" id="ed-p-grosor" class="mono" value="${elemento.grosor}" min="0.5" step="0.5"></div>
-      <div><label class="ed-lbl">Radio de esquina (pt)</label><input type="number" id="ed-p-radio" class="mono" value="${elemento.radio}" min="0"></div>
+      <div><label class="ed-lbl" data-i18n="comun.grosorBordePt"></label><input type="number" id="ed-p-grosor" class="mono" value="${elemento.grosor}" min="0.5" step="0.5"></div>
+      <div><label class="ed-lbl" data-i18n="comun.radioEsquinaPt"></label><input type="number" id="ed-p-radio" class="mono" value="${elemento.radio}" min="0"></div>
     </div>
     <div class="ed-row2">
-      <div><label class="ed-lbl">Color de borde</label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
-      <div><label class="ed-lbl">Estilo</label><select id="ed-p-estilo">
-        ${['solido', 'punteado', 'doble'].map((e) => `<option value="${e}" ${e === elemento.estilo ? 'selected' : ''}>${etiquetaEstilo(e)}</option>`).join('')}
+      <div><label class="ed-lbl" data-i18n="comun.colorBorde"></label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
+      <div><label class="ed-lbl" data-i18n="comun.estilo"></label><select id="ed-p-estilo">
+        ${opcionesEstilo(elemento.estilo)}
       </select></div>
     </div>
-    <label class="ed-check"><input type="checkbox" id="ed-p-con-relleno" ${elemento.conRelleno ? 'checked' : ''}> Con relleno</label>
-    <div><label class="ed-lbl">Color de relleno</label><input type="color" id="ed-p-relleno-color" value="${elemento.rellenoColor}"></div>`
+    <label class="ed-check"><input type="checkbox" id="ed-p-con-relleno" ${elemento.conRelleno ? 'checked' : ''}> <span data-i18n="props.conRelleno"></span></label>
+    <div><label class="ed-lbl" data-i18n="props.colorRelleno"></label><input type="color" id="ed-p-relleno-color" value="${elemento.rellenoColor}"></div>`
   );
 }
 
 function campoQr(elemento: Elemento & { clase: 'qr' }): string {
   return (
     seccion(
-      'Contenido',
-      `<div><label class="ed-lbl">Texto / URL</label><input type="text" id="ed-p-texto" value="${escapeHtml(elemento.texto)}"></div>
-      <div><label class="ed-lbl">Tamaño (pt)</label><input type="number" id="ed-p-size" class="mono" value="${elemento.w}" min="20"></div>`
+      'comun.contenido',
+      `<div><label class="ed-lbl" data-i18n="props.qr.textoUrl"></label><input type="text" id="ed-p-texto" value="${escapeHtml(elemento.texto)}"></div>
+      <div><label class="ed-lbl" data-i18n="props.qr.tamanoPt"></label><input type="number" id="ed-p-size" class="mono" value="${elemento.w}" min="20"></div>`
     ) +
     seccion(
-      'Formato',
-      `<div><label class="ed-lbl">Color</label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
-      <label class="ed-check"><input type="checkbox" id="ed-p-qr-fondo" ${elemento.conFondo ? 'checked' : ''}> Con fondo</label>
-      <div><label class="ed-lbl">Color de fondo</label><input type="color" id="ed-p-qr-fondocolor" value="${elemento.fondoColor}"></div>
-      <p class="nota" style="margin-top:8px;">Un QR necesita buen contraste entre el color y el fondo para poder leerse.</p>`
+      'comun.formato',
+      `<div><label class="ed-lbl" data-i18n="comun.color"></label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
+      <label class="ed-check"><input type="checkbox" id="ed-p-qr-fondo" ${elemento.conFondo ? 'checked' : ''}> <span data-i18n="comun.conFondo"></span></label>
+      <div><label class="ed-lbl" data-i18n="comun.colorFondo"></label><input type="color" id="ed-p-qr-fondocolor" value="${elemento.fondoColor}"></div>
+      <p class="nota" style="margin-top:8px;" data-i18n="props.qr.contraste"></p>`
     )
   );
 }
 
 function campoTabla(elemento: Elemento & { clase: 'tabla' }): string {
   return seccion(
-    'Formato',
-    `<div class="nota" style="margin-bottom:8px;">${elemento.rows.length} filas × ${elemento.cols.length} columnas. Arrastrá una línea interna para ajustar esa fila/columna, o la esquina para redimensionar todo.</div>
+    'comun.formato',
+    `<div class="nota" style="margin-bottom:8px;">${t('props.tabla.resumen', { filas: elemento.rows.length, cols: elemento.cols.length })}</div>
     <div class="ed-row2">
-      <div><label class="ed-lbl">Color del contorno</label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
-      <div><label class="ed-lbl">Color interno</label><input type="color" id="ed-p-color-interno" value="${elemento.colorInterno}"></div>
+      <div><label class="ed-lbl" data-i18n="props.tabla.colorContorno"></label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
+      <div><label class="ed-lbl" data-i18n="props.tabla.colorInterno"></label><input type="color" id="ed-p-color-interno" value="${elemento.colorInterno}"></div>
     </div>
     <div class="ed-row2">
-      <div><label class="ed-lbl">Estilo del contorno</label><select id="ed-p-contorno">
-        ${['solido', 'punteado', 'doble'].map((e) => `<option value="${e}" ${e === elemento.estiloContorno ? 'selected' : ''}>${etiquetaEstilo(e)}</option>`).join('')}
+      <div><label class="ed-lbl" data-i18n="props.tabla.estiloContorno"></label><select id="ed-p-contorno">
+        ${opcionesEstilo(elemento.estiloContorno)}
       </select></div>
-      <div><label class="ed-lbl">Estilo interno</label><select id="ed-p-interno">
-        ${['solido', 'punteado', 'doble'].map((e) => `<option value="${e}" ${e === elemento.estiloInterno ? 'selected' : ''}>${etiquetaEstilo(e)}</option>`).join('')}
+      <div><label class="ed-lbl" data-i18n="props.tabla.estiloInterno"></label><select id="ed-p-interno">
+        ${opcionesEstilo(elemento.estiloInterno)}
       </select></div>
     </div>
     <div class="ed-row2">
-      <div><label class="ed-lbl">Grosor de línea (pt)</label><input type="number" id="ed-p-grosor" class="mono" value="${elemento.grosor}" min="0.5" step="0.5"></div>
-      <div><label class="ed-lbl">Radio de esquina (pt)</label><input type="number" id="ed-p-radio" class="mono" value="${elemento.radio}" min="0"></div>
+      <div><label class="ed-lbl" data-i18n="props.tabla.grosorLineaPt"></label><input type="number" id="ed-p-grosor" class="mono" value="${elemento.grosor}" min="0.5" step="0.5"></div>
+      <div><label class="ed-lbl" data-i18n="comun.radioEsquinaPt"></label><input type="number" id="ed-p-radio" class="mono" value="${elemento.radio}" min="0"></div>
     </div>`
   );
 }
 
 function campoImagen(elemento: Elemento & { clase: 'imagen' }): string {
   return seccion(
-    'Formato',
-    `<label class="ed-check"><input type="checkbox" id="ed-p-proporcion" ${elemento.proporcion ? 'checked' : ''}> Mantener proporción al redimensionar</label>
-    <label class="ed-lbl" style="margin-top:8px;">Opacidad</label><input type="range" id="ed-p-opacidad" min="10" max="100" value="${elemento.opacidad}">`
+    'comun.formato',
+    `<label class="ed-check"><input type="checkbox" id="ed-p-proporcion" ${elemento.proporcion ? 'checked' : ''}> <span data-i18n="props.imagen.mantenerProporcion"></span></label>
+    <label class="ed-lbl" style="margin-top:8px;" data-i18n="props.imagen.opacidad"></label><input type="range" id="ed-p-opacidad" min="10" max="100" value="${elemento.opacidad}">`
   );
 }
 
@@ -415,10 +422,15 @@ function camposPara(elemento: Elemento): string {
   }
 }
 
-function etiquetaEstilo(estilo: string): string {
-  if (estilo === 'punteado') return 'Punteada';
-  if (estilo === 'doble') return 'Doble';
-  return 'Sólida';
+function opcionesEstilo(actual: string): string {
+  const claves: Record<string, Parameters<typeof t>[0]> = {
+    solido: 'comun.estiloSolida',
+    punteado: 'comun.estiloPunteada',
+    doble: 'comun.estiloDoble',
+  };
+  return Object.entries(claves)
+    .map(([valor, clave]) => `<option value="${valor}" ${valor === actual ? 'selected' : ''} data-i18n="${clave}"></option>`)
+    .join('');
 }
 
 function escapeHtml(texto: string): string {

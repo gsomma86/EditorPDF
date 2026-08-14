@@ -1,0 +1,723 @@
+/**
+ * Multiidioma ES/EN/PT. Mismo patrón que el editor público (`i18n.js`): diccionario plano por
+ * clave, persistido en localStorage, aplicado al DOM vía atributos `data-i18n*` para que un panel
+ * ya dibujado (propiedades, catálogo de campos) se traduzca en el momento sin tener que
+ * reconstruirlo. Los textos largos del menú Ayuda viven en `ayuda.ts`, no acá (ver ese archivo).
+ */
+
+export type Idioma = 'es' | 'en' | 'pt';
+
+const CLAVE_LS_IDIOMA = 'editorpdf-idioma';
+
+export const IDIOMAS_DISPONIBLES: Record<Idioma, string> = { es: 'Español', en: 'English', pt: 'Português' };
+
+const ES = {
+  'shell.idiomaTt': 'Idioma',
+  'shell.panelToggleTt': 'Colapsar panel',
+  'shell.separadorTt': 'Arrastrar para cambiar el ancho',
+  'shell.campos.titulo': 'Campos AcroForm',
+  'shell.campos.placeholder': 'ID del campo',
+  'shell.campos.nota': 'Clic en un campo para colocarlo en la hoja (podés repetirlo).',
+  'shell.propiedades.titulo': 'Propiedades',
+  'shell.sinSeleccion': 'Seleccioná un elemento del lienzo. Con Ctrl o Shift agregás varios; también podés arrastrar un recuadro sobre el lienzo.',
+  'shell.status.autoguardado': 'Guardado automático en este navegador',
+  'shell.status.peso': 'Peso: calcular',
+  'shell.status.verificar': 'Verificar',
+  'shell.zoom.alejarTt': 'Alejar',
+  'shell.zoom.acercarTt': 'Acercar',
+  'shell.zoom.tt': 'Zoom',
+
+  'menu.archivo': 'Archivo',
+  'menu.archivo.nuevo': 'Nuevo proyecto',
+  'menu.archivo.abrirPdf': 'Abrir PDF…',
+  'menu.archivo.importarProyecto': 'Importar proyecto (.json)…',
+  'menu.archivo.guardarProyecto': 'Guardar proyecto…',
+  'menu.archivo.verificar': 'Verificar diseño',
+  'menu.archivo.exportarPdf': 'Exportar PDF…',
+
+  'menu.editar': 'Editar',
+  'menu.editar.deshacer': 'Deshacer',
+  'menu.editar.rehacer': 'Rehacer',
+  'menu.editar.seleccionarTodo': 'Seleccionar todo',
+  'menu.editar.cortar': 'Cortar',
+  'menu.editar.copiar': 'Copiar',
+  'menu.editar.pegar': 'Pegar',
+
+  'menu.ver': 'Ver',
+  'menu.ver.cuadricula': 'Cuadrícula',
+  'menu.ver.pasoTt': 'Separación (pt)',
+  'menu.ver.reglas': 'Reglas',
+  'menu.ver.alineacion': 'Alineación',
+
+  'menu.pagina': 'Página',
+  'menu.pagina.tamano': 'Tamaño',
+  'pagina.tamano.A4': 'A4',
+  'pagina.tamano.Carta': 'Carta',
+  'pagina.tamano.Oficio': 'Oficio',
+  'pagina.tamano.A5': 'A5',
+  'menu.pagina.orientacion': 'Orientación',
+  'pagina.orientacion.vertical': 'Vertical',
+  'pagina.orientacion.horizontal': 'Horizontal',
+  'menu.pagina.fondo': 'Fondo',
+  'pagina.fondo.blanco': 'Hoja en blanco',
+  'pagina.fondo.imagen': 'Imagen…',
+  'menu.pagina.margenes': 'Configurar márgenes…',
+
+  'menu.campos': 'Campos',
+  'menu.campos.notaDibujo': 'Dibujo',
+  'menu.campos.dibTexto': '✏ Texto',
+  'menu.campos.dibLinea': '➖ Línea',
+  'menu.campos.dibRect': '▭ Recuadro',
+  'menu.campos.dibTabla': '▦ Tabla',
+  'menu.campos.dibImagen': '🖼 Imagen',
+  'menu.campos.dibQr': '▪ QR',
+  'menu.campos.csvImportar': '⬆ Importar campos (CSV)',
+  'menu.campos.csvExportar': '⬇ Exportar campos (CSV)',
+  'menu.campos.completar': 'Completar campos',
+
+  'menu.ayuda': 'Ayuda',
+  'ayuda.menu.guia': '🚀 Guía rápida',
+  'ayuda.menu.atajos': '⌨️ Atajos de teclado',
+  'ayuda.menu.csv': '📄 Cargar campos desde CSV',
+  'ayuda.menu.repetibles': '🔁 Campos repetibles (#)',
+  'ayuda.menu.apariencias': '🧾 Eliminar apariencias',
+  'ayuda.menu.faq': '❓ Preguntas frecuentes',
+  'ayuda.menu.acerca': 'ℹ️ Acerca de...',
+
+  'campos.quitarTt': 'Quitar del catálogo',
+
+  'modal.btn.cancelar': 'Cancelar',
+  'modal.btn.aplicar': 'Aplicar',
+  'modal.btn.guardar': 'Guardar',
+  'modal.btn.insertar': 'Insertar',
+  'modal.btn.exportar': 'Exportar',
+  'modal.btn.cerrar': 'Cerrar',
+  'modal.btn.entendido': 'Entendido',
+  'modal.btn.aceptar': 'Aceptar',
+
+  'modal.nuevoProyecto.titulo': 'Crear diseño nuevo',
+  'modal.nuevoProyecto.sub': 'Configurá el tamaño, la orientación y los márgenes iniciales de la hoja. Se descarta el diseño actual.',
+  'modal.nuevoProyecto.crear': 'Crear diseño',
+  'modal.lbl.tamanoHoja': 'Tamaño de hoja',
+
+  'modal.margenes.tit': 'Márgenes de hoja (pt)',
+  'modal.margen.arriba': 'Arriba',
+  'modal.margen.abajo': 'Abajo',
+  'modal.margen.izquierda': 'Izquierda',
+  'modal.margen.derecha': 'Derecha',
+  'modal.margenes.titulo': 'Configurar márgenes',
+  'modal.margenes.sub': 'Los márgenes se muestran como una guía punteada y acotan dónde se colocan los elementos nuevos. No se dibujan en el PDF.',
+
+  'modal.nombreArchivo.lbl': 'Nombre del archivo',
+
+  'modal.tabla.titulo': 'Insertar tabla',
+  'modal.tabla.sub': 'Elegí cuántas filas y columnas tiene. Después se puede ajustar cada fila y cada columna arrastrando sus líneas.',
+  'modal.tabla.filas': 'Filas',
+  'modal.tabla.columnas': 'Columnas',
+
+  'modal.repetible.titulo': 'Campo repetible',
+  'modal.repetible.sub': 'El campo baja al PDF una vez por fila, y el comodín del ID se reemplaza por el número de cada una.',
+  'modal.repetible.idLbl': 'ID del campo',
+  'modal.repetible.comodin': 'Comodín',
+  'modal.repetible.separacionPt': 'Separación (pt)',
+  'modal.repetible.aviso': 'El ID tiene que contener el comodín; si no, todas las filas se llamarían igual.',
+  'modal.repetible.masChips': '+{n} más',
+
+  'modal.exportar.titulo': 'Exportar PDF',
+  'modal.exportar.sub': 'Se genera y descarga el PDF final del diseño.',
+  'modal.exportar.conservarCampos': 'Conservar campos editables (AcroForm)',
+  'modal.exportar.conservarCamposNota': 'Sin esto, los campos se dibujan aplanados con su valor por defecto y el PDF deja de ser rellenable.',
+  'modal.exportar.sinApariencias': 'Eliminar apariencias de los campos',
+  'modal.exportar.sinAparienciasNota': 'Para que los campos invisibles no se vean en visores que ignoran la bandera de oculto. No se puede deshacer en el PDF exportado.',
+
+  'modal.preflight.titulo': 'Verificar diseño',
+  'modal.preflight.sub': 'Revisión previa a exportar. Los errores conviene corregirlos; las advertencias son recomendaciones.',
+  'modal.preflight.errores': '✕ Errores ({n})',
+  'modal.preflight.advertencias': '⚠ Advertencias ({n})',
+  'modal.preflight.ok': '✓ El diseño no tiene problemas.',
+  'modal.preflight.exportarIgual': 'Exportar igual',
+
+  'tipo.texto': 'Texto',
+  'tipo.linea': 'Línea',
+  'tipo.rect': 'Recuadro',
+  'tipo.qr': 'QR',
+  'tipo.tabla': 'Tabla',
+  'tipo.imagen': 'Imagen',
+  'tipo.campo': 'Campo',
+
+  'props.familia': 'Familia',
+  'props.familiaEstandar': 'Estándar (PDF)',
+  'props.familiaWeb': 'Web (se incrustan al exportar)',
+  'props.negritaTt': 'Negrita',
+  'props.cursivaTt': 'Cursiva',
+  'props.subrayadoTt': 'Subrayado',
+  'props.alineacion': 'Alineación',
+  'props.alIzqTt': 'Izquierda',
+  'props.alCentroTt': 'Centro',
+  'props.alDerTt': 'Derecha',
+
+  'props.multi.elementos': '{n} elementos',
+  'props.multi.alinearEntreSi': 'Alinear entre sí',
+  'props.multi.centroHTt': 'Centro horizontal',
+  'props.multi.arribaTt': 'Arriba',
+  'props.multi.centroVTt': 'Centro vertical',
+  'props.multi.abajoTt': 'Abajo',
+  'props.multi.rotacion': 'Rotación',
+  'props.multi.angulo': 'Ángulo (°)',
+  'props.multi.anguloPlaceholder': 'varios',
+  'props.multi.anguloNota': 'Cada elemento rota sobre su propia esquina, no alrededor del conjunto.',
+
+  'props.acciones.duplicar': 'Duplicar',
+  'props.acciones.borrar': 'Borrar',
+  'props.acciones.alFrente': 'Al frente',
+  'props.acciones.enviarAtras': 'Enviar atrás',
+
+  'props.posicionTitulo': 'Posición y tamaño (pt)',
+  'props.lbl.x': 'X',
+  'props.lbl.y': 'Y',
+  'props.lbl.ancho': 'Ancho',
+  'props.lbl.alto': 'Alto',
+
+  'comun.contenido': 'Contenido',
+  'comun.formato': 'Formato',
+  'comun.color': 'Color',
+  'comun.colorBorde': 'Color de borde',
+  'comun.colorFondo': 'Color de fondo',
+  'comun.conFondo': 'Con fondo',
+  'comun.grosorBordePt': 'Grosor de borde (pt)',
+  'comun.estilo': 'Estilo',
+  'comun.estiloSolida': 'Sólida',
+  'comun.estiloPunteada': 'Punteada',
+  'comun.estiloDoble': 'Doble',
+  'comun.tamano': 'Tamaño',
+  'comun.radioEsquinaPt': 'Radio de esquina (pt)',
+
+  'props.lbl.texto': 'Texto',
+  'props.variasLineas': 'Varias líneas',
+  'props.textoVertical': 'Texto vertical (una letra por renglón)',
+  'props.separacionPt': 'Separación (pt)',
+
+  'props.campo.id': 'Campo (ID)',
+  'props.campo.tipoDato': 'Tipo de dato',
+  'tipoDato.Texto': 'Texto',
+  'tipoDato.Numero': 'Número',
+  'tipoDato.Moneda': 'Moneda',
+  'tipoDato.Fecha': 'Fecha',
+  'props.campo.invisible': 'Campo invisible',
+  'props.campo.valorDefecto': 'Valor por defecto',
+  'props.campo.valorDefectoPlaceholder': 'Valor que aparecerá por defecto',
+  'props.campo.readonly': 'Sólo lectura (visual)',
+  'props.campo.hacerRepetible': 'Hacer repetible…',
+  'props.campo.editarRepeticion': 'Editar repetición (×{n})',
+
+  'props.conRelleno': 'Con relleno',
+  'props.colorRelleno': 'Color de relleno',
+
+  'props.qr.textoUrl': 'Texto / URL',
+  'props.qr.tamanoPt': 'Tamaño (pt)',
+  'props.qr.contraste': 'Un QR necesita buen contraste entre el color y el fondo para poder leerse.',
+
+  'props.tabla.resumen': '{filas} filas × {cols} columnas. Arrastrá una línea interna para ajustar esa fila/columna, o la esquina para redimensionar todo.',
+  'props.tabla.colorContorno': 'Color del contorno',
+  'props.tabla.colorInterno': 'Color interno',
+  'props.tabla.estiloContorno': 'Estilo del contorno',
+  'props.tabla.estiloInterno': 'Estilo interno',
+  'props.tabla.grosorLineaPt': 'Grosor de línea (pt)',
+
+  'props.imagen.mantenerProporcion': 'Mantener proporción al redimensionar',
+  'props.imagen.opacidad': 'Opacidad',
+} as const;
+
+export type ClaveI18n = keyof typeof ES;
+
+const EN: Record<ClaveI18n, string> = {
+  'shell.idiomaTt': 'Language',
+  'shell.panelToggleTt': 'Collapse panel',
+  'shell.separadorTt': 'Drag to resize',
+  'shell.campos.titulo': 'AcroForm fields',
+  'shell.campos.placeholder': 'Field ID',
+  'shell.campos.nota': 'Click a field to place it on the sheet (it can be repeated).',
+  'shell.propiedades.titulo': 'Properties',
+  'shell.sinSeleccion': 'Select an element on the canvas. Use Ctrl or Shift to add more, or drag a box over the canvas.',
+  'shell.status.autoguardado': 'Auto-saved in this browser',
+  'shell.status.peso': 'Size: calculate',
+  'shell.status.verificar': 'Verify',
+  'shell.zoom.alejarTt': 'Zoom out',
+  'shell.zoom.acercarTt': 'Zoom in',
+  'shell.zoom.tt': 'Zoom',
+
+  'menu.archivo': 'File',
+  'menu.archivo.nuevo': 'New project',
+  'menu.archivo.abrirPdf': 'Open PDF…',
+  'menu.archivo.importarProyecto': 'Import project (.json)…',
+  'menu.archivo.guardarProyecto': 'Save project…',
+  'menu.archivo.verificar': 'Verify design',
+  'menu.archivo.exportarPdf': 'Export PDF…',
+
+  'menu.editar': 'Edit',
+  'menu.editar.deshacer': 'Undo',
+  'menu.editar.rehacer': 'Redo',
+  'menu.editar.seleccionarTodo': 'Select all',
+  'menu.editar.cortar': 'Cut',
+  'menu.editar.copiar': 'Copy',
+  'menu.editar.pegar': 'Paste',
+
+  'menu.ver': 'View',
+  'menu.ver.cuadricula': 'Grid',
+  'menu.ver.pasoTt': 'Spacing (pt)',
+  'menu.ver.reglas': 'Rulers',
+  'menu.ver.alineacion': 'Alignment',
+
+  'menu.pagina': 'Page',
+  'menu.pagina.tamano': 'Size',
+  'pagina.tamano.A4': 'A4',
+  'pagina.tamano.Carta': 'Letter',
+  'pagina.tamano.Oficio': 'Legal',
+  'pagina.tamano.A5': 'A5',
+  'menu.pagina.orientacion': 'Orientation',
+  'pagina.orientacion.vertical': 'Portrait',
+  'pagina.orientacion.horizontal': 'Landscape',
+  'menu.pagina.fondo': 'Background',
+  'pagina.fondo.blanco': 'Blank sheet',
+  'pagina.fondo.imagen': 'Image…',
+  'menu.pagina.margenes': 'Set up margins…',
+
+  'menu.campos': 'Fields',
+  'menu.campos.notaDibujo': 'Draw',
+  'menu.campos.dibTexto': '✏ Text',
+  'menu.campos.dibLinea': '➖ Line',
+  'menu.campos.dibRect': '▭ Box',
+  'menu.campos.dibTabla': '▦ Table',
+  'menu.campos.dibImagen': '🖼 Image',
+  'menu.campos.dibQr': '▪ QR',
+  'menu.campos.csvImportar': '⬆ Import fields (CSV)',
+  'menu.campos.csvExportar': '⬇ Export fields (CSV)',
+  'menu.campos.completar': 'Fill in fields',
+
+  'menu.ayuda': 'Help',
+  'ayuda.menu.guia': '🚀 Quick guide',
+  'ayuda.menu.atajos': '⌨️ Keyboard shortcuts',
+  'ayuda.menu.csv': '📄 Load fields from CSV',
+  'ayuda.menu.repetibles': '🔁 Repeatable fields (#)',
+  'ayuda.menu.apariencias': '🧾 Remove appearances',
+  'ayuda.menu.faq': '❓ Frequently asked questions',
+  'ayuda.menu.acerca': 'ℹ️ About...',
+
+  'campos.quitarTt': 'Remove from catalog',
+
+  'modal.btn.cancelar': 'Cancel',
+  'modal.btn.aplicar': 'Apply',
+  'modal.btn.guardar': 'Save',
+  'modal.btn.insertar': 'Insert',
+  'modal.btn.exportar': 'Export',
+  'modal.btn.cerrar': 'Close',
+  'modal.btn.entendido': 'Got it',
+  'modal.btn.aceptar': 'Accept',
+
+  'modal.nuevoProyecto.titulo': 'Create new design',
+  'modal.nuevoProyecto.sub': 'Set the initial size, orientation and margins of the sheet. The current design will be discarded.',
+  'modal.nuevoProyecto.crear': 'Create design',
+  'modal.lbl.tamanoHoja': 'Sheet size',
+
+  'modal.margenes.tit': 'Sheet margins (pt)',
+  'modal.margen.arriba': 'Top',
+  'modal.margen.abajo': 'Bottom',
+  'modal.margen.izquierda': 'Left',
+  'modal.margen.derecha': 'Right',
+  'modal.margenes.titulo': 'Set up margins',
+  'modal.margenes.sub': 'Margins are shown as a dotted guide and bound where new elements are placed. They are not drawn in the PDF.',
+
+  'modal.nombreArchivo.lbl': 'File name',
+
+  'modal.tabla.titulo': 'Insert table',
+  'modal.tabla.sub': 'Choose how many rows and columns it has. Each row and column can be resized afterwards by dragging its lines.',
+  'modal.tabla.filas': 'Rows',
+  'modal.tabla.columnas': 'Columns',
+
+  'modal.repetible.titulo': 'Repeatable field',
+  'modal.repetible.sub': 'The field goes into the PDF once per row, and the ID wildcard is replaced by each row number.',
+  'modal.repetible.idLbl': 'Field ID',
+  'modal.repetible.comodin': 'Wildcard',
+  'modal.repetible.separacionPt': 'Spacing (pt)',
+  'modal.repetible.aviso': 'The ID must contain the wildcard; otherwise every row would be named the same.',
+  'modal.repetible.masChips': '+{n} more',
+
+  'modal.exportar.titulo': 'Export PDF',
+  'modal.exportar.sub': 'Generates and downloads the final PDF of the design.',
+  'modal.exportar.conservarCampos': 'Keep fields editable (AcroForm)',
+  'modal.exportar.conservarCamposNota': 'Without this, fields are drawn flattened with their default value and the PDF stops being fillable.',
+  'modal.exportar.sinApariencias': 'Remove field appearances',
+  'modal.exportar.sinAparienciasNota': 'So invisible fields don’t show up in viewers that ignore the hidden flag. This cannot be undone in the exported PDF.',
+
+  'modal.preflight.titulo': 'Verify design',
+  'modal.preflight.sub': 'A check run before exporting. Errors are worth fixing; warnings are recommendations.',
+  'modal.preflight.errores': '✕ Errors ({n})',
+  'modal.preflight.advertencias': '⚠ Warnings ({n})',
+  'modal.preflight.ok': '✓ The design has no issues.',
+  'modal.preflight.exportarIgual': 'Export anyway',
+
+  'tipo.texto': 'Text',
+  'tipo.linea': 'Line',
+  'tipo.rect': 'Box',
+  'tipo.qr': 'QR',
+  'tipo.tabla': 'Table',
+  'tipo.imagen': 'Image',
+  'tipo.campo': 'Field',
+
+  'props.familia': 'Family',
+  'props.familiaEstandar': 'Standard (PDF)',
+  'props.familiaWeb': 'Web (embedded on export)',
+  'props.negritaTt': 'Bold',
+  'props.cursivaTt': 'Italic',
+  'props.subrayadoTt': 'Underline',
+  'props.alineacion': 'Alignment',
+  'props.alIzqTt': 'Left',
+  'props.alCentroTt': 'Center',
+  'props.alDerTt': 'Right',
+
+  'props.multi.elementos': '{n} elements',
+  'props.multi.alinearEntreSi': 'Align to each other',
+  'props.multi.centroHTt': 'Horizontal center',
+  'props.multi.arribaTt': 'Top',
+  'props.multi.centroVTt': 'Vertical center',
+  'props.multi.abajoTt': 'Bottom',
+  'props.multi.rotacion': 'Rotation',
+  'props.multi.angulo': 'Angle (°)',
+  'props.multi.anguloPlaceholder': 'various',
+  'props.multi.anguloNota': 'Each element rotates around its own corner, not around the whole selection.',
+
+  'props.acciones.duplicar': 'Duplicate',
+  'props.acciones.borrar': 'Delete',
+  'props.acciones.alFrente': 'Bring to front',
+  'props.acciones.enviarAtras': 'Send to back',
+
+  'props.posicionTitulo': 'Position and size (pt)',
+  'props.lbl.x': 'X',
+  'props.lbl.y': 'Y',
+  'props.lbl.ancho': 'Width',
+  'props.lbl.alto': 'Height',
+
+  'comun.contenido': 'Content',
+  'comun.formato': 'Format',
+  'comun.color': 'Color',
+  'comun.colorBorde': 'Border color',
+  'comun.colorFondo': 'Background color',
+  'comun.conFondo': 'With background',
+  'comun.grosorBordePt': 'Border thickness (pt)',
+  'comun.estilo': 'Style',
+  'comun.estiloSolida': 'Solid',
+  'comun.estiloPunteada': 'Dotted',
+  'comun.estiloDoble': 'Double',
+  'comun.tamano': 'Size',
+  'comun.radioEsquinaPt': 'Corner radius (pt)',
+
+  'props.lbl.texto': 'Text',
+  'props.variasLineas': 'Multiple lines',
+  'props.textoVertical': 'Vertical text (one letter per line)',
+  'props.separacionPt': 'Spacing (pt)',
+
+  'props.campo.id': 'Field (ID)',
+  'props.campo.tipoDato': 'Data type',
+  'tipoDato.Texto': 'Text',
+  'tipoDato.Numero': 'Number',
+  'tipoDato.Moneda': 'Currency',
+  'tipoDato.Fecha': 'Date',
+  'props.campo.invisible': 'Invisible field',
+  'props.campo.valorDefecto': 'Default value',
+  'props.campo.valorDefectoPlaceholder': 'Value that will appear by default',
+  'props.campo.readonly': 'Read-only (visual)',
+  'props.campo.hacerRepetible': 'Make repeatable…',
+  'props.campo.editarRepeticion': 'Edit repetition (×{n})',
+
+  'props.conRelleno': 'Filled',
+  'props.colorRelleno': 'Fill color',
+
+  'props.qr.textoUrl': 'Text / URL',
+  'props.qr.tamanoPt': 'Size (pt)',
+  'props.qr.contraste': 'A QR code needs good contrast between its color and background to be readable.',
+
+  'props.tabla.resumen': '{filas} rows × {cols} columns. Drag an inner line to resize that row/column, or the corner to resize the whole table.',
+  'props.tabla.colorContorno': 'Outline color',
+  'props.tabla.colorInterno': 'Inner color',
+  'props.tabla.estiloContorno': 'Outline style',
+  'props.tabla.estiloInterno': 'Inner style',
+  'props.tabla.grosorLineaPt': 'Line thickness (pt)',
+
+  'props.imagen.mantenerProporcion': 'Keep aspect ratio when resizing',
+  'props.imagen.opacidad': 'Opacity',
+};
+
+const PT: Record<ClaveI18n, string> = {
+  'shell.idiomaTt': 'Idioma',
+  'shell.panelToggleTt': 'Recolher painel',
+  'shell.separadorTt': 'Arraste para mudar a largura',
+  'shell.campos.titulo': 'Campos AcroForm',
+  'shell.campos.placeholder': 'ID do campo',
+  'shell.campos.nota': 'Clique em um campo para colocá-lo na folha (pode repeti-lo).',
+  'shell.propiedades.titulo': 'Propriedades',
+  'shell.sinSeleccion': 'Selecione um elemento da tela. Com Ctrl ou Shift você adiciona vários; também pode arrastar um retângulo sobre a tela.',
+  'shell.status.autoguardado': 'Salvamento automático neste navegador',
+  'shell.status.peso': 'Tamanho: calcular',
+  'shell.status.verificar': 'Verificar',
+  'shell.zoom.alejarTt': 'Diminuir zoom',
+  'shell.zoom.acercarTt': 'Aumentar zoom',
+  'shell.zoom.tt': 'Zoom',
+
+  'menu.archivo': 'Arquivo',
+  'menu.archivo.nuevo': 'Novo projeto',
+  'menu.archivo.abrirPdf': 'Abrir PDF…',
+  'menu.archivo.importarProyecto': 'Importar projeto (.json)…',
+  'menu.archivo.guardarProyecto': 'Salvar projeto…',
+  'menu.archivo.verificar': 'Verificar layout',
+  'menu.archivo.exportarPdf': 'Exportar PDF…',
+
+  'menu.editar': 'Editar',
+  'menu.editar.deshacer': 'Desfazer',
+  'menu.editar.rehacer': 'Refazer',
+  'menu.editar.seleccionarTodo': 'Selecionar tudo',
+  'menu.editar.cortar': 'Recortar',
+  'menu.editar.copiar': 'Copiar',
+  'menu.editar.pegar': 'Colar',
+
+  'menu.ver': 'Exibir',
+  'menu.ver.cuadricula': 'Grade',
+  'menu.ver.pasoTt': 'Espaçamento (pt)',
+  'menu.ver.reglas': 'Réguas',
+  'menu.ver.alineacion': 'Alinhamento',
+
+  'menu.pagina': 'Página',
+  'menu.pagina.tamano': 'Tamanho',
+  'pagina.tamano.A4': 'A4',
+  'pagina.tamano.Carta': 'Carta',
+  'pagina.tamano.Oficio': 'Ofício',
+  'pagina.tamano.A5': 'A5',
+  'menu.pagina.orientacion': 'Orientação',
+  'pagina.orientacion.vertical': 'Retrato',
+  'pagina.orientacion.horizontal': 'Paisagem',
+  'menu.pagina.fondo': 'Fundo',
+  'pagina.fondo.blanco': 'Folha em branco',
+  'pagina.fondo.imagen': 'Imagem…',
+  'menu.pagina.margenes': 'Configurar margens…',
+
+  'menu.campos': 'Campos',
+  'menu.campos.notaDibujo': 'Desenho',
+  'menu.campos.dibTexto': '✏ Texto',
+  'menu.campos.dibLinea': '➖ Linha',
+  'menu.campos.dibRect': '▭ Retângulo',
+  'menu.campos.dibTabla': '▦ Tabela',
+  'menu.campos.dibImagen': '🖼 Imagem',
+  'menu.campos.dibQr': '▪ QR',
+  'menu.campos.csvImportar': '⬆ Importar campos (CSV)',
+  'menu.campos.csvExportar': '⬇ Exportar campos (CSV)',
+  'menu.campos.completar': 'Preencher campos',
+
+  'menu.ayuda': 'Ajuda',
+  'ayuda.menu.guia': '🚀 Guia rápido',
+  'ayuda.menu.atajos': '⌨️ Atalhos de teclado',
+  'ayuda.menu.csv': '📄 Carregar campos via CSV',
+  'ayuda.menu.repetibles': '🔁 Campos repetíveis (#)',
+  'ayuda.menu.apariencias': '🧾 Remover aparências',
+  'ayuda.menu.faq': '❓ Perguntas frequentes',
+  'ayuda.menu.acerca': 'ℹ️ Sobre...',
+
+  'campos.quitarTt': 'Remover do catálogo',
+
+  'modal.btn.cancelar': 'Cancelar',
+  'modal.btn.aplicar': 'Aplicar',
+  'modal.btn.guardar': 'Salvar',
+  'modal.btn.insertar': 'Inserir',
+  'modal.btn.exportar': 'Exportar',
+  'modal.btn.cerrar': 'Fechar',
+  'modal.btn.entendido': 'Entendi',
+  'modal.btn.aceptar': 'Aceitar',
+
+  'modal.nuevoProyecto.titulo': 'Criar novo modelo',
+  'modal.nuevoProyecto.sub': 'Configure o tamanho, a orientação e as margens iniciais da folha. O modelo atual será descartado.',
+  'modal.nuevoProyecto.crear': 'Criar modelo',
+  'modal.lbl.tamanoHoja': 'Tamanho da folha',
+
+  'modal.margenes.tit': 'Margens da folha (pt)',
+  'modal.margen.arriba': 'Superior',
+  'modal.margen.abajo': 'Inferior',
+  'modal.margen.izquierda': 'Esquerda',
+  'modal.margen.derecha': 'Direita',
+  'modal.margenes.titulo': 'Configurar margens',
+  'modal.margenes.sub': 'As margens aparecem como um guia pontilhado e delimitam onde os novos elementos são colocados. Não são desenhadas no PDF.',
+
+  'modal.nombreArchivo.lbl': 'Nome do arquivo',
+
+  'modal.tabla.titulo': 'Inserir tabela',
+  'modal.tabla.sub': 'Escolha quantas linhas e colunas ela tem. Depois é possível ajustar cada linha e cada coluna arrastando suas linhas divisórias.',
+  'modal.tabla.filas': 'Linhas',
+  'modal.tabla.columnas': 'Colunas',
+
+  'modal.repetible.titulo': 'Campo repetível',
+  'modal.repetible.sub': 'O campo desce ao PDF uma vez por linha, e o coringa do ID é substituído pelo número de cada uma.',
+  'modal.repetible.idLbl': 'ID do campo',
+  'modal.repetible.comodin': 'Coringa',
+  'modal.repetible.separacionPt': 'Espaçamento (pt)',
+  'modal.repetible.aviso': 'O ID precisa conter o coringa; caso contrário, todas as linhas teriam o mesmo nome.',
+  'modal.repetible.masChips': '+{n} mais',
+
+  'modal.exportar.titulo': 'Exportar PDF',
+  'modal.exportar.sub': 'Gera e baixa o PDF final do modelo.',
+  'modal.exportar.conservarCampos': 'Manter campos editáveis (AcroForm)',
+  'modal.exportar.conservarCamposNota': 'Sem isso, os campos são desenhados achatados com seu valor padrão e o PDF deixa de ser preenchível.',
+  'modal.exportar.sinApariencias': 'Remover aparências dos campos',
+  'modal.exportar.sinAparienciasNota': 'Para que campos invisíveis não apareçam em visualizadores que ignoram a marca de oculto. Não pode ser desfeito no PDF exportado.',
+
+  'modal.preflight.titulo': 'Verificar layout',
+  'modal.preflight.sub': 'Revisão prévia à exportação. Os erros convém corrigir; os avisos são recomendações.',
+  'modal.preflight.errores': '✕ Erros ({n})',
+  'modal.preflight.advertencias': '⚠ Avisos ({n})',
+  'modal.preflight.ok': '✓ O modelo não tem problemas.',
+  'modal.preflight.exportarIgual': 'Exportar assim mesmo',
+
+  'tipo.texto': 'Texto',
+  'tipo.linea': 'Linha',
+  'tipo.rect': 'Retângulo',
+  'tipo.qr': 'QR',
+  'tipo.tabla': 'Tabela',
+  'tipo.imagen': 'Imagem',
+  'tipo.campo': 'Campo',
+
+  'props.familia': 'Família',
+  'props.familiaEstandar': 'Padrão (PDF)',
+  'props.familiaWeb': 'Web (incorporadas ao exportar)',
+  'props.negritaTt': 'Negrito',
+  'props.cursivaTt': 'Itálico',
+  'props.subrayadoTt': 'Sublinhado',
+  'props.alineacion': 'Alinhamento',
+  'props.alIzqTt': 'Esquerda',
+  'props.alCentroTt': 'Centro',
+  'props.alDerTt': 'Direita',
+
+  'props.multi.elementos': '{n} elementos',
+  'props.multi.alinearEntreSi': 'Alinhar entre si',
+  'props.multi.centroHTt': 'Centro horizontal',
+  'props.multi.arribaTt': 'Superior',
+  'props.multi.centroVTt': 'Centro vertical',
+  'props.multi.abajoTt': 'Inferior',
+  'props.multi.rotacion': 'Rotação',
+  'props.multi.angulo': 'Ângulo (°)',
+  'props.multi.anguloPlaceholder': 'vários',
+  'props.multi.anguloNota': 'Cada elemento gira em torno do seu próprio canto, não em torno do conjunto.',
+
+  'props.acciones.duplicar': 'Duplicar',
+  'props.acciones.borrar': 'Excluir',
+  'props.acciones.alFrente': 'Trazer para frente',
+  'props.acciones.enviarAtras': 'Enviar para trás',
+
+  'props.posicionTitulo': 'Posição e tamanho (pt)',
+  'props.lbl.x': 'X',
+  'props.lbl.y': 'Y',
+  'props.lbl.ancho': 'Largura',
+  'props.lbl.alto': 'Altura',
+
+  'comun.contenido': 'Conteúdo',
+  'comun.formato': 'Formato',
+  'comun.color': 'Cor',
+  'comun.colorBorde': 'Cor da borda',
+  'comun.colorFondo': 'Cor de fundo',
+  'comun.conFondo': 'Com fundo',
+  'comun.grosorBordePt': 'Espessura da borda (pt)',
+  'comun.estilo': 'Estilo',
+  'comun.estiloSolida': 'Sólida',
+  'comun.estiloPunteada': 'Pontilhada',
+  'comun.estiloDoble': 'Dupla',
+  'comun.tamano': 'Tamanho',
+  'comun.radioEsquinaPt': 'Raio do canto (pt)',
+
+  'props.lbl.texto': 'Texto',
+  'props.variasLineas': 'Várias linhas',
+  'props.textoVertical': 'Texto vertical (uma letra por linha)',
+  'props.separacionPt': 'Espaçamento (pt)',
+
+  'props.campo.id': 'Campo (ID)',
+  'props.campo.tipoDato': 'Tipo de dado',
+  'tipoDato.Texto': 'Texto',
+  'tipoDato.Numero': 'Número',
+  'tipoDato.Moneda': 'Moeda',
+  'tipoDato.Fecha': 'Data',
+  'props.campo.invisible': 'Campo invisível',
+  'props.campo.valorDefecto': 'Valor padrão',
+  'props.campo.valorDefectoPlaceholder': 'Valor que vai aparecer por padrão',
+  'props.campo.readonly': 'Somente leitura (visual)',
+  'props.campo.hacerRepetible': 'Tornar repetível…',
+  'props.campo.editarRepeticion': 'Editar repetição (×{n})',
+
+  'props.conRelleno': 'Com preenchimento',
+  'props.colorRelleno': 'Cor de preenchimento',
+
+  'props.qr.textoUrl': 'Texto / URL',
+  'props.qr.tamanoPt': 'Tamanho (pt)',
+  'props.qr.contraste': 'Um QR precisa de bom contraste entre a cor e o fundo para poder ser lido.',
+
+  'props.tabla.resumen': '{filas} linhas × {cols} colunas. Arraste uma linha interna para ajustar essa linha/coluna, ou o canto para redimensionar tudo.',
+  'props.tabla.colorContorno': 'Cor do contorno',
+  'props.tabla.colorInterno': 'Cor interna',
+  'props.tabla.estiloContorno': 'Estilo do contorno',
+  'props.tabla.estiloInterno': 'Estilo interno',
+  'props.tabla.grosorLineaPt': 'Espessura da linha (pt)',
+
+  'props.imagen.mantenerProporcion': 'Manter proporção ao redimensionar',
+  'props.imagen.opacidad': 'Opacidade',
+};
+
+const D: Record<Idioma, Record<ClaveI18n, string>> = { es: ES, en: EN, pt: PT };
+
+function detectarIdioma(): Idioma {
+  try {
+    const guardado = localStorage.getItem(CLAVE_LS_IDIOMA);
+    if (guardado === 'es' || guardado === 'en' || guardado === 'pt') return guardado;
+  } catch {
+    /* localStorage bloqueado: cae a es */
+  }
+  return 'es';
+}
+
+let actual: Idioma = detectarIdioma();
+
+export function idiomaActual(): Idioma {
+  return actual;
+}
+
+/** Sustituye `{clave}` dentro del texto por el valor de `vars[clave]`. */
+export function t(clave: ClaveI18n, vars?: Record<string, string | number>): string {
+  let texto = D[actual][clave] ?? ES[clave];
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) texto = texto.split(`{${k}}`).join(String(v));
+  }
+  return texto;
+}
+
+export function cambiarIdioma(idioma: Idioma): void {
+  actual = idioma;
+  try {
+    localStorage.setItem(CLAVE_LS_IDIOMA, idioma);
+  } catch {
+    /* localStorage bloqueado: el cambio no sobrevive a un recargo, pero funciona en la sesión */
+  }
+  aplicarIdioma();
+}
+
+/**
+ * Recorre el DOM aplicando las claves marcadas con `data-i18n*`. Se llama una vez al montar el
+ * espacio de trabajo y cada vez que cambia el idioma: como el panel de propiedades y el de campos
+ * quedan armados con estos mismos atributos, no hace falta reconstruirlos para traducirlos.
+ */
+export function aplicarIdioma(raiz: ParentNode = document): void {
+  raiz.querySelectorAll<HTMLElement>('[data-i18n]').forEach((el) => {
+    el.textContent = t(el.dataset.i18n as ClaveI18n);
+  });
+  raiz.querySelectorAll<HTMLElement>('[data-i18n-title]').forEach((el) => {
+    el.title = t(el.dataset.i18nTitle as ClaveI18n);
+  });
+  raiz.querySelectorAll<HTMLInputElement>('[data-i18n-placeholder]').forEach((el) => {
+    el.placeholder = t(el.dataset.i18nPlaceholder as ClaveI18n);
+  });
+  raiz.querySelectorAll<HTMLOptGroupElement>('[data-i18n-label]').forEach((el) => {
+    el.label = t(el.dataset.i18nLabel as ClaveI18n);
+  });
+  if (raiz === document) document.documentElement.lang = actual;
+}

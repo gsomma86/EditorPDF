@@ -1,3 +1,5 @@
+import { t } from './i18n';
+
 export interface PanelCampos {
   obtenerCatalogo(): string[];
   establecerCatalogo(nombres: string[]): void;
@@ -21,7 +23,7 @@ export function montarPanelCampos(panel: HTMLElement, onColocar: (nombre: string
         (nombre, i) => `
         <div class="ed-campo-fila">
           <button type="button" class="ed-chip" data-colocar="${i}">${nombre}</button>
-          <button type="button" class="quitar" data-quitar="${i}" title="Quitar del catálogo">✕</button>
+          <button type="button" class="quitar" data-quitar="${i}" data-i18n-title="campos.quitarTt" title="${t('campos.quitarTt')}">✕</button>
         </div>`
       )
       .join('');
