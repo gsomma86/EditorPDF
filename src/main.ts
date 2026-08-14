@@ -2,7 +2,7 @@ import './style.css';
 import { montarEspacioTrabajo } from './ui/shell';
 import { crearLienzo } from './editor/lienzo';
 import { crearElemento, crearElementoCampo, crearElementoImagen, crearElementoTabla, duplicarElemento, type ClaseSimple, type Elemento } from './editor/elemento';
-import { agregarAlLienzo, elementoDe, reconstruirLienzo, sincronizarGeometria } from './editor/objetosFabric';
+import { activarModoCompletar, agregarAlLienzo, elementoDe, reconstruirLienzo, sincronizarGeometria } from './editor/objetosFabric';
 import { mostrarMultiSeleccion, mostrarPropiedades, mostrarSinSeleccion } from './ui/panelPropiedades';
 import { ActiveSelection, type FabricObject } from 'fabric';
 import { borrarAutoguardado, hayAutoguardado, programarAutoguardado, restaurarAutoguardado } from './editor/autoguardado';
@@ -267,6 +267,42 @@ document.addEventListener('keydown', (e) => {
     lienzo.setActiveObject(objetos.length === 1 ? objetos[0] : new ActiveSelection([...objetos], { canvas: lienzo }));
     lienzo.requestRenderAll();
   }
+});
+
+// ---------- Completar campos ----------
+
+/** Los elementos que hay ahora en el lienzo, en orden. */
+function elementosDelLienzo(): Elemento[] {
+  return lienzo
+    .getObjects()
+    .map((o) => elementoDe(o))
+    .filter((el): el is Elemento => !!el);
+}
+
+document.getElementById('ed-completar')!.addEventListener('change', async (e) => {
+  const encendido = (e.target as HTMLInputElement).checked;
+  activarModoCompletar(encendido);
+  lienzo.discardActiveObject();
+  await reconstruirLienzo(lienzo, elementosDelLienzo());
+
+  // Con el modo prendido solo se tocan los campos: el resto del diseño queda quieto para no
+  // moverlo sin querer mientras se completa.
+  if (encendido) {
+    for (const objeto of lienzo.getObjects()) {
+      if (elementoDe(objeto)?.clase !== 'campo') objeto.set({ selectable: false, evented: false });
+    }
+  }
+  lienzo.requestRenderAll();
+  mostrarSinSeleccion(espacio.panelPropiedades);
+});
+
+// Lo que se escribe en un campo es su valor por defecto: el mismo que muestra el panel y el que
+// viaja al PDF, así que completar la hoja es también prepararla.
+lienzo.on('text:changed', (e) => {
+  const elemento = elementoDe(e.target as FabricObject);
+  if (elemento?.clase !== 'campo') return;
+  elemento.defaultValue = (e.target as unknown as { text: string }).text;
+  guardar();
 });
 
 // ---------- Copiar, cortar y pegar ----------

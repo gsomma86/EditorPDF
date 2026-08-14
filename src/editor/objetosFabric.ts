@@ -1,6 +1,6 @@
-import { cache, FabricImage, FabricObject, FabricText, Group, Rect } from 'fabric';
+import { cache, FabricImage, FabricObject, FabricText, Group, Rect, Textbox } from 'fabric';
 import QRCode from 'qrcode';
-import { type Elemento, type ElementoQr } from './elemento';
+import { alturaRenglonFabric, PASO_RENGLON, type Elemento, type ElementoQr } from './elemento';
 import { asegurarFuenteCargada } from './fuentes';
 import { TablaObjeto } from './tablaObjeto';
 import { LineaObjeto } from './lineaObjeto';
@@ -18,6 +18,21 @@ FabricObject.ownDefaults.originX = 'left';
 FabricObject.ownDefaults.originY = 'top';
 
 const datosPorObjeto = new WeakMap<FabricObject, Elemento>();
+
+/**
+ * Modo "Completar campos": en vez del chip con el ID, cada campo se dibuja como una caja de texto
+ * editable sobre la hoja para escribirle un valor de ejemplo y ver cómo va a quedar. Es un modo
+ * del lienzo, no del modelo, así que vive acá y los objetos se rearman al prenderlo o apagarlo.
+ */
+let modoCompletar = false;
+
+export function activarModoCompletar(valor: boolean): void {
+  modoCompletar = valor;
+}
+
+export function enModoCompletar(): boolean {
+  return modoCompletar;
+}
 
 export function elementoDe(objeto: FabricObject): Elemento | undefined {
   return datosPorObjeto.get(objeto);
@@ -48,15 +63,25 @@ export async function prepararFuente(familia: string): Promise<void> {
   if (await asegurarFuenteCargada(familia)) cache.clearFontCache(familia);
 }
 
+/**
+ * Un texto vertical es el mismo texto con cada letra en su propio renglón: así lo dibuja Fabric
+ * y así baja al PDF, sin necesitar un modo de escritura aparte. Los espacios se conservan como
+ * renglón en blanco, que es lo que se espera al apilar palabras.
+ */
+export function textoParaDibujar(elemento: Elemento & { clase: 'texto' }): string {
+  return elemento.vertical ? [...elemento.text].join('\n') : elemento.text;
+}
+
 export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObject> {
   switch (elemento.clase) {
     case 'texto': {
       await prepararFuente(elemento.familia);
-      const texto = new FabricText(elemento.text, {
+      const texto = new FabricText(textoParaDibujar(elemento), {
         left: elemento.x,
         top: elemento.y,
         angle: elemento.angulo,
         fontSize: elemento.size,
+        lineHeight: alturaRenglonFabric(elemento),
         fontFamily: elemento.familia,
         fontWeight: elemento.negrita ? '700' : '400',
         fontStyle: elemento.cursiva ? 'italic' : 'normal',
@@ -86,6 +111,36 @@ export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObjec
       return new TablaObjeto(elemento);
     case 'campo': {
       await prepararFuente(elemento.familia);
+
+      if (modoCompletar) {
+        // Se edita con el propio editor de texto de Fabric: sabe dibujar el cursor y la selección
+        // en las coordenadas del lienzo, con su zoom y su rotación. Poner un <input> de HTML
+        // encima del canvas se probó para otra cosa y siempre terminaba desfasado (lección 1).
+        const caja = new Textbox(elemento.defaultValue, {
+          left: elemento.x,
+          // Centrado vertical dentro de la caja del campo, igual que el PDF aplanado.
+          top: elemento.y + Math.max(0, (elemento.h - elemento.size * PASO_RENGLON) / 2),
+          angle: elemento.angulo,
+          width: elemento.w,
+          fontSize: elemento.size,
+          fontFamily: elemento.familia,
+          fontWeight: elemento.negrita ? '700' : '400',
+          fontStyle: elemento.cursiva ? 'italic' : 'normal',
+          underline: elemento.subrayado,
+          fill: elemento.color,
+          textAlign: elemento.align,
+          backgroundColor: 'rgba(55,138,221,0.10)',
+          // En este modo solo se completa: mover o redimensionar es para el modo de diseño.
+          lockMovementX: true,
+          lockMovementY: true,
+          lockRotation: true,
+          lockScalingX: true,
+          lockScalingY: true,
+          hasControls: false,
+        });
+        return caja;
+      }
+
       const esInvisible = elemento.invisible;
 
       // La apariencia de verdad: el borde y el fondo que el campo va a tener en el PDF.

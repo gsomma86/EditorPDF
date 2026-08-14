@@ -1,7 +1,7 @@
 import { PDFDocument, StandardFonts, degrees, rgb, type PDFFont, type PDFPage, type PDFTextField, type RGB } from '@cantoo/pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import type { Canvas } from 'fabric';
-import { anchoTotalTabla, altoTotalTabla, type Elemento, type ElementoLinea, type ElementoTabla, type EstiloLinea } from './elemento';
+import { anchoTotalTabla, altoTotalTabla, pasoDeRenglon, PASO_RENGLON, type Elemento, type ElementoLinea, type ElementoTabla, type EstiloLinea } from './elemento';
 import { elementoDe } from './objetosFabric';
 import { configActual } from './documento';
 import { dimensionesPagina } from './pagina';
@@ -206,18 +206,26 @@ export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): P
         // En el PDF la Y del texto es su línea de base, no el tope de la caja: en coordenadas del
         // elemento, la base está a una ascendente de su borde de arriba.
         const ascendente = fuente.heightAtSize(el.size, { descender: false });
-        const base = ubi.punto(0, ascendente);
-        pagina.drawText(el.text, { ...base, size: el.size, font: fuente, color: color(el.color), rotate: ubi.grados });
-        if (el.subrayado) {
-          const anchoTexto = fuente.widthOfTextAtSize(el.text, el.size);
-          const ySub = ascendente + el.size * 0.12;
-          pagina.drawLine({
-            start: ubi.punto(0, ySub),
-            end: ubi.punto(anchoTexto, ySub),
-            thickness: Math.max(0.5, el.size * 0.05),
-            color: color(el.color),
-          });
-        }
+        // Vertical = una letra por renglón. Se dibuja renglón por renglón en vez de mandarle el
+        // texto con saltos de línea a `drawText`, que los espacia con su propio criterio: así el
+        // paso entre letras es el mismo que usa Fabric en pantalla (1,16 × el cuerpo).
+        const renglones = el.vertical ? [...el.text] : el.text.split('\n');
+        const paso = pasoDeRenglon(el);
+
+        renglones.forEach((renglon, i) => {
+          const base = ubi.punto(0, ascendente + i * paso);
+          pagina.drawText(renglon, { ...base, size: el.size, font: fuente, color: color(el.color), rotate: ubi.grados });
+          if (el.subrayado) {
+            const anchoRenglon = fuente.widthOfTextAtSize(renglon, el.size);
+            const ySub = ascendente + i * paso + el.size * 0.12;
+            pagina.drawLine({
+              start: ubi.punto(0, ySub),
+              end: ubi.punto(anchoRenglon, ySub),
+              thickness: Math.max(0.5, el.size * 0.05),
+              color: color(el.color),
+            });
+          }
+        });
         break;
       }
 
@@ -266,8 +274,14 @@ export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): P
             dibujarRectangulo(pagina, ubi, 0, 0, el.w, el.h, { color: el.bordeColor, estilo: 'solido', grosor: el.bordeGrosor });
           }
           if (el.defaultValue) {
-            const linea = ubi.punto(2, (el.h + el.size) / 2);
-            pagina.drawText(el.defaultValue, { ...linea, size: el.size, font: fuente, color: color(el.color), rotate: ubi.grados });
+            // Multilínea: los renglones arrancan arriba; si es de una sola línea, va centrado.
+            const renglones = el.multilinea ? el.defaultValue.split('\n') : [el.defaultValue];
+            const paso = el.size * PASO_RENGLON;
+            const primero = el.multilinea ? el.size : (el.h + el.size) / 2;
+            renglones.forEach((renglon, i) => {
+              const linea = ubi.punto(2, primero + i * paso);
+              pagina.drawText(renglon, { ...linea, size: el.size, font: fuente, color: color(el.color), rotate: ubi.grados });
+            });
           }
           break;
         }
@@ -277,6 +291,7 @@ export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): P
         let campo = camposCreados.get(el.name);
         if (!campo) {
           campo = formulario.createTextField(el.name);
+          if (el.multilinea) campo.enableMultiline();
           if (el.defaultValue) campo.setText(el.defaultValue);
           if (el.readonly) campo.enableReadOnly();
           camposCreados.set(el.name, campo);

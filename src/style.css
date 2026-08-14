@@ -248,6 +248,7 @@ button {
   font-variant-numeric: tabular-nums;
 }
 .ed-panel select,
+.ed-panel textarea,
 .ed-panel input[type='text'],
 .ed-panel input[type='number'],
 .ed-panel input[type='color'] {
@@ -263,6 +264,11 @@ button {
 .ed-panel input[type='color'] {
   height: 30px;
   padding: 2px;
+}
+.ed-panel textarea {
+  resize: vertical;
+  min-height: 54px;
+  line-height: 1.35;
 }
 
 .ed-col {

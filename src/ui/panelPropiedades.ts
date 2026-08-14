@@ -1,7 +1,7 @@
 import type { Canvas, FabricObject } from 'fabric';
 import { FabricImage } from 'fabric';
-import { elementoDe, reemplazarObjeto, agregarAlLienzo, generarQr, prepararFuente } from '../editor/objetosFabric';
-import { duplicarElemento, type Elemento } from '../editor/elemento';
+import { elementoDe, reemplazarObjeto, agregarAlLienzo, generarQr, prepararFuente, textoParaDibujar } from '../editor/objetosFabric';
+import { alturaRenglonFabric, duplicarElemento, type Elemento } from '../editor/elemento';
 import { FAMILIAS_BASE, FAMILIAS_WEB } from '../editor/fuentes';
 import { registrarSnapshot } from '../editor/historial';
 import type { TablaObjeto } from '../editor/tablaObjeto';
@@ -256,14 +256,24 @@ function seccionPosicion(elemento: Elemento): string {
 
 function campoTexto(elemento: Elemento & { clase: 'texto' }): string {
   return (
-    seccion('Contenido', `<div><label class="ed-lbl">Texto</label><input type="text" id="ed-p-texto" value="${escapeHtml(elemento.text)}"></div>`) +
+    seccion(
+      'Contenido',
+      `<div><label class="ed-lbl">Texto</label>${
+        elemento.multilinea
+          ? `<textarea id="ed-p-texto" rows="3">${escapeHtml(elemento.text)}</textarea>`
+          : `<input type="text" id="ed-p-texto" value="${escapeHtml(elemento.text)}">`
+      }</div>
+      <label class="ed-check"><input type="checkbox" id="ed-p-multilinea" ${elemento.multilinea ? 'checked' : ''}> Varias líneas</label>`
+    ) +
     seccion(
       'Formato',
       `<div class="ed-row2">
         <div><label class="ed-lbl">Tamaño</label><input type="number" id="ed-p-size" class="mono" value="${elemento.size}" min="5" max="72"></div>
         <div><label class="ed-lbl">Color</label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
       </div>
-      ${bloqueTipografia(elemento)}`
+      ${bloqueTipografia(elemento)}
+      <label class="ed-check"><input type="checkbox" id="ed-p-vertical" ${elemento.vertical ? 'checked' : ''}> Texto vertical (una letra por renglón)</label>
+      <div><label class="ed-lbl">Separación entre letras (pt)</label><input type="number" id="ed-p-separacion" class="mono" value="${elemento.separacion}" step="0.5" ${elemento.vertical ? '' : 'disabled'}></div>`
     )
   );
 }
@@ -278,7 +288,8 @@ function campoCampo(elemento: Elemento & { clase: 'campo' }): string {
       </select></div>
       <label class="ed-check"><input type="checkbox" id="ed-p-invisible" ${elemento.invisible ? 'checked' : ''}> Campo invisible</label>
       <div><label class="ed-lbl">Valor por defecto</label><input type="text" id="ed-p-default" value="${escapeHtml(elemento.defaultValue)}" placeholder="Valor que aparecerá por defecto"></div>
-      <label class="ed-check"><input type="checkbox" id="ed-p-readonly" ${elemento.readonly ? 'checked' : ''}> Sólo lectura (visual)</label>`
+      <label class="ed-check"><input type="checkbox" id="ed-p-readonly" ${elemento.readonly ? 'checked' : ''}> Sólo lectura (visual)</label>
+      <label class="ed-check"><input type="checkbox" id="ed-p-campo-multilinea" ${elemento.multilinea ? 'checked' : ''}> Varias líneas</label>`
     ) +
     seccion(
       'Formato',
@@ -462,10 +473,32 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
   });
 
   if (elemento.clase === 'texto') {
+    const redibujarTexto = () => {
+      (objeto as any).set({ text: textoParaDibujar(elemento), lineHeight: alturaRenglonFabric(elemento) });
+      objeto.setCoords();
+      repintar();
+    };
     $('#ed-p-texto')!.addEventListener('input', (e) => {
       elemento.text = (e.target as HTMLInputElement).value;
-      (objeto as any).set({ text: elemento.text });
-      repintar();
+      redibujarTexto();
+    });
+    $('#ed-p-vertical')!.addEventListener('change', (e) => {
+      elemento.vertical = (e.target as HTMLInputElement).checked;
+      // La separación solo tiene sentido con las letras apiladas.
+      const separacion = $<HTMLInputElement>('#ed-p-separacion');
+      if (separacion) separacion.disabled = !elemento.vertical;
+      redibujarTexto();
+      registrarSnapshot(lienzo);
+    });
+    $('#ed-p-separacion')!.addEventListener('input', (e) => {
+      elemento.separacion = Number((e.target as HTMLInputElement).value) || 0;
+      redibujarTexto();
+    });
+    $('#ed-p-multilinea')!.addEventListener('change', (e) => {
+      elemento.multilinea = (e.target as HTMLInputElement).checked;
+      // El cuadro de texto del panel cambia de una línea a varias, así que se rearma el panel.
+      mostrarPropiedades(panel, lienzo, objeto);
+      registrarSnapshot(lienzo);
     });
     $('#ed-p-size')!.addEventListener('input', (e) => {
       elemento.size = Number((e.target as HTMLInputElement).value);
@@ -691,6 +724,10 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
     });
     $('#ed-p-tipodato')!.addEventListener('change', (e) => {
       elemento.tipo = (e.target as HTMLSelectElement).value as typeof elemento.tipo;
+    });
+    $('#ed-p-campo-multilinea')!.addEventListener('change', (e) => {
+      elemento.multilinea = (e.target as HTMLInputElement).checked;
+      registrarSnapshot(lienzo);
     });
     $('#ed-p-invisible')!.addEventListener('change', (e) => {
       elemento.invisible = (e.target as HTMLInputElement).checked;

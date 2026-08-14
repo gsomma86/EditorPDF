@@ -1,6 +1,17 @@
 export type Familia = string;
 export type EstiloLinea = 'solido' | 'punteado' | 'doble';
 
+/** Los dos factores con los que Fabric separa renglones: su `lineHeight` y su `_fontSizeMult`. */
+const ALTURA_RENGLON = 1.16;
+const MULTIPLICADOR_FUENTE = 1.13;
+
+/**
+ * Distancia entre renglones, en múltiplos del cuerpo de la fuente. Vive acá, en el modelo, porque
+ * el exportador también la necesita —para que el texto vertical caiga con el mismo paso que en
+ * pantalla— y no puede depender de Fabric.
+ */
+export const PASO_RENGLON = ALTURA_RENGLON * MULTIPLICADOR_FUENTE;
+
 export interface ElementoTexto {
   clase: 'texto';
   id: number;
@@ -8,6 +19,12 @@ export interface ElementoTexto {
   y: number;
   angulo: number;
   text: string;
+  /** Letras apiladas, una debajo de la otra, en vez de escritas de corrido. */
+  vertical: boolean;
+  /** Puntos de separación que se suman al paso normal entre letras apiladas. Puede ser negativo. */
+  separacion: number;
+  /** Permite escribir varios renglones en el contenido. */
+  multilinea: boolean;
   size: number;
   familia: Familia;
   negrita: boolean;
@@ -109,6 +126,8 @@ export interface ElementoCampo {
   align: 'left' | 'center' | 'right';
   invisible: boolean;
   readonly: boolean;
+  /** El campo del PDF acepta varios renglones en vez de uno solo. */
+  multilinea: boolean;
   defaultValue: string;
   bordeGrosor: number;
   bordeColor: string;
@@ -164,7 +183,7 @@ export function crearElemento(clase: ClaseSimple): Elemento {
   switch (clase) {
     case 'texto': {
       const { x, y } = nuevaPosicion(60, 11);
-      return { clase, id, x, y, angulo: 0, text: 'Texto', size: 11, familia: 'Helvetica', negrita: false, cursiva: false, subrayado: false, color: '#111111', align: 'left' };
+      return { clase, id, x, y, angulo: 0, text: 'Texto', vertical: false, separacion: 0, multilinea: false, size: 11, familia: 'Helvetica', negrita: false, cursiva: false, subrayado: false, color: '#111111', align: 'left' };
     }
     case 'linea': {
       const { x, y } = nuevaPosicion(200, 1);
@@ -242,6 +261,7 @@ export function crearElementoCampo(nombre: string): ElementoCampo {
     align: 'left',
     invisible: false,
     readonly: false,
+    multilinea: false,
     defaultValue: '',
     bordeGrosor: 0,
     bordeColor: '#000000',
@@ -256,6 +276,16 @@ export function duplicarElemento(elemento: Elemento): Elemento {
   clon.x += 12;
   clon.y += 12;
   return clon;
+}
+
+/** Distancia real entre letras apiladas: el paso normal más la separación pedida. */
+export function pasoDeRenglon(texto: ElementoTexto): number {
+  return texto.size * PASO_RENGLON + texto.separacion;
+}
+
+/** El mismo paso, expresado como el `lineHeight` que hay que darle a Fabric para que lo dibuje. */
+export function alturaRenglonFabric(texto: ElementoTexto): number {
+  return pasoDeRenglon(texto) / (texto.size * MULTIPLICADOR_FUENTE);
 }
 
 export function anchoTotalTabla(tabla: ElementoTabla): number {

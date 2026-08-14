@@ -45,9 +45,15 @@ export function leerProyecto(texto: string): Proyecto {
   return {
     version: 1,
     pagina: datos.pagina ?? configPorDefecto(),
-    // El ángulo se sumó después de las primeras versiones: un proyecto viejo no lo trae y sin
-    // esto quedaría en undefined, que Fabric interpreta como NaN y hace desaparecer el objeto.
-    elementos: datos.elementos.map((elemento) => ({ ...elemento, angulo: elemento.angulo ?? 0 })),
+    // Propiedades que se sumaron después de las primeras versiones: un proyecto viejo no las trae
+    // y sin esto quedarían en undefined, que Fabric interpreta como NaN y hace desaparecer el
+    // objeto. Al agregar una propiedad nueva al modelo, completarla también acá.
+    elementos: datos.elementos.map((elemento) => ({
+      ...elemento,
+      angulo: elemento.angulo ?? 0,
+      ...(elemento.clase === 'texto' ? { vertical: elemento.vertical ?? false, separacion: elemento.separacion ?? 0, multilinea: elemento.multilinea ?? false } : {}),
+      ...(elemento.clase === 'campo' ? { multilinea: elemento.multilinea ?? false } : {}),
+    })),
     campos: Array.isArray(datos.campos) ? datos.campos : [],
   };
 }

@@ -42,14 +42,14 @@ export const CASOS: Caso[] = [
     nombre: 'texto-helvetica',
     tolerancia: 6,
     elementos: [
-      { clase: 'texto', id: 1, x: 100, y: 200, angulo: 0, text: 'HXEM', size: 40, familia: 'Helvetica', negrita: false, cursiva: false, subrayado: false, color: '#000000', align: 'left' },
+      { clase: 'texto', id: 1, x: 100, y: 200, angulo: 0, vertical: false, separacion: 0, text: 'HXEM', size: 40, familia: 'Helvetica', negrita: false, cursiva: false, subrayado: false, color: '#000000', align: 'left' },
     ],
   },
   {
     nombre: 'texto-open-sans',
     tolerancia: 6,
     elementos: [
-      { clase: 'texto', id: 2, x: 100, y: 200, angulo: 0, text: 'HXEM', size: 40, familia: 'Open Sans', negrita: true, cursiva: false, subrayado: false, color: '#000000', align: 'left' },
+      { clase: 'texto', id: 2, x: 100, y: 200, angulo: 0, vertical: false, separacion: 0, text: 'HXEM', size: 40, familia: 'Open Sans', negrita: true, cursiva: false, subrayado: false, color: '#000000', align: 'left' },
     ],
   },
   { nombre: 'linea-horizontal', elementos: [{ clase: 'linea', id: 3, x: 100, y: 300, w: 200, h: 2, angulo: 0, color: '#000000', estilo: 'solido' }] },
@@ -98,9 +98,18 @@ export const CASOS: Caso[] = [
   {
     nombre: 'texto-25',
     tolerancia: 8,
-    elementos: [{ clase: 'texto', id: 13, x: 120, y: 300, angulo: 25, text: 'HXEM', size: 40, familia: 'Helvetica', negrita: false, cursiva: false, subrayado: false, color: '#000000', align: 'left' }],
+    elementos: [
+      { clase: 'texto', id: 13, x: 120, y: 300, angulo: 25, vertical: false, separacion: 0, text: 'HXEM', size: 40, familia: 'Helvetica', negrita: false, cursiva: false, subrayado: false, color: '#000000', align: 'left' },
+    ],
   },
   { nombre: 'campo-90', tolerancia: 3, elementos: [campo('importe', 300, 200, { angulo: 90, bordeGrosor: 1 })] },
+  {
+    nombre: 'texto-vertical',
+    tolerancia: 8,
+    elementos: [
+      { clase: 'texto', id: 14, x: 200, y: 150, angulo: 0, vertical: true, separacion: 0, text: 'HXEM', size: 30, familia: 'Helvetica', negrita: false, cursiva: false, subrayado: false, color: '#000000', align: 'left' },
+    ],
+  },
 ];
 
 /** Campos AcroForm: se verifica la estructura del formulario, no la tinta. */
