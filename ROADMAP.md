@@ -82,9 +82,8 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
 - [ ] Afinar el reemplazo: hoy el texto nuevo se coloca estimando la ascendente en 0,75 × el
       cuerpo, y usa la tipografía elegida en el panel en vez de la original del PDF
 - [ ] Manejo de fuentes subseteadas (fallback cuando falta un glifo)
-- [x] Que el PDF de base sobreviva a recargar la página: se guarda en IndexedDB y se recupera al
-      retomar el diseño. Falta que viaje también en el `.json` del proyecto, para llevárselo a
-      otra computadora.
+- [x] Que el PDF de base no se pierda: se guarda en IndexedDB para sobrevivir a una recarga y
+      viaja dentro del `.json` al guardar el proyecto, para poder seguirlo en otra computadora.
 
 ## Fase 3 — Edición real de formas preexistentes
 

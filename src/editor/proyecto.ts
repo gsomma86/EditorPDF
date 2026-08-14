@@ -3,6 +3,7 @@ import { reservarIds, type Elemento } from './elemento';
 import { elementoDe, reconstruirLienzo } from './objetosFabric';
 import { aplicarConfigPagina, configActual } from './documento';
 import { configPorDefecto, type ConfigPagina } from './pagina';
+import { asentarPdf, bytesDelPdf, cerrarPdf } from './pdfExistente';
 
 /** Formato del archivo .json. La versión permite migrar proyectos viejos más adelante. */
 export interface Proyecto {
@@ -10,19 +11,44 @@ export interface Proyecto {
   pagina: ConfigPagina;
   elementos: Elemento[];
   campos: string[];
+  /**
+   * El PDF sobre el que se está trabajando, en base64. Solo viaja en el archivo que se descarga,
+   * para que el proyecto sea completo y se pueda seguir en otra computadora; el autoguardado no
+   * lo incluye, porque localStorage no aguanta un PDF (ver `almacenPdf.ts`).
+   */
+  pdfBase?: string | null;
 }
 
-export function serializarProyecto(lienzo: Canvas, campos: string[]): Proyecto {
+function aBase64(bytes: Uint8Array): string {
+  // De a pedazos: pasarle un array enorme a String.fromCharCode desborda la pila.
+  let texto = '';
+  for (let i = 0; i < bytes.length; i += 8192) {
+    texto += String.fromCharCode(...bytes.subarray(i, i + 8192));
+  }
+  return btoa(texto);
+}
+
+function desdeBase64(texto: string): Uint8Array {
+  const crudo = atob(texto);
+  const bytes = new Uint8Array(crudo.length);
+  for (let i = 0; i < crudo.length; i++) bytes[i] = crudo.charCodeAt(i);
+  return bytes;
+}
+
+export function serializarProyecto(lienzo: Canvas, campos: string[], conPdf = false): Proyecto {
   const elementos = lienzo
     .getObjects()
     .map((o) => elementoDe(o))
     .filter((e): e is Elemento => !!e);
+
+  const pdf = conPdf ? bytesDelPdf() : null;
 
   return {
     version: 1,
     pagina: JSON.parse(JSON.stringify(configActual())),
     elementos: JSON.parse(JSON.stringify(elementos)),
     campos: [...campos],
+    pdfBase: pdf ? aBase64(pdf) : null,
   };
 }
 
@@ -57,6 +83,7 @@ export function leerProyecto(texto: string): Proyecto {
         : {}),
     })),
     campos: Array.isArray(datos.campos) ? datos.campos : [],
+    pdfBase: datos.pdfBase ?? null,
   };
 }
 
@@ -64,4 +91,12 @@ export async function cargarProyecto(lienzo: Canvas, proyecto: Proyecto): Promis
   aplicarConfigPagina(lienzo, proyecto.pagina);
   reservarIds(proyecto.elementos);
   await reconstruirLienzo(lienzo, proyecto.elementos);
+
+  // Si el archivo trae el PDF de base, vuelve a quedar como base editable y exportable; si no
+  // trae, se suelta el que hubiera abierto, que era de otro trabajo.
+  if (proyecto.pdfBase) {
+    await asentarPdf(desdeBase64(proyecto.pdfBase));
+  } else {
+    cerrarPdf();
+  }
 }

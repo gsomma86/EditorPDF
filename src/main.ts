@@ -614,7 +614,8 @@ document.getElementById('ed-guardar-proyecto')!.addEventListener('click', async 
     'proyecto'
   );
   if (nombre === null) return;
-  descargarProyecto(serializarProyecto(lienzo, panelCampos.obtenerCatalogo()), nombre);
+  // Con el PDF de base adentro: así el archivo se basta a sí mismo para seguir en otra máquina.
+  descargarProyecto(serializarProyecto(lienzo, panelCampos.obtenerCatalogo(), true), nombre);
 });
 
 const inputProyecto = document.createElement('input');

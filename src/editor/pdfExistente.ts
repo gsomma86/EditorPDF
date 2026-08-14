@@ -6,8 +6,9 @@
  * de fondo mientras se edita. Al exportar, el PDF editado es la base sobre la que se dibuja el
  * diseño, así que lo que ya traía sigue siendo vectorial y no una foto.
  *
- * El PDF abierto vive en memoria y no en el proyecto: un PDF grande no entra en el
- * almacenamiento del navegador. Guardar el proyecto guarda el diseño, no el PDF de base.
+ * Dónde vive el PDF abierto: en memoria mientras se trabaja, en IndexedDB para sobrevivir a una
+ * recarga (ver `almacenPdf.ts`) y dentro del `.json` al guardar el proyecto, para poder seguirlo
+ * en otra computadora. En el autoguardado no: localStorage no aguanta un PDF.
  */
 
 import { borrarPdfBase, guardarPdfBase, leerPdfBase } from './almacenPdf';
@@ -50,7 +51,7 @@ export function cerrarPdf(): void {
 }
 
 /** Deja el PDF vigente en memoria y guardado, y relee sus textos editables. */
-async function asentar(bytes: Uint8Array): Promise<void> {
+export async function asentarPdf(bytes: Uint8Array): Promise<void> {
   bytesActuales = bytes;
   const mupdf = await motor();
   const documento = mupdf.PDFDocument.openDocument(bytes.slice(), 'application/pdf') as InstanceType<typeof mupdf.PDFDocument>;
@@ -66,7 +67,7 @@ async function asentar(bytes: Uint8Array): Promise<void> {
 export async function recuperarPdfGuardado(): Promise<boolean> {
   const guardado = await leerPdfBase();
   if (!guardado) return false;
-  await asentar(guardado);
+  await asentarPdf(guardado);
   return true;
 }
 
@@ -151,7 +152,7 @@ async function rasterizar(): Promise<{ fondo: string; ancho: number; alto: numbe
 }
 
 export async function abrirPdf(archivo: File): Promise<PdfAbierto> {
-  await asentar(new Uint8Array(await archivo.arrayBuffer()));
+  await asentarPdf(new Uint8Array(await archivo.arrayBuffer()));
   return rasterizar();
 }
 
@@ -176,6 +177,6 @@ export async function borrarTextoDelPdf(objetivo: TextoDelPdf): Promise<string> 
   pagina.applyRedactions(false, 0, 0, 0);
 
   // Se relee todo desde los bytes nuevos: la redacción cambia el contenido y con él las cajas.
-  await asentar(documento.saveToBuffer('').asUint8Array());
+  await asentarPdf(documento.saveToBuffer('').asUint8Array());
   return (await rasterizar()).fondo;
 }
