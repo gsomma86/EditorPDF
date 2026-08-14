@@ -10,6 +10,7 @@ import { camposDesdeCsv, csvDesdeCampos, descargarCsv } from './editor/csvCampos
 import { confirmar, mostrarPreflight, pedirExportarPdf, pedirFilasColumnas, pedirMargenes, pedirNombreArchivo, pedirNuevoProyecto } from './ui/modales';
 import { formatearPeso, pesoDelPdf, verificarDiseno } from './editor/preflight';
 import { montarPanelCampos } from './ui/panelCampos';
+import { cablearAyuda } from './ui/ayuda';
 import { deshacer, inicializarHistorial, puedeDeshacer, puedeRehacer, registrarSnapshot, rehacer } from './editor/historial';
 import { aplicarConfigPagina, configActual } from './editor/documento';
 import { activarVista, configurarVista, establecerZoom, vistaActual } from './editor/vista';
@@ -25,6 +26,7 @@ const panelCampos = montarPanelCampos(espacio.panelCampos, async (nombre) => {
   registrarSnapshot(lienzo);
   guardar();
 });
+const ayuda = cablearAyuda();
 activarVista(lienzo);
 aplicarConfigPagina(lienzo, configPorDefecto());
 inicializarHistorial(lienzo);
@@ -271,6 +273,9 @@ document.addEventListener('keydown', (e) => {
   } else if (tecla === 'v') {
     e.preventDefault();
     pegar();
+  } else if (e.key === '/') {
+    e.preventDefault();
+    ayuda.verAtajos();
   } else if (tecla === 'a') {
     const objetos = lienzo.getObjects();
     if (!objetos.length) return;
