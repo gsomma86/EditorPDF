@@ -28,6 +28,10 @@ function campo(nombre: string, x: number, y: number, extra: Partial<Record<strin
     align: 'left',
     invisible: false,
     readonly: false,
+    multilinea: false,
+    repComodin: '#',
+    repFilas: 1,
+    repSep: 0,
     defaultValue: '',
     bordeGrosor: 1,
     bordeColor: '#000000',
@@ -114,3 +118,6 @@ export const CASOS: Caso[] = [
 
 /** Campos AcroForm: se verifica la estructura del formulario, no la tinta. */
 export const CASO_CAMPOS: Elemento[] = [campo('importe', 100, 250, { defaultValue: 'ABC' }), campo('importe', 100, 400), campo('fecha', 300, 250, { readonly: true })];
+
+/** Campo repetible: alto 16 y separación 4, así que cada fila baja 20 pt. */
+export const CASO_REPETIBLE: Elemento[] = [campo('concepto_#', 100, 200, { repComodin: '#', repFilas: 3, repSep: 4 })];

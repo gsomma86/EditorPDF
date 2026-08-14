@@ -1,7 +1,18 @@
 import { PDFDocument, StandardFonts, TextAlignment, degrees, rgb, type PDFFont, type PDFPage, type PDFTextField, type RGB } from '@cantoo/pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import type { Canvas } from 'fabric';
-import { anchoTotalTabla, altoTotalTabla, pasoDeRenglon, PASO_RENGLON, type Elemento, type ElementoLinea, type ElementoTabla, type EstiloLinea } from './elemento';
+import {
+  anchoTotalTabla,
+  altoTotalTabla,
+  nombresDeCampo,
+  pasoDeRenglon,
+  pasoRepeticion,
+  PASO_RENGLON,
+  type Elemento,
+  type ElementoLinea,
+  type ElementoTabla,
+  type EstiloLinea,
+} from './elemento';
 import { elementoDe } from './objetosFabric';
 import { configActual } from './documento';
 import { dimensionesPagina } from './pagina';
@@ -81,11 +92,17 @@ function ubicador(el: { x: number; y: number; angulo: number }, altoPagina: numb
   const sen = Math.sin(radianes);
   return {
     grados: degrees(-el.angulo),
+    /** La esquina del elemento en coordenadas del lienzo, que es sobre la que gira. */
+    origen: { x: el.x, y: el.y },
     punto(lx: number, ly: number) {
       return {
         x: el.x + lx * cos - ly * sen,
         y: altoPagina - (el.y + lx * sen + ly * cos),
       };
+    },
+    /** Otro ubicador con el origen corrido, en coordenadas locales: las filas de un repetible. */
+    corrido(lx: number, ly: number) {
+      return ubicador({ x: el.x + lx * cos - ly * sen, y: el.y + lx * sen + ly * cos, angulo: el.angulo }, altoPagina);
     },
   };
 }
@@ -263,62 +280,71 @@ export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): P
 
       case 'campo': {
         const fuente = await obtenerFuente(el.familia, el.negrita, el.cursiva);
+        // Un campo repetible baja una vez por fila: cada una con su ID —el comodín reemplazado
+        // por el número— y corrida hacia abajo su alto más la separación pedida.
+        const nombres = nombresDeCampo(el);
+        const paso = pasoRepeticion(el);
 
-        if (!opciones.conFormulario) {
-          // Aplanado: se dibuja la apariencia, sin campo interactivo.
-          if (el.invisible) break;
-          if (el.conFondo) {
-            dibujarRectangulo(pagina, ubi, 0, 0, el.w, el.h, { color: el.fondoColor, estilo: 'solido', grosor: 0, conRelleno: true, rellenoColor: el.fondoColor });
+        for (const [fila, nombre] of nombres.entries()) {
+          // La repetición se mide en coordenadas del campo, así que acompaña su rotación.
+          const ubiFila = fila === 0 ? ubi : ubi.corrido(0, fila * paso);
+
+          if (!opciones.conFormulario) {
+            // Aplanado: se dibuja la apariencia, sin campo interactivo.
+            if (el.invisible) continue;
+            if (el.conFondo) {
+              dibujarRectangulo(pagina, ubiFila, 0, 0, el.w, el.h, { color: el.fondoColor, estilo: 'solido', grosor: 0, conRelleno: true, rellenoColor: el.fondoColor });
+            }
+            if (el.bordeGrosor > 0) {
+              dibujarRectangulo(pagina, ubiFila, 0, 0, el.w, el.h, { color: el.bordeColor, estilo: 'solido', grosor: el.bordeGrosor });
+            }
+            if (el.defaultValue) {
+              // Multilínea: los renglones arrancan arriba; si es de una sola línea, va centrado.
+              const renglones = el.multilinea ? el.defaultValue.split('\n') : [el.defaultValue];
+              const pasoTexto = el.size * PASO_RENGLON;
+              const primero = el.multilinea ? el.size : (el.h + el.size) / 2;
+              renglones.forEach((renglon, i) => {
+                const anchoRenglon = fuente.widthOfTextAtSize(renglon, el.size);
+                const izquierda = el.align === 'right' ? el.w - anchoRenglon - 2 : el.align === 'center' ? (el.w - anchoRenglon) / 2 : 2;
+                const linea = ubiFila.punto(izquierda, primero + i * pasoTexto);
+                pagina.drawText(renglon, { ...linea, size: el.size, font: fuente, color: color(el.color), rotate: ubiFila.grados });
+              });
+            }
+            continue;
           }
-          if (el.bordeGrosor > 0) {
-            dibujarRectangulo(pagina, ubi, 0, 0, el.w, el.h, { color: el.bordeColor, estilo: 'solido', grosor: el.bordeGrosor });
+
+          // Un mismo ID se puede colocar varias veces en la hoja: en AcroForm eso es UN campo con
+          // varias apariencias, así que se crea una sola vez y se le agregan las demás posiciones.
+          let campo = camposCreados.get(nombre);
+          if (!campo) {
+            campo = formulario.createTextField(nombre);
+            campo.setAlignment(el.align === 'right' ? TextAlignment.Right : el.align === 'center' ? TextAlignment.Center : TextAlignment.Left);
+            if (el.multilinea) campo.enableMultiline();
+            if (el.defaultValue) campo.setText(el.defaultValue);
+            if (el.readonly) campo.enableReadOnly();
+            camposCreados.set(nombre, campo);
           }
-          if (el.defaultValue) {
-            // Multilínea: los renglones arrancan arriba; si es de una sola línea, va centrado.
-            const renglones = el.multilinea ? el.defaultValue.split('\n') : [el.defaultValue];
-            const paso = el.size * PASO_RENGLON;
-            const primero = el.multilinea ? el.size : (el.h + el.size) / 2;
-            renglones.forEach((renglon, i) => {
-              const anchoRenglon = fuente.widthOfTextAtSize(renglon, el.size);
-              const izquierda = el.align === 'right' ? el.w - anchoRenglon - 2 : el.align === 'center' ? (el.w - anchoRenglon) / 2 : 2;
-              const linea = ubi.punto(izquierda, primero + i * paso);
-              pagina.drawText(renglon, { ...linea, size: el.size, font: fuente, color: color(el.color), rotate: ubi.grados });
-            });
-          }
-          break;
+          // Un campo de formulario solo puede rotar en múltiplos de 90°: el PDF guarda su recuadro
+          // siempre derecho y la rotación aparte, en la apariencia. Con cualquier otro ángulo se
+          // redondea al múltiplo más cercano (el preflight lo avisa antes de exportar).
+          const anguloCampo = Math.round(el.angulo / 90) * 90;
+          const ancla = ubicador({ ...ubiFila.origen, angulo: anguloCampo }, altoPagina).punto(0, el.h);
+
+          campo.addToPage(pagina, {
+            x: ancla.x,
+            y: ancla.y,
+            rotate: degrees(-anguloCampo),
+            width: el.w,
+            height: el.h,
+            font: fuente,
+            textColor: color(el.color),
+            backgroundColor: el.conFondo ? color(el.fondoColor) : undefined,
+            borderColor: el.bordeGrosor > 0 ? color(el.bordeColor) : undefined,
+            borderWidth: el.bordeGrosor,
+            hidden: el.invisible,
+          });
+          campo.setFontSize(el.size);
         }
-
-        // Un mismo ID se puede colocar varias veces en la hoja: en AcroForm eso es UN campo con
-        // varias apariencias, así que se crea una sola vez y se le agregan las demás posiciones.
-        let campo = camposCreados.get(el.name);
-        if (!campo) {
-          campo = formulario.createTextField(el.name);
-          campo.setAlignment(el.align === 'right' ? TextAlignment.Right : el.align === 'center' ? TextAlignment.Center : TextAlignment.Left);
-          if (el.multilinea) campo.enableMultiline();
-          if (el.defaultValue) campo.setText(el.defaultValue);
-          if (el.readonly) campo.enableReadOnly();
-          camposCreados.set(el.name, campo);
-        }
-        // Un campo de formulario solo puede rotar en múltiplos de 90°: el PDF guarda su recuadro
-        // siempre derecho y la rotación aparte, en la apariencia. Con cualquier otro ángulo se
-        // redondea al múltiplo más cercano (el preflight lo avisa antes de exportar).
-        const anguloCampo = Math.round(el.angulo / 90) * 90;
-        const ancla = ubicador({ ...el, angulo: anguloCampo }, altoPagina).punto(0, el.h);
-
-        campo.addToPage(pagina, {
-          x: ancla.x,
-          y: ancla.y,
-          rotate: degrees(-anguloCampo),
-          width: el.w,
-          height: el.h,
-          font: fuente,
-          textColor: color(el.color),
-          backgroundColor: el.conFondo ? color(el.fondoColor) : undefined,
-          borderColor: el.bordeGrosor > 0 ? color(el.bordeColor) : undefined,
-          borderWidth: el.bordeGrosor,
-          hidden: el.invisible,
-        });
-        campo.setFontSize(el.size);
         break;
       }
     }

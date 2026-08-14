@@ -1,6 +1,6 @@
 import type { Canvas, FabricObject } from 'fabric';
 import { FabricImage } from 'fabric';
-import { elementoDe, reemplazarObjeto, agregarAlLienzo, generarQr, prepararFuente, textoParaDibujar } from '../editor/objetosFabric';
+import { elementoDe, reemplazarObjeto, agregarAlLienzo, generarQr, prepararFuente, sincronizarGeometria, textoParaDibujar } from '../editor/objetosFabric';
 import { alturaRenglonFabric, duplicarElemento, type Elemento } from '../editor/elemento';
 import { FAMILIAS_BASE, FAMILIAS_WEB } from '../editor/fuentes';
 import { registrarSnapshot } from '../editor/historial';
@@ -8,6 +8,7 @@ import type { TablaObjeto } from '../editor/tablaObjeto';
 import type { LineaObjeto } from '../editor/lineaObjeto';
 import type { RectObjeto } from '../editor/rectObjeto';
 import { GROSOR_MINIMO_DOBLE } from '../editor/trazos';
+import { pedirCampoRepetible } from './modales';
 
 const ETIQUETA_TIPO: Record<Elemento['clase'], string> = {
   texto: 'Texto',
@@ -141,7 +142,7 @@ export function mostrarMultiSeleccion(
   };
 
   panel.querySelectorAll<HTMLButtonElement>('[data-alinear]').forEach((boton) => {
-    boton.addEventListener('click', () => {
+    boton.addEventListener('click', async () => {
       const modo = boton.dataset.alinear as Alineacion;
       const lista = soltar();
       const cajas = lista.map((o) => o.getBoundingRect());
@@ -160,6 +161,9 @@ export function mostrarMultiSeleccion(
         if (modo === 'centroV') objeto.set({ top: (objeto.top ?? 0) + ((minY + maxY) / 2 - (caja.top + caja.height / 2)) });
         objeto.setCoords();
       });
+      // Alinear mueve los objetos de Fabric, pero lo que se guarda y lo que entra al historial es
+      // el modelo: sin volcar la posición nueva, la alineación se perdía al recargar.
+      for (const objeto of lista) await sincronizarGeometria(lienzo, objeto);
       alTerminar(lista);
     });
   });
@@ -289,7 +293,10 @@ function campoCampo(elemento: Elemento & { clase: 'campo' }): string {
       <label class="ed-check"><input type="checkbox" id="ed-p-invisible" ${elemento.invisible ? 'checked' : ''}> Campo invisible</label>
       <div><label class="ed-lbl">Valor por defecto</label><input type="text" id="ed-p-default" value="${escapeHtml(elemento.defaultValue)}" placeholder="Valor que aparecerá por defecto"></div>
       <label class="ed-check"><input type="checkbox" id="ed-p-readonly" ${elemento.readonly ? 'checked' : ''}> Sólo lectura (visual)</label>
-      <label class="ed-check"><input type="checkbox" id="ed-p-campo-multilinea" ${elemento.multilinea ? 'checked' : ''}> Varias líneas</label>`
+      <label class="ed-check"><input type="checkbox" id="ed-p-campo-multilinea" ${elemento.multilinea ? 'checked' : ''}> Varias líneas</label>
+      <button type="button" id="ed-p-rep-btn" class="ed-toggle" style="width:100%;margin-top:8px;">${
+        elemento.repFilas > 1 ? `Editar repetición (×${elemento.repFilas})` : 'Hacer repetible…'
+      }</button>`
     ) +
     seccion(
       'Formato',
@@ -725,6 +732,17 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
     $('#ed-p-campo-multilinea')!.addEventListener('change', (e) => {
       elemento.multilinea = (e.target as HTMLInputElement).checked;
       registrarSnapshot(lienzo);
+    });
+    $('#ed-p-rep-btn')!.addEventListener('click', async () => {
+      const valores = await pedirCampoRepetible(elemento);
+      if (!valores) return;
+      elemento.name = valores.name;
+      elemento.repComodin = valores.repComodin;
+      elemento.repFilas = valores.repFilas;
+      elemento.repSep = valores.repSep;
+      registrarSnapshot(lienzo);
+      // El objeto se rehace porque cambió el ID que muestra la etiqueta, y el panel con él.
+      reconstruir();
     });
     $('#ed-p-invisible')!.addEventListener('change', (e) => {
       elemento.invisible = (e.target as HTMLInputElement).checked;

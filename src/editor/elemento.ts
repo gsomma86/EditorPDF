@@ -131,6 +131,14 @@ export interface ElementoCampo {
   readonly: boolean;
   /** El campo del PDF acepta varios renglones en vez de uno solo. */
   multilinea: boolean;
+  /**
+   * Campo repetible: el ID lleva un comodín que se reemplaza por el número de fila, y el campo
+   * baja al PDF tantas veces como diga `repFilas`, separadas por su alto más `repSep`. Con
+   * `repFilas` en 1 el campo es común y el comodín no se usa.
+   */
+  repComodin: string;
+  repFilas: number;
+  repSep: number;
   defaultValue: string;
   bordeGrosor: number;
   bordeColor: string;
@@ -265,6 +273,9 @@ export function crearElementoCampo(nombre: string): ElementoCampo {
     invisible: false,
     readonly: false,
     multilinea: false,
+    repComodin: '#',
+    repFilas: 1,
+    repSep: 0,
     defaultValue: '',
     bordeGrosor: 0,
     bordeColor: '#000000',
@@ -279,6 +290,25 @@ export function duplicarElemento(elemento: Elemento): Elemento {
   clon.x += 12;
   clon.y += 12;
   return clon;
+}
+
+/** Cuánto baja cada repetición de un campo respecto de la anterior. */
+export function pasoRepeticion(campo: ElementoCampo): number {
+  return campo.h + (campo.repSep || 0);
+}
+
+/**
+ * Los IDs que va a tener el campo en el PDF, uno por fila. Sin repetición es solo su nombre; con
+ * repetición, el comodín se reemplaza por el número de fila (`concepto_#` → concepto_1, 2, 3…).
+ *
+ * Las filas se acotan a mano porque un campo puede llegar sin la propiedad —de un proyecto viejo
+ * o de código que arme un campo a mano— y devolver una lista vacía haría desaparecer el campo del
+ * PDF sin ningún aviso.
+ */
+export function nombresDeCampo(campo: ElementoCampo): string[] {
+  const filas = Math.max(1, Math.floor(campo.repFilas || 1));
+  if (filas === 1) return [campo.name];
+  return Array.from({ length: filas }, (_, i) => campo.name.split(campo.repComodin || '#').join(String(i + 1)));
 }
 
 /** Distancia real entre letras apiladas: el paso normal más la separación pedida. */

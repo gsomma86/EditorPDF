@@ -15,7 +15,7 @@ import * as mupdf from 'mupdf';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { exportarPdf } from '../src/editor/exportarPdf';
 import type { Elemento } from '../src/editor/elemento';
-import { CASOS, CASO_CAMPOS } from './casos';
+import { CASOS, CASO_CAMPOS, CASO_REPETIBLE } from './casos';
 
 const RAIZ = fileURLToPath(new URL('../..', import.meta.url));
 const SALIDA = fileURLToPath(new URL('../salida/', import.meta.url));
@@ -175,6 +175,22 @@ for (const caso of CASOS) {
 
   const fecha = campos.find((c) => c.getName() === 'fecha');
   if (fecha && !fecha.isReadOnly()) fallos.push("campos-editables — 'fecha' tenía que quedar de solo lectura");
+
+  // Campo repetible: el comodín se reemplaza por el número de fila y cada una baja como un campo
+  // propio, corrida su alto más la separación.
+  const repetible = await generar('campo-repetible', CASO_REPETIBLE, true);
+  const formRep = (await PDFDocument.load(repetible)).getForm();
+  const nombresRep = formRep.getFields().map((c) => c.getName()).sort();
+  const esperados = ['concepto_1', 'concepto_2', 'concepto_3'];
+  if (nombresRep.join(',') !== esperados.join(',')) {
+    fallos.push(`campo-repetible — se esperaban [${esperados.join(', ')}] y hay [${nombresRep.join(', ')}]`);
+  }
+  for (const [i, nombre] of esperados.entries()) {
+    const rect = formRep.getFields().find((c) => c.getName() === nombre)?.acroField.getWidgets()[0]?.getRectangle();
+    if (!rect) continue;
+    // Alto 16 y separación 4 => cada fila baja 20 pt desde y = 200.
+    comparar('campo-repetible', `fila ${i + 1} y`, 200 + i * 20, ALTO_PAGINA - rect.y - rect.height, 1);
+  }
 
   const aplanado = await generar('campos-aplanados', CASO_CAMPOS, false);
   const camposPlanos = (await PDFDocument.load(aplanado)).getForm().getFields().length;

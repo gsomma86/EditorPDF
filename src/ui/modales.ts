@@ -1,10 +1,15 @@
 import { TAMANOS, type ConfigPagina, type Margenes, type Orientacion, type TamanoPagina } from '../editor/pagina';
 
-function abrir(contenido: string, alConfirmar: (raiz: HTMLElement) => unknown): Promise<unknown> {
+/**
+ * `alMontar` corre con el modal ya en pantalla y recibe su raíz: sirve para los que muestran algo
+ * en vivo mientras se escribe, como la vista previa del campo repetible.
+ */
+function abrir(contenido: string, alConfirmar: (raiz: HTMLElement) => unknown, alMontar?: (raiz: HTMLElement) => void): Promise<unknown> {
   const overlay = document.createElement('div');
   overlay.className = 'ed-modal-overlay';
   overlay.innerHTML = `<div class="ed-modal">${contenido}</div>`;
   document.body.appendChild(overlay);
+  alMontar?.(overlay);
 
   const primerCampo = overlay.querySelector<HTMLInputElement>('input, select');
   primerCampo?.focus();
@@ -112,6 +117,65 @@ export function pedirFilasColumnas(): Promise<{ filas: number; columnas: number 
       columnas: Number(raiz.querySelector<HTMLInputElement>('[data-cols]')!.value),
     })
   ) as Promise<{ filas: number; columnas: number } | null>;
+}
+
+export interface Repeticion {
+  name: string;
+  repComodin: string;
+  repFilas: number;
+  repSep: number;
+}
+
+/**
+ * Convierte un campo en repetible: su ID lleva un comodín que se reemplaza por el número de fila.
+ * La vista previa muestra los IDs que van a salir mientras se escribe, y no deja confirmar si el
+ * ID no contiene el comodín (sin él las N filas tendrían todas el mismo nombre y en AcroForm eso
+ * es un solo campo).
+ */
+export function pedirCampoRepetible(actual: Repeticion): Promise<Repeticion | null> {
+  const leer = (raiz: HTMLElement): Repeticion => ({
+    name: raiz.querySelector<HTMLInputElement>('[data-id]')!.value.trim(),
+    repComodin: raiz.querySelector<HTMLInputElement>('[data-comodin]')!.value || '#',
+    repFilas: Math.max(1, Math.min(50, Number(raiz.querySelector<HTMLInputElement>('[data-filas]')!.value) || 1)),
+    repSep: Math.max(0, Math.min(200, Number(raiz.querySelector<HTMLInputElement>('[data-sep]')!.value) || 0)),
+  });
+
+  return abrir(
+    `<div class="ed-modal-tit">Campo repetible</div>
+     <div class="ed-modal-sub">El campo baja al PDF una vez por fila, y el comodín del ID se reemplaza por el número de cada una.</div>
+     <label class="ed-lbl">ID del campo</label>
+     <input type="text" data-id value="${actual.name}" maxlength="120">
+     <div class="ed-modal-grid" style="margin-top:10px;">
+       <div><label class="ed-lbl">Comodín</label><input type="text" data-comodin class="mono" value="${actual.repComodin || '#'}" maxlength="3"></div>
+       <div><label class="ed-lbl">Filas</label><input type="number" data-filas class="mono" value="${actual.repFilas > 1 ? actual.repFilas : 7}" min="1" max="50"></div>
+       <div><label class="ed-lbl">Separación (pt)</label><input type="number" data-sep class="mono" value="${actual.repSep}" min="0" max="200" step="0.5"></div>
+     </div>
+     <p class="nota ed-cr-aviso oculto" data-aviso>El ID tiene que contener el comodín; si no, todas las filas se llamarían igual.</p>
+     <div class="ed-cr-chips" data-chips></div>
+     <div class="ed-modal-acciones">
+       <button type="button" data-cancelar>Cancelar</button>
+       <button type="button" class="primario" data-confirmar>Aplicar</button>
+     </div>`,
+    leer,
+    (raiz) => {
+      const aviso = raiz.querySelector<HTMLElement>('[data-aviso]')!;
+      const chips = raiz.querySelector<HTMLElement>('[data-chips]')!;
+      const confirmar = raiz.querySelector<HTMLButtonElement>('[data-confirmar]')!;
+
+      const refrescar = () => {
+        const valores = leer(raiz);
+        const falta = valores.repFilas > 1 && !valores.name.includes(valores.repComodin);
+        aviso.classList.toggle('oculto', !falta);
+        confirmar.disabled = falta || !valores.name;
+
+        const nombres = valores.repFilas > 1 && !falta ? Array.from({ length: Math.min(valores.repFilas, 12) }, (_, i) => valores.name.split(valores.repComodin).join(String(i + 1))) : [];
+        chips.innerHTML = nombres.map((n) => `<span>${n}</span>`).join('') + (valores.repFilas > 12 && !falta ? `<span>+${valores.repFilas - 12} más</span>` : '');
+      };
+
+      raiz.querySelectorAll('input').forEach((campo) => campo.addEventListener('input', refrescar));
+      refrescar();
+    }
+  ) as Promise<Repeticion | null>;
 }
 
 export function pedirExportarPdf(sugerido: string): Promise<{ nombre: string; conFormulario: boolean } | null> {

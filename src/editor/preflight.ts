@@ -1,5 +1,5 @@
 import type { Canvas } from 'fabric';
-import { anchoTotalTabla, altoTotalTabla, type Elemento } from './elemento';
+import { anchoTotalTabla, altoTotalTabla, nombresDeCampo, pasoRepeticion, type Elemento } from './elemento';
 import { elementoDe } from './objetosFabric';
 import { configActual } from './documento';
 import { dimensionesPagina } from './pagina';
@@ -55,7 +55,24 @@ export function verificarDiseno(lienzo: Canvas): Hallazgo[] {
         mensaje: `${nombreDe(campo)} está rotado ${campo.angulo}°. Un campo de formulario solo puede rotar en múltiplos de 90°: al exportar con campos editables va a quedar en ${Math.round(campo.angulo / 90) * 90}°.`,
       });
     }
-    vistos.set(campo.name, (vistos.get(campo.name) ?? 0) + 1);
+    if (campo.repFilas > 1) {
+      if (!campo.name.includes(campo.repComodin)) {
+        hallazgos.push({
+          gravedad: 'error',
+          mensaje: `${nombreDe(campo)} se repite ${campo.repFilas} veces pero su ID no tiene el comodín "${campo.repComodin}": las filas quedarían todas con el mismo nombre y serían un solo campo.`,
+        });
+      }
+      const ultimaFila = campo.y + (campo.repFilas - 1) * pasoRepeticion(campo) + campo.h;
+      if (ultimaFila > altoPagina) {
+        hallazgos.push({
+          gravedad: 'error',
+          mensaje: `${nombreDe(campo)} se repite ${campo.repFilas} veces y las últimas filas caen fuera de la hoja (llegan hasta ${Math.round(ultimaFila)} pt de ${altoPagina}).`,
+        });
+      }
+    }
+    for (const nombre of nombresDeCampo(campo)) {
+      vistos.set(nombre, (vistos.get(nombre) ?? 0) + 1);
+    }
   }
 
   for (const [nombre, veces] of vistos) {

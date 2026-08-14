@@ -1,6 +1,8 @@
 import type { Canvas, FabricObject } from 'fabric';
 import { configActual } from './documento';
 import { dimensionesPagina } from './pagina';
+import { pasoRepeticion } from './elemento';
+import { elementoDe } from './objetosFabric';
 
 const PASO_REGLA = 50;
 const UMBRAL_SNAP = 6;
@@ -118,6 +120,29 @@ function dibujarAdornos(lienzo: Canvas): void {
     ctx.setLineDash([4, 4]);
     ctx.strokeRect(izquierda, arriba, anchoUtil, altoUtil);
     ctx.setLineDash([]);
+  }
+
+  // Fantasmas de un campo repetible: las filas 2 en adelante, que no son objetos del lienzo sino
+  // repeticiones que aparecen recién al exportar. Se dibujan acá, como la cuadrícula y los
+  // márgenes, para que no se puedan seleccionar ni entren al historial.
+  for (const objeto of lienzo.getObjects()) {
+    const elemento = elementoDe(objeto);
+    if (elemento?.clase !== 'campo' || elemento.repFilas <= 1) continue;
+
+    ctx.save();
+    ctx.translate(elemento.x, elemento.y);
+    ctx.rotate((elemento.angulo * Math.PI) / 180);
+    ctx.strokeStyle = 'rgba(55,138,221,0.55)';
+    ctx.fillStyle = 'rgba(55,138,221,0.05)';
+    ctx.lineWidth = 1 / estado.zoom;
+    ctx.setLineDash([4, 3]);
+    for (let fila = 1; fila < elemento.repFilas; fila++) {
+      const y = fila * pasoRepeticion(elemento);
+      ctx.fillRect(0, y, elemento.w, elemento.h);
+      ctx.strokeRect(0, y, elemento.w, elemento.h);
+    }
+    ctx.setLineDash([]);
+    ctx.restore();
   }
 
   if (guiasX.length || guiasY.length) {

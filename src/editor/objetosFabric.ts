@@ -194,6 +194,7 @@ export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObjec
       imagen.set({
         left: elemento.x,
         top: elemento.y,
+        angle: elemento.angulo,
         scaleX: elemento.w / (imagen.width || elemento.w),
         scaleY: elemento.h / (imagen.height || elemento.h),
         opacity: elemento.opacidad / 100,

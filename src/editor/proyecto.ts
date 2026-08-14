@@ -52,7 +52,9 @@ export function leerProyecto(texto: string): Proyecto {
       ...elemento,
       angulo: elemento.angulo ?? 0,
       ...(elemento.clase === 'texto' ? { vertical: elemento.vertical ?? false, separacion: elemento.separacion ?? 0, multilinea: elemento.multilinea ?? false } : {}),
-      ...(elemento.clase === 'campo' ? { multilinea: elemento.multilinea ?? false } : {}),
+      ...(elemento.clase === 'campo'
+        ? { multilinea: elemento.multilinea ?? false, repComodin: elemento.repComodin ?? '#', repFilas: elemento.repFilas ?? 1, repSep: elemento.repSep ?? 0 }
+        : {}),
     })),
     campos: Array.isArray(datos.campos) ? datos.campos : [],
   };

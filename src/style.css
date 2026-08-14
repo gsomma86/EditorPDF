@@ -595,8 +595,30 @@ button {
   justify-content: center;
   z-index: 1000;
 }
-.ed-modal-overlay.oculto {
+.ed-modal-overlay.oculto,
+.oculto {
   display: none;
+}
+/* Vista previa de los IDs que genera un campo repetible. */
+.ed-cr-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 10px;
+  max-height: 92px;
+  overflow-y: auto;
+}
+.ed-cr-chips span {
+  font-family: Consolas, ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--texto-2);
+  background: var(--card-1);
+  border: 1px solid var(--borde);
+  border-radius: 5px;
+  padding: 2px 6px;
+}
+.ed-cr-aviso {
+  color: var(--err-texto, #b3261e);
 }
 .ed-modal {
   background: var(--fondo);
