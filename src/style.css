@@ -358,14 +358,19 @@ button {
 }
 
 /* ---------- Lienzo ---------- */
+/* min-width: 0 para que el canvas ampliado por el zoom scrollee adentro de su columna
+   en vez de ensanchar el grid y comerse el panel derecho. */
 .ed-lienzo-cont {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
 }
 .ed-lienzo-scroll {
   display: flex;
-  justify-content: center;
+  /* "safe" evita que, con el canvas más ancho que el contenedor, el centrado corte el borde
+     izquierdo dejándolo fuera del alcance del scroll. */
+  justify-content: safe center;
   align-items: flex-start;
   overflow: auto;
   min-height: 0;

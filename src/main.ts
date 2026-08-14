@@ -279,6 +279,17 @@ rangoZoom.addEventListener('input', () => aplicarZoom(Number(rangoZoom.value)));
 document.getElementById('ed-zoom-menos')!.addEventListener('click', () => aplicarZoom(Math.round(vistaActual().zoom * 100) - 10));
 document.getElementById('ed-zoom-mas')!.addEventListener('click', () => aplicarZoom(Math.round(vistaActual().zoom * 100) + 10));
 
+// passive: false porque hay que cancelar el zoom del navegador antes de aplicar el propio.
+espacio.lienzoCont.addEventListener(
+  'wheel',
+  (e) => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    aplicarZoom(Math.round(vistaActual().zoom * 100) + (e.deltaY < 0 ? 10 : -10));
+  },
+  { passive: false }
+);
+
 // ---------- Archivo ----------
 
 document.getElementById('ed-nuevo')!.addEventListener('click', async () => {
