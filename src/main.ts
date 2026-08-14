@@ -36,6 +36,31 @@ function actualizarEscaladoUniforme(objeto: import('fabric').FabricObject): void
 
 function guardar(): void {
   programarAutoguardado(lienzo, panelCampos.obtenerCatalogo);
+  programarPeso();
+}
+
+let temporizadorPeso: number | undefined;
+let generacionPeso = 0;
+
+/**
+ * Recalcula el peso del PDF después de cada cambio, pero con un respiro como el autoguardado:
+ * generarlo de verdad no es gratis y en una ráfaga de cambios solo interesa el último. El
+ * contador de generación descarta las respuestas que llegan fuera de orden.
+ */
+function programarPeso(): void {
+  const boton = document.getElementById('ed-peso-btn');
+  if (!boton) return;
+  clearTimeout(temporizadorPeso);
+  boton.textContent = 'Peso: …';
+  temporizadorPeso = window.setTimeout(async () => {
+    const generacion = ++generacionPeso;
+    try {
+      const peso = formatearPeso(await pesoDelPdf(lienzo));
+      if (generacion === generacionPeso) boton.textContent = `Peso: ${peso}`;
+    } catch {
+      if (generacion === generacionPeso) boton.textContent = 'Peso: no se pudo calcular';
+    }
+  }, 800);
 }
 
 /** Vuelve a seleccionar un conjunto tras una acción de grupo, o limpia si quedó vacío. */
@@ -373,15 +398,7 @@ document.getElementById('ed-verificar')!.addEventListener('click', async () => {
   await verificarYExportar();
 });
 
-const botonPeso = document.getElementById('ed-peso-btn')!;
-botonPeso.addEventListener('click', async () => {
-  botonPeso.textContent = 'Calculando…';
-  try {
-    botonPeso.textContent = `Peso: ${formatearPeso(await pesoDelPdf(lienzo))}`;
-  } catch {
-    botonPeso.textContent = 'Peso: no se pudo calcular';
-  }
-});
+document.getElementById('ed-peso-btn')!.addEventListener('click', () => programarPeso());
 
 async function verificarYExportar(): Promise<void> {
   const hallazgos = verificarDiseno(lienzo);
