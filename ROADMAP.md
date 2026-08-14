@@ -94,8 +94,26 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
 
 ## Fase 3 — Edición real de formas preexistentes
 
-- [ ] Detectar formas/líneas existentes (rects del content stream, caso validado en el spike)
-- [ ] UI de selección/edición sobre esas formas (mover, redimensionar, recolorear, borrar)
+Bosquejo (14/08/2026, sin codear todavía): la interacción calca la de fase 2 con el texto —mismo
+doble clic sobre el fondo, mismo destino (un elemento nativo con panel propio)—, pero la manera de
+sacar el original **no es la misma**: `Redact`/`applyRedactions` de mupdf está pensado para texto e
+imágenes dentro de un rectángulo, no para un relleno vectorial (`x y w h re f`). El spike de fase 0
+lo resolvió parchando el operador exacto en el content stream, así que esa parte hay que construirla
+de cero (no reusa el código de `borrarTextoDelPdf`). Repartido:
+
+- [ ] **Detección + reemplazo en el content stream** (`editor/**`, mupdf) — v1 acotado a
+      rectángulos con relleno y ejes rectos (`re` + `f`), el caso ya validado en el spike. Rects
+      solo con `stroke` (`S`), y paths/curvas compuestas, quedan afuera de v1 (ver el ítem de abajo).
+      Expone algo como `formaEn(x, y)` en `pdfExistente.ts`, análogo a `textoEn`.
+- [ ] **UI de selección/edición** (`ui/**`, `main.ts`) — una vez que existe `formaEn`, el doble
+      clic convierte la forma detectada en un `RectObjeto` común: entra al modelo con sus mismos
+      campos (color de relleno, posición, tamaño) y usa el panel de propiedades que ya existe hoy
+      para 'rect', sin UI nueva. Mueve, redimensiona, recolorea y borra porque eso ya lo tiene
+      cualquier rect del lienzo.
+- [ ] Sin affordance de hover para v1 (a propósito): el texto de fase 2 tampoco lo tiene hoy —el
+      usuario prueba el doble clic a ciegas—, así que las formas heredan la misma UX por
+      consistencia. Si en algún momento se agrega una marca visual al pasar el mouse, conviene
+      hacerlo para texto y formas a la vez, no por separado.
 - [ ] Evaluar el caso general de paths/curvas complejas (mayor riesgo, no confirmado)
 
 ## Fase 4 — Avanzado
