@@ -83,8 +83,11 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
       del contenido real con una redacción de mupdf —no se tapa, `npm run verificar-pdf` lo
       comprueba— y en su lugar queda un texto del diseño, editable como cualquier otro. Al
       exportar, el PDF editado es la base, así que lo que ya traía sigue siendo vectorial.
-- [ ] Afinar el reemplazo: hoy el texto nuevo se coloca estimando la ascendente en 0,75 × el
-      cuerpo, y usa la tipografía elegida en el panel en vez de la original del PDF
+- [x] Afinar la posición del reemplazo: la ascendente estimada en 0,75 × el cuerpo daba 2 pt de
+      error contra el original; ahora se mide embebiendo la fuente igual que al exportar (misma
+      cuenta en los dos lados, no se pueden desincronizar) y sin redondear — la ascendente real
+      tiene decimales (28,72 pt para Helvetica 40) y redondear ya metía 1 pt de error solo
+- [ ] Usar la tipografía original del PDF en el reemplazo, en vez de la elegida en el panel
 - [ ] Manejo de fuentes subseteadas (fallback cuando falta un glifo)
 - [x] Que el PDF de base no se pierda: se guarda en IndexedDB para sobrevivir a una recarga y
       viaja dentro del `.json` al guardar el proyecto, para poder seguirlo en otra computadora.

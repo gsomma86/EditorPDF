@@ -28,9 +28,9 @@ nuevo como texto extraíble, y el viejo ya no está.
    `ui/ayuda.ts` (guía, atajos, CSV, repetibles, apariencias, FAQ, acerca de). **Falta probarlo en
    el navegador** — no se verificó todavía que el selector cambie todo correctamente ni que un
    PDF con texto en otro idioma se vea bien.
-2. **Afinar el reemplazo de texto de la fase 2**:
-   - La posición estima la ascendente en 0,75 × el cuerpo. Medido contra un caso real, el
-     reemplazo cayó 2 pt más arriba que el original.
+2. **Afinar el reemplazo de texto de la fase 2** — resuelta la posición (14/08/2026): la ascendente
+   ya no se estima en 0,75 × el cuerpo, se mide embebiendo la fuente igual que al exportar, sin
+   redondear. Queda pendiente:
    - El texto nuevo usa la tipografía elegida en el panel, no la que tenía el PDF.
    - Solo se abre la primera página.
 3. **Fondo de hoja de tipo PDF** — la otra puerta de entrada de la fase 2.
