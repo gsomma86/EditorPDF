@@ -107,6 +107,35 @@ export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObjec
       grupo.setCoords();
       return grupo;
     }
+    case 'campo': {
+      const esInvisible = elemento.invisible;
+      const fondo = new Rect({
+        left: 0,
+        top: 0,
+        width: elemento.w,
+        height: elemento.h,
+        fill: esInvisible ? 'rgba(55,138,221,0.05)' : elemento.conFondo ? elemento.fondoColor : 'transparent',
+        stroke: esInvisible ? '#378add' : elemento.bordeGrosor > 0 ? elemento.bordeColor : undefined,
+        strokeWidth: esInvisible ? 1 : elemento.bordeGrosor,
+        strokeDashArray: esInvisible ? [4, 3] : undefined,
+      });
+      const etiqueta = new FabricText(elemento.name, {
+        left: 4,
+        top: elemento.h / 2,
+        originY: 'center',
+        fontSize: elemento.size,
+        fontFamily: elemento.familia,
+        fontWeight: elemento.negrita ? '700' : '400',
+        fontStyle: elemento.cursiva ? 'italic' : 'normal',
+        underline: elemento.subrayado,
+        fill: esInvisible ? '#185fa5' : elemento.color,
+        textAlign: elemento.align,
+      });
+      const grupo = new Group([fondo, etiqueta]);
+      grupo.set({ left: elemento.x, top: elemento.y });
+      grupo.setCoords();
+      return grupo;
+    }
     case 'imagen': {
       const imagen = await FabricImage.fromURL(elemento.src);
       imagen.set({

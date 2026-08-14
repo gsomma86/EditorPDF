@@ -12,7 +12,67 @@ const ETIQUETA_TIPO: Record<Elemento['clase'], string> = {
   qr: 'QR',
   tabla: 'Tabla',
   imagen: 'Imagen',
+  campo: 'Campo',
 };
+
+function bloqueTipografia(elemento: { familia: string; negrita: boolean; cursiva: boolean; subrayado: boolean; align: 'left' | 'center' | 'right' }): string {
+  return `
+    <div><label class="ed-lbl">Familia</label><select id="ed-p-familia">
+      <optgroup label="Estándar (PDF)">
+        ${FAMILIAS_BASE.map((f) => `<option ${f === elemento.familia ? 'selected' : ''}>${f}</option>`).join('')}
+      </optgroup>
+      <optgroup label="Web (se incrustan al exportar)">
+        ${FAMILIAS_WEB.map((f) => `<option ${f === elemento.familia ? 'selected' : ''}>${f}</option>`).join('')}
+      </optgroup>
+    </select></div>
+    <div class="ed-fila-toggle">
+      <button type="button" class="ed-toggle ${elemento.negrita ? 'activo' : ''}" id="ed-p-negrita" title="Negrita"><b>N</b></button>
+      <button type="button" class="ed-toggle ${elemento.cursiva ? 'activo' : ''}" id="ed-p-cursiva" title="Cursiva"><i>K</i></button>
+      <button type="button" class="ed-toggle ${elemento.subrayado ? 'activo' : ''}" id="ed-p-subrayado" title="Subrayado"><u>S</u></button>
+    </div>
+    <label class="ed-lbl" style="margin-top:8px;">Alineación</label>
+    <div class="ed-fila-toggle">
+      <button type="button" class="ed-toggle ${elemento.align === 'left' ? 'activo' : ''}" id="ed-p-al-izq" title="Izquierda">⇤</button>
+      <button type="button" class="ed-toggle ${elemento.align === 'center' ? 'activo' : ''}" id="ed-p-al-centro" title="Centro">≡</button>
+      <button type="button" class="ed-toggle ${elemento.align === 'right' ? 'activo' : ''}" id="ed-p-al-der" title="Derecha">⇥</button>
+    </div>`;
+}
+
+function wireTipografia(
+  $: <T extends HTMLElement>(id: string) => T | null,
+  elemento: { familia: string; negrita: boolean; cursiva: boolean; subrayado: boolean; align: 'left' | 'center' | 'right' },
+  aplicar: (props: Record<string, unknown>) => void,
+  repintar: () => void
+): void {
+  $('#ed-p-familia')!.addEventListener('change', async (e) => {
+    elemento.familia = (e.target as HTMLSelectElement).value;
+    await asegurarFuenteCargada(elemento.familia);
+    aplicar({ fontFamily: elemento.familia });
+    repintar();
+  });
+  const alinear = (valor: 'left' | 'center' | 'right') => {
+    elemento.align = valor;
+    aplicar({ textAlign: valor });
+    $('#ed-p-al-izq')!.classList.toggle('activo', valor === 'left');
+    $('#ed-p-al-centro')!.classList.toggle('activo', valor === 'center');
+    $('#ed-p-al-der')!.classList.toggle('activo', valor === 'right');
+    repintar();
+  };
+  $('#ed-p-al-izq')!.addEventListener('click', () => alinear('left'));
+  $('#ed-p-al-centro')!.addEventListener('click', () => alinear('center'));
+  $('#ed-p-al-der')!.addEventListener('click', () => alinear('right'));
+  const toggle = (id: string, prop: 'negrita' | 'cursiva' | 'subrayado', props: () => Record<string, unknown>) => {
+    $(id)!.addEventListener('click', () => {
+      elemento[prop] = !elemento[prop];
+      $(id)!.classList.toggle('activo', elemento[prop]);
+      aplicar(props());
+      repintar();
+    });
+  };
+  toggle('#ed-p-negrita', 'negrita', () => ({ fontWeight: elemento.negrita ? '700' : '400' }));
+  toggle('#ed-p-cursiva', 'cursiva', () => ({ fontStyle: elemento.cursiva ? 'italic' : 'normal' }));
+  toggle('#ed-p-subrayado', 'subrayado', () => ({ underline: elemento.subrayado }));
+}
 
 export function mostrarSinSeleccion(panel: HTMLElement): void {
   panel.innerHTML = `
@@ -74,25 +134,36 @@ function campoTexto(elemento: Elemento & { clase: 'texto' }): string {
         <div><label class="ed-lbl">Tamaño</label><input type="number" id="ed-p-size" class="mono" value="${elemento.size}" min="5" max="72"></div>
         <div><label class="ed-lbl">Color</label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
       </div>
-      <div><label class="ed-lbl">Familia</label><select id="ed-p-familia">
-        <optgroup label="Estándar (PDF)">
-          ${FAMILIAS_BASE.map((f) => `<option ${f === elemento.familia ? 'selected' : ''}>${f}</option>`).join('')}
-        </optgroup>
-        <optgroup label="Web (se incrustan al exportar)">
-          ${FAMILIAS_WEB.map((f) => `<option ${f === elemento.familia ? 'selected' : ''}>${f}</option>`).join('')}
-        </optgroup>
+      ${bloqueTipografia(elemento)}`
+    )
+  );
+}
+
+function campoCampo(elemento: Elemento & { clase: 'campo' }): string {
+  return (
+    seccion(
+      'Contenido',
+      `<div><label class="ed-lbl">Campo (ID)</label><input type="text" id="ed-p-nombre" value="${escapeHtml(elemento.name)}"></div>
+      <div><label class="ed-lbl">Tipo de dato</label><select id="ed-p-tipodato">
+        ${['Texto', 'Numero', 'Moneda', 'Fecha'].map((t) => `<option value="${t}" ${t === elemento.tipo ? 'selected' : ''}>${t}</option>`).join('')}
       </select></div>
-      <div class="ed-fila-toggle">
-        <button type="button" class="ed-toggle ${elemento.negrita ? 'activo' : ''}" id="ed-p-negrita" title="Negrita"><b>N</b></button>
-        <button type="button" class="ed-toggle ${elemento.cursiva ? 'activo' : ''}" id="ed-p-cursiva" title="Cursiva"><i>K</i></button>
-        <button type="button" class="ed-toggle ${elemento.subrayado ? 'activo' : ''}" id="ed-p-subrayado" title="Subrayado"><u>S</u></button>
+      <label class="ed-check"><input type="checkbox" id="ed-p-invisible" ${elemento.invisible ? 'checked' : ''}> Campo invisible</label>
+      <div><label class="ed-lbl">Valor por defecto</label><input type="text" id="ed-p-default" value="${escapeHtml(elemento.defaultValue)}" placeholder="Valor que aparecerá por defecto"></div>
+      <label class="ed-check"><input type="checkbox" id="ed-p-readonly" ${elemento.readonly ? 'checked' : ''}> Sólo lectura (visual)</label>`
+    ) +
+    seccion(
+      'Formato',
+      `<div class="ed-row2">
+        <div><label class="ed-lbl">Tamaño</label><input type="number" id="ed-p-size" class="mono" value="${elemento.size}" min="5" max="72"></div>
+        <div><label class="ed-lbl">Color</label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
       </div>
-      <label class="ed-lbl" style="margin-top:8px;">Alineación</label>
-      <div class="ed-fila-toggle">
-        <button type="button" class="ed-toggle ${elemento.align === 'left' ? 'activo' : ''}" id="ed-p-al-izq" title="Izquierda">⇤</button>
-        <button type="button" class="ed-toggle ${elemento.align === 'center' ? 'activo' : ''}" id="ed-p-al-centro" title="Centro">≡</button>
-        <button type="button" class="ed-toggle ${elemento.align === 'right' ? 'activo' : ''}" id="ed-p-al-der" title="Derecha">⇥</button>
-      </div>`
+      <div class="ed-row2">
+        <div><label class="ed-lbl">Color de borde</label><input type="color" id="ed-p-campo-bordecolor" value="${elemento.bordeColor}"></div>
+        <div><label class="ed-lbl">Grosor de borde (pt)</label><input type="number" id="ed-p-campo-bordegrosor" class="mono" value="${elemento.bordeGrosor}" min="0" step="0.5"></div>
+      </div>
+      <label class="ed-check"><input type="checkbox" id="ed-p-campo-fondo" ${elemento.conFondo ? 'checked' : ''}> Con fondo</label>
+      <div><label class="ed-lbl">Color de fondo</label><input type="color" id="ed-p-campo-fondocolor" value="${elemento.fondoColor}"></div>
+      ${bloqueTipografia(elemento)}`
     )
   );
 }
@@ -187,6 +258,8 @@ function camposPara(elemento: Elemento): string {
       return campoTabla(elemento);
     case 'imagen':
       return campoImagen(elemento);
+    case 'campo':
+      return campoCampo(elemento);
   }
 }
 
@@ -258,34 +331,7 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
       objeto.set({ fill: elemento.color });
       repintar();
     });
-    $('#ed-p-familia')!.addEventListener('change', async (e) => {
-      elemento.familia = (e.target as HTMLSelectElement).value;
-      await asegurarFuenteCargada(elemento.familia);
-      objeto.set({ fontFamily: elemento.familia } as any);
-      repintar();
-    });
-    const alinear = (valor: 'left' | 'center' | 'right') => {
-      elemento.align = valor;
-      objeto.set({ textAlign: valor } as any);
-      $('#ed-p-al-izq')!.classList.toggle('activo', valor === 'left');
-      $('#ed-p-al-centro')!.classList.toggle('activo', valor === 'center');
-      $('#ed-p-al-der')!.classList.toggle('activo', valor === 'right');
-      repintar();
-    };
-    $('#ed-p-al-izq')!.addEventListener('click', () => alinear('left'));
-    $('#ed-p-al-centro')!.addEventListener('click', () => alinear('center'));
-    $('#ed-p-al-der')!.addEventListener('click', () => alinear('right'));
-    const toggle = (id: string, prop: 'negrita' | 'cursiva' | 'subrayado', aplicar: () => void) => {
-      $(id)!.addEventListener('click', () => {
-        elemento[prop] = !elemento[prop];
-        $(id)!.classList.toggle('activo', elemento[prop]);
-        aplicar();
-        repintar();
-      });
-    };
-    toggle('#ed-p-negrita', 'negrita', () => objeto.set({ fontWeight: elemento.negrita ? '700' : '400' } as any));
-    toggle('#ed-p-cursiva', 'cursiva', () => objeto.set({ fontStyle: elemento.cursiva ? 'italic' : 'normal' } as any));
-    toggle('#ed-p-subrayado', 'subrayado', () => objeto.set({ underline: elemento.subrayado } as any));
+    wireTipografia($, elemento, (props) => objeto.set(props as any), repintar);
     return;
   }
 
@@ -441,5 +487,62 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
       objeto.set({ opacity: elemento.opacidad / 100 });
       repintar();
     });
+  }
+
+  if (elemento.clase === 'campo') {
+    const reconstruir = async () => {
+      const nuevo = await reemplazarObjeto(lienzo, objeto, elemento);
+      mostrarPropiedades(panel, lienzo, nuevo);
+    };
+    $('#ed-p-nombre')!.addEventListener('input', (e) => {
+      elemento.name = (e.target as HTMLInputElement).value;
+      reconstruir();
+    });
+    $('#ed-p-tipodato')!.addEventListener('change', (e) => {
+      elemento.tipo = (e.target as HTMLSelectElement).value as typeof elemento.tipo;
+    });
+    $('#ed-p-invisible')!.addEventListener('change', (e) => {
+      elemento.invisible = (e.target as HTMLInputElement).checked;
+      reconstruir();
+    });
+    $('#ed-p-default')!.addEventListener('input', (e) => {
+      elemento.defaultValue = (e.target as HTMLInputElement).value;
+    });
+    $('#ed-p-readonly')!.addEventListener('change', (e) => {
+      elemento.readonly = (e.target as HTMLInputElement).checked;
+    });
+    $('#ed-p-size')!.addEventListener('input', (e) => {
+      elemento.size = Number((e.target as HTMLInputElement).value);
+      reconstruir();
+    });
+    $('#ed-p-color')!.addEventListener('input', (e) => {
+      elemento.color = (e.target as HTMLInputElement).value;
+      reconstruir();
+    });
+    $('#ed-p-campo-bordecolor')!.addEventListener('change', (e) => {
+      elemento.bordeColor = (e.target as HTMLInputElement).value;
+      reconstruir();
+    });
+    $('#ed-p-campo-bordegrosor')!.addEventListener('input', (e) => {
+      elemento.bordeGrosor = Number((e.target as HTMLInputElement).value);
+      reconstruir();
+    });
+    $('#ed-p-campo-fondo')!.addEventListener('change', (e) => {
+      elemento.conFondo = (e.target as HTMLInputElement).checked;
+      reconstruir();
+    });
+    $('#ed-p-campo-fondocolor')!.addEventListener('change', (e) => {
+      elemento.fondoColor = (e.target as HTMLInputElement).value;
+      reconstruir();
+    });
+    $('#ed-p-w')?.addEventListener('change', (e) => {
+      elemento.w = Number((e.target as HTMLInputElement).value);
+      reconstruir();
+    });
+    $('#ed-p-h')?.addEventListener('change', (e) => {
+      elemento.h = Number((e.target as HTMLInputElement).value);
+      reconstruir();
+    });
+    wireTipografia($, elemento, () => reconstruir(), repintar);
   }
 }

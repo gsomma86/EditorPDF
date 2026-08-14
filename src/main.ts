@@ -1,17 +1,22 @@
 import './style.css';
 import { montarEspacioTrabajo } from './ui/shell';
 import { crearLienzo } from './editor/lienzo';
-import { crearElemento, crearElementoImagen, crearElementoTabla, establecerTamanoPagina, type ClaseSimple } from './editor/elemento';
+import { crearElemento, crearElementoCampo, crearElementoImagen, crearElementoTabla, establecerTamanoPagina, type ClaseSimple } from './editor/elemento';
 import { agregarAlLienzo, elementoDe, sincronizarGeometria } from './editor/objetosFabric';
 import { activarResizeTabla } from './editor/resizeTabla';
 import { mostrarPropiedades, mostrarSinSeleccion } from './ui/panelPropiedades';
 import { pedirFilasColumnas } from './ui/modalTabla';
+import { montarPanelCampos } from './ui/panelCampos';
 
 const raiz = document.querySelector<HTMLDivElement>('#app')!;
 const espacio = montarEspacioTrabajo(raiz);
 const lienzo = crearLienzo(espacio.lienzoCont);
 establecerTamanoPagina(lienzo.width, lienzo.height);
 activarResizeTabla(lienzo);
+montarPanelCampos(espacio.panelCampos, async (nombre) => {
+  const elemento = crearElementoCampo(nombre);
+  await agregarAlLienzo(lienzo, elemento);
+});
 
 function actualizarEscaladoUniforme(objeto: import('fabric').FabricObject): void {
   const elemento = elementoDe(objeto);

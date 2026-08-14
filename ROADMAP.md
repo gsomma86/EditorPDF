@@ -17,7 +17,7 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
 - [x] Lienzo en blanco (Fabric.js) con tamaño de página real en puntos
 - [x] Herramientas de dibujo: Texto, Línea, Recuadro, QR (crear, seleccionar, editar propiedades, eliminar)
 - [x] Herramientas de dibujo: Tabla, Imagen
-- [ ] Campos AcroForm (panel izquierdo: catálogo de IDs, colocar como campo interactivo en la hoja)
+- [x] Campos AcroForm (panel izquierdo: catálogo de IDs, colocar como campo interactivo en la hoja) — falta el modo "repetible" (comodín #, expansión en filas)
 - [ ] Deshacer / rehacer
 - [ ] Modal Nuevo proyecto (tamaño, orientación, márgenes)
 - [ ] Guardar proyecto (.json) / Importar proyecto (.json)

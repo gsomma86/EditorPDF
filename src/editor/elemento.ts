@@ -80,7 +80,34 @@ export interface ElementoImagen {
   proporcion: boolean;
 }
 
-export type Elemento = ElementoTexto | ElementoLinea | ElementoRect | ElementoQr | ElementoTabla | ElementoImagen;
+export type TipoDato = 'Texto' | 'Numero' | 'Moneda' | 'Fecha';
+
+export interface ElementoCampo {
+  clase: 'campo';
+  id: number;
+  name: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  tipo: TipoDato;
+  size: number;
+  familia: Familia;
+  negrita: boolean;
+  cursiva: boolean;
+  subrayado: boolean;
+  color: string;
+  align: 'left' | 'center' | 'right';
+  invisible: boolean;
+  readonly: boolean;
+  defaultValue: string;
+  bordeGrosor: number;
+  bordeColor: string;
+  conFondo: boolean;
+  fondoColor: string;
+}
+
+export type Elemento = ElementoTexto | ElementoLinea | ElementoRect | ElementoQr | ElementoTabla | ElementoImagen | ElementoCampo;
 export type ClaseDibujo = Elemento['clase'];
 export type ClaseSimple = 'texto' | 'linea' | 'rect' | 'qr';
 
@@ -163,6 +190,34 @@ export function crearElementoImagen(src: string, anchoNatural: number, altoNatur
     src,
     opacidad: 100,
     proporcion: true,
+  };
+}
+
+export function crearElementoCampo(nombre: string): ElementoCampo {
+  const { x, y } = nuevaPosicion(150, 16);
+  return {
+    clase: 'campo',
+    id: secuencia++,
+    name: nombre,
+    x,
+    y,
+    w: 150,
+    h: 16,
+    tipo: 'Texto',
+    size: 9,
+    familia: 'Helvetica',
+    negrita: false,
+    cursiva: false,
+    subrayado: false,
+    color: '#000000',
+    align: 'left',
+    invisible: false,
+    readonly: false,
+    defaultValue: '',
+    bordeGrosor: 0,
+    bordeColor: '#000000',
+    conFondo: false,
+    fondoColor: '#ffffff',
   };
 }
 

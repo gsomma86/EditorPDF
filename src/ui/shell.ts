@@ -92,7 +92,8 @@ export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
         <div class="ed-panel-head"><button type="button" class="ed-panel-toggle">‹</button></div>
         <div class="ed-panel-cont" id="ed-panel-campos">
           <div class="ed-col"><span class="ed-col-ic">−</span><span class="ed-col-t">Campos AcroForm</span><span class="ed-col-n">0</span></div>
-          <div class="ed-campos-add"><input type="text" placeholder="ID del campo" /><button type="button">+</button></div>
+          <div class="ed-campos-add"><input type="text" id="ed-campo-nuevo" placeholder="ID del campo" /><button type="button" id="ed-campo-agregar">+</button></div>
+          <div id="ed-lista-campos"></div>
           <p class="nota">Clic en un campo para colocarlo en la hoja (podés repetirlo).</p>
         </div>
       </aside>

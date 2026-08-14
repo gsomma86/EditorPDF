@@ -315,6 +315,27 @@ button {
   color: var(--texto-suave);
   line-height: 1.5;
 }
+.ed-campo-fila {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 3px;
+}
+.ed-campo-fila .ed-chip {
+  flex: 1;
+  margin-bottom: 0;
+}
+.ed-campo-fila button.quitar {
+  border: none;
+  background: none;
+  color: var(--texto-suave);
+  font-size: 13px;
+  padding: 2px 5px;
+  flex-shrink: 0;
+}
+.ed-campo-fila button.quitar:hover {
+  color: var(--err-texto);
+}
 
 /* ---------- Lienzo ---------- */
 .ed-lienzo-cont {
