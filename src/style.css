@@ -223,6 +223,10 @@ button {
   margin: 0 0 3px;
   display: block;
 }
+.mono {
+  font-family: Consolas, ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
 .ed-panel select,
 .ed-panel input[type='text'],
 .ed-panel input[type='number'],
@@ -355,6 +359,68 @@ button {
   color: var(--texto-suave);
   line-height: 1.6;
   padding: 6px 2px;
+}
+.ed-sec {
+  margin-bottom: 14px;
+}
+.ed-sec-tit {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--texto-2);
+  margin: 0 0 6px;
+}
+.ed-row2,
+.ed-grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.ed-fila-toggle {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.ed-toggle {
+  width: 34px;
+  height: 30px;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: 6px;
+  background: var(--fondo);
+  color: var(--texto-2);
+  font-size: 13px;
+}
+.ed-toggle:hover {
+  border-color: var(--acento);
+}
+.ed-toggle.activo {
+  background: var(--primario);
+  color: #fff;
+  border-color: var(--primario);
+}
+.ed-acciones2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  border-top: 1px solid var(--borde);
+  padding-top: 12px;
+  margin-top: 4px;
+}
+.ed-acciones2 button {
+  width: 100%;
+  font-size: 11px;
+  padding: 7px 4px;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: 6px;
+  background: var(--card-1);
+  color: var(--texto);
+}
+.ed-acciones2 button:hover {
+  border-color: var(--acento);
+}
+.ed-acciones2 button.peligro {
+  color: var(--err-texto);
 }
 
 /* ---------- Barra de estado ---------- */

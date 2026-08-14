@@ -1,8 +1,8 @@
 import type { Canvas, FabricObject } from 'fabric';
-import { elementoDe, reemplazarObjeto } from '../editor/objetosFabric';
-import type { Elemento, Familia } from '../editor/elemento';
-import QRCode from 'qrcode';
 import { FabricImage } from 'fabric';
+import QRCode from 'qrcode';
+import { elementoDe, reemplazarObjeto, agregarAlLienzo } from '../editor/objetosFabric';
+import { duplicarElemento, type Elemento, type Familia } from '../editor/elemento';
 
 const ETIQUETA_TIPO: Record<Elemento['clase'], string> = {
   texto: 'Texto',
@@ -29,67 +29,91 @@ export function mostrarPropiedades(panel: HTMLElement, lienzo: Canvas, objeto: F
 
   panel.innerHTML = `
     <div class="ed-props-tit"><strong>Propiedades</strong><span class="ed-chip-tipo">${ETIQUETA_TIPO[elemento.clase]}</span></div>
-    <div class="ed-sec">${camposPara(elemento)}</div>
-    <button type="button" class="danger-btn" id="ed-p-eliminar">Eliminar</button>
+    ${camposPara(elemento)}
+    ${seccionPosicion(elemento)}
+    <div class="ed-acciones2">
+      <button type="button" id="ed-p-duplicar">Duplicar</button>
+      <button type="button" id="ed-p-borrar" class="peligro">Borrar</button>
+      <button type="button" id="ed-p-frente">Al frente</button>
+      <button type="button" id="ed-p-atras">Enviar atrás</button>
+    </div>
   `;
 
   wireCampos(panel, lienzo, objeto, elemento);
+  wireAcciones(panel, lienzo, objeto, elemento);
+}
 
-  panel.querySelector<HTMLButtonElement>('#ed-p-eliminar')!.addEventListener('click', () => {
-    lienzo.remove(objeto);
-    lienzo.discardActiveObject();
-    lienzo.requestRenderAll();
-    mostrarSinSeleccion(panel);
-  });
+function seccion(titulo: string, contenido: string): string {
+  return `<div class="ed-sec"><div class="ed-sec-tit">${titulo}</div>${contenido}</div>`;
+}
+
+function seccionPosicion(elemento: Elemento): string {
+  const conTamano = elemento.clase !== 'texto' && elemento.clase !== 'tabla';
+  return seccion(
+    'Posición y tamaño (pt)',
+    `<div class="ed-grid2">
+      <div><label class="ed-lbl">X</label><input type="number" id="ed-p-x" class="mono" value="${elemento.x}"></div>
+      <div><label class="ed-lbl">Y</label><input type="number" id="ed-p-y" class="mono" value="${elemento.y}"></div>
+      ${
+        conTamano && 'w' in elemento
+          ? `<div><label class="ed-lbl">Ancho</label><input type="number" id="ed-p-w" class="mono" value="${elemento.w}" min="1"></div>
+             <div><label class="ed-lbl">Alto</label><input type="number" id="ed-p-h" class="mono" value="${elemento.h}" min="1"></div>`
+          : ''
+      }
+    </div>`
+  );
 }
 
 function campoTexto(elemento: Elemento & { clase: 'texto' }): string {
-  return `
-    <div><label class="ed-lbl">Texto</label><input type="text" id="ed-p-texto" value="${escapeHtml(elemento.text)}"></div>
-    <div class="ed-row2">
-      <div><label class="ed-lbl">Tamaño</label><input type="number" id="ed-p-size" class="mono" value="${elemento.size}" min="5" max="72"></div>
-      <div><label class="ed-lbl">Color</label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
-    </div>
-    <div class="ed-row2">
+  return (
+    seccion('Contenido', `<div><label class="ed-lbl">Texto</label><input type="text" id="ed-p-texto" value="${escapeHtml(elemento.text)}"></div>`) +
+    seccion(
+      'Formato',
+      `<div class="ed-row2">
+        <div><label class="ed-lbl">Tamaño</label><input type="number" id="ed-p-size" class="mono" value="${elemento.size}" min="5" max="72"></div>
+        <div><label class="ed-lbl">Color</label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
+      </div>
       <div><label class="ed-lbl">Familia</label><select id="ed-p-familia">
         ${['Helvetica', 'Times', 'Courier'].map((f) => `<option ${f === elemento.familia ? 'selected' : ''}>${f}</option>`).join('')}
       </select></div>
-      <div><label class="ed-lbl">Alineación</label><select id="ed-p-align">
-        <option value="left" ${elemento.align === 'left' ? 'selected' : ''}>Izquierda</option>
-        <option value="center" ${elemento.align === 'center' ? 'selected' : ''}>Centro</option>
-        <option value="right" ${elemento.align === 'right' ? 'selected' : ''}>Derecha</option>
-      </select></div>
-    </div>
-    <div class="ed-fila-toggle">
-      <button type="button" class="ed-toggle ${elemento.negrita ? 'activo' : ''}" id="ed-p-negrita">Negrita</button>
-      <button type="button" class="ed-toggle ${elemento.cursiva ? 'activo' : ''}" id="ed-p-cursiva">Cursiva</button>
-      <button type="button" class="ed-toggle ${elemento.subrayado ? 'activo' : ''}" id="ed-p-subrayado">Subrayado</button>
-    </div>
-  `;
+      <div class="ed-fila-toggle">
+        <button type="button" class="ed-toggle ${elemento.negrita ? 'activo' : ''}" id="ed-p-negrita" title="Negrita"><b>N</b></button>
+        <button type="button" class="ed-toggle ${elemento.cursiva ? 'activo' : ''}" id="ed-p-cursiva" title="Cursiva"><i>K</i></button>
+        <button type="button" class="ed-toggle ${elemento.subrayado ? 'activo' : ''}" id="ed-p-subrayado" title="Subrayado"><u>S</u></button>
+      </div>
+      <label class="ed-lbl" style="margin-top:8px;">Alineación</label>
+      <div class="ed-fila-toggle">
+        <button type="button" class="ed-toggle ${elemento.align === 'left' ? 'activo' : ''}" id="ed-p-al-izq" title="Izquierda">⇤</button>
+        <button type="button" class="ed-toggle ${elemento.align === 'center' ? 'activo' : ''}" id="ed-p-al-centro" title="Centro">≡</button>
+        <button type="button" class="ed-toggle ${elemento.align === 'right' ? 'activo' : ''}" id="ed-p-al-der" title="Derecha">⇥</button>
+      </div>`
+    )
+  );
 }
 
 function campoLinea(elemento: Elemento & { clase: 'linea' }): string {
-  return `
-    <div class="ed-row2">
-      <div><label class="ed-lbl">Ancho (pt)</label><input type="number" id="ed-p-w" class="mono" value="${elemento.w}" min="1"></div>
-      <div><label class="ed-lbl">Alto (pt)</label><input type="number" id="ed-p-h" class="mono" value="${elemento.h}" min="1"></div>
+  const esVertical = elemento.h > elemento.w;
+  return seccion(
+    'Formato',
+    `<label class="ed-lbl">Orientación</label>
+    <div class="ed-fila-toggle">
+      <button type="button" class="ed-toggle ${!esVertical ? 'activo' : ''}" id="ed-p-horizontal">Horizontal</button>
+      <button type="button" class="ed-toggle ${esVertical ? 'activo' : ''}" id="ed-p-vertical">Vertical</button>
     </div>
-    <div class="ed-row2">
+    <div class="ed-row2" style="margin-top:8px;">
       <div><label class="ed-lbl">Color</label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
-      <div><label class="ed-lbl">Estilo</label><select id="ed-p-estilo">
-        ${['solido', 'punteado', 'doble'].map((e) => `<option value="${e}" ${e === elemento.estilo ? 'selected' : ''}>${etiquetaEstilo(e)}</option>`).join('')}
-      </select></div>
+      <div><label class="ed-lbl">Ángulo (°)</label><input type="number" id="ed-p-angulo" class="mono" value="${elemento.angulo}" step="1"></div>
     </div>
-  `;
+    <div><label class="ed-lbl">Estilo</label><select id="ed-p-estilo">
+      ${['solido', 'punteado', 'doble'].map((e) => `<option value="${e}" ${e === elemento.estilo ? 'selected' : ''}>${etiquetaEstilo(e)}</option>`).join('')}
+    </select></div>`
+  );
 }
 
 function campoRect(elemento: Elemento & { clase: 'rect' }): string {
-  return `
-    <div class="ed-row2">
-      <div><label class="ed-lbl">Ancho (pt)</label><input type="number" id="ed-p-w" class="mono" value="${elemento.w}" min="1"></div>
-      <div><label class="ed-lbl">Alto (pt)</label><input type="number" id="ed-p-h" class="mono" value="${elemento.h}" min="1"></div>
-    </div>
-    <div class="ed-row2">
+  return seccion(
+    'Formato',
+    `<div class="ed-row2">
       <div><label class="ed-lbl">Grosor de borde (pt)</label><input type="number" id="ed-p-grosor" class="mono" value="${elemento.grosor}" min="0.5" step="0.5"></div>
       <div><label class="ed-lbl">Radio de esquina (pt)</label><input type="number" id="ed-p-radio" class="mono" value="${elemento.radio}" min="0"></div>
     </div>
@@ -100,21 +124,26 @@ function campoRect(elemento: Elemento & { clase: 'rect' }): string {
       </select></div>
     </div>
     <label class="ed-check"><input type="checkbox" id="ed-p-con-relleno" ${elemento.conRelleno ? 'checked' : ''}> Con relleno</label>
-    <div><label class="ed-lbl">Color de relleno</label><input type="color" id="ed-p-relleno-color" value="${elemento.rellenoColor}"></div>
-  `;
+    <div><label class="ed-lbl">Color de relleno</label><input type="color" id="ed-p-relleno-color" value="${elemento.rellenoColor}"></div>`
+  );
 }
 
 function campoQr(elemento: Elemento & { clase: 'qr' }): string {
-  return `
-    <div><label class="ed-lbl">Contenido / URL</label><input type="text" id="ed-p-texto" value="${escapeHtml(elemento.texto)}"></div>
-    <div><label class="ed-lbl">Tamaño (pt)</label><input type="number" id="ed-p-size" class="mono" value="${elemento.w}" min="20"></div>
-  `;
+  return seccion(
+    'Contenido',
+    `<div><label class="ed-lbl">Texto / URL</label><input type="text" id="ed-p-texto" value="${escapeHtml(elemento.texto)}"></div>
+    <div><label class="ed-lbl">Tamaño (pt)</label><input type="number" id="ed-p-size" class="mono" value="${elemento.w}" min="20"></div>`
+  );
 }
 
 function campoTabla(elemento: Elemento & { clase: 'tabla' }): string {
-  return `
-    <div class="nota">${elemento.rows.length} filas × ${elemento.cols.length} columnas. Arrastrá la esquina para redimensionar.</div>
-    <div><label class="ed-lbl">Color</label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
+  return seccion(
+    'Formato',
+    `<div class="nota" style="margin-bottom:8px;">${elemento.rows.length} filas × ${elemento.cols.length} columnas. Arrastrá una línea interna para ajustar esa fila/columna, o la esquina para redimensionar todo.</div>
+    <div class="ed-row2">
+      <div><label class="ed-lbl">Color del contorno</label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
+      <div><label class="ed-lbl">Color interno</label><input type="color" id="ed-p-color-interno" value="${elemento.colorInterno}"></div>
+    </div>
     <div class="ed-row2">
       <div><label class="ed-lbl">Estilo del contorno</label><select id="ed-p-contorno">
         ${['solido', 'punteado', 'doble'].map((e) => `<option value="${e}" ${e === elemento.estiloContorno ? 'selected' : ''}>${etiquetaEstilo(e)}</option>`).join('')}
@@ -123,19 +152,19 @@ function campoTabla(elemento: Elemento & { clase: 'tabla' }): string {
         ${['solido', 'punteado', 'doble'].map((e) => `<option value="${e}" ${e === elemento.estiloInterno ? 'selected' : ''}>${etiquetaEstilo(e)}</option>`).join('')}
       </select></div>
     </div>
-    <div><label class="ed-lbl">Radio de esquina (pt)</label><input type="number" id="ed-p-radio" class="mono" value="${elemento.radio}" min="0"></div>
-  `;
+    <div class="ed-row2">
+      <div><label class="ed-lbl">Grosor de línea (pt)</label><input type="number" id="ed-p-grosor" class="mono" value="${elemento.grosor}" min="0.5" step="0.5"></div>
+      <div><label class="ed-lbl">Radio de esquina (pt)</label><input type="number" id="ed-p-radio" class="mono" value="${elemento.radio}" min="0"></div>
+    </div>`
+  );
 }
 
 function campoImagen(elemento: Elemento & { clase: 'imagen' }): string {
-  return `
-    <div class="ed-row2">
-      <div><label class="ed-lbl">Ancho (pt)</label><input type="number" id="ed-p-w" class="mono" value="${elemento.w}" min="1"></div>
-      <div><label class="ed-lbl">Alto (pt)</label><input type="number" id="ed-p-h" class="mono" value="${elemento.h}" min="1"></div>
-    </div>
-    <label class="ed-check"><input type="checkbox" id="ed-p-proporcion" ${elemento.proporcion ? 'checked' : ''}> Mantener proporción al redimensionar</label>
-    <div><label class="ed-lbl">Opacidad</label><input type="range" id="ed-p-opacidad" min="10" max="100" value="${elemento.opacidad}"></div>
-  `;
+  return seccion(
+    'Formato',
+    `<label class="ed-check"><input type="checkbox" id="ed-p-proporcion" ${elemento.proporcion ? 'checked' : ''}> Mantener proporción al redimensionar</label>
+    <label class="ed-lbl" style="margin-top:8px;">Opacidad</label><input type="range" id="ed-p-opacidad" min="10" max="100" value="${elemento.opacidad}">`
+  );
 }
 
 function camposPara(elemento: Elemento): string {
@@ -165,9 +194,47 @@ function escapeHtml(texto: string): string {
   return texto.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+function wireAcciones(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, elemento: Elemento): void {
+  panel.querySelector<HTMLButtonElement>('#ed-p-borrar')!.addEventListener('click', () => {
+    lienzo.remove(objeto);
+    lienzo.discardActiveObject();
+    lienzo.requestRenderAll();
+    mostrarSinSeleccion(panel);
+  });
+
+  panel.querySelector<HTMLButtonElement>('#ed-p-duplicar')!.addEventListener('click', async () => {
+    const clon = duplicarElemento(elemento);
+    const nuevo = await agregarAlLienzo(lienzo, clon);
+    mostrarPropiedades(panel, lienzo, nuevo);
+  });
+
+  panel.querySelector<HTMLButtonElement>('#ed-p-frente')!.addEventListener('click', () => {
+    lienzo.bringObjectToFront(objeto);
+    lienzo.requestRenderAll();
+  });
+
+  panel.querySelector<HTMLButtonElement>('#ed-p-atras')!.addEventListener('click', () => {
+    lienzo.sendObjectToBack(objeto);
+    lienzo.requestRenderAll();
+  });
+}
+
 function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, elemento: Elemento): void {
   const $ = <T extends HTMLElement>(id: string) => panel.querySelector<T>(id);
   const repintar = () => lienzo.requestRenderAll();
+
+  $('#ed-p-x')!.addEventListener('input', (e) => {
+    elemento.x = Number((e.target as HTMLInputElement).value);
+    objeto.set({ left: elemento.x });
+    objeto.setCoords();
+    repintar();
+  });
+  $('#ed-p-y')!.addEventListener('input', (e) => {
+    elemento.y = Number((e.target as HTMLInputElement).value);
+    objeto.set({ top: elemento.y });
+    objeto.setCoords();
+    repintar();
+  });
 
   if (elemento.clase === 'texto') {
     $('#ed-p-texto')!.addEventListener('input', (e) => {
@@ -190,11 +257,17 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
       objeto.set({ fontFamily: elemento.familia } as any);
       repintar();
     });
-    $('#ed-p-align')!.addEventListener('change', (e) => {
-      elemento.align = (e.target as HTMLSelectElement).value as typeof elemento.align;
-      objeto.set({ textAlign: elemento.align } as any);
+    const alinear = (valor: 'left' | 'center' | 'right') => {
+      elemento.align = valor;
+      objeto.set({ textAlign: valor } as any);
+      $('#ed-p-al-izq')!.classList.toggle('activo', valor === 'left');
+      $('#ed-p-al-centro')!.classList.toggle('activo', valor === 'center');
+      $('#ed-p-al-der')!.classList.toggle('activo', valor === 'right');
       repintar();
-    });
+    };
+    $('#ed-p-al-izq')!.addEventListener('click', () => alinear('left'));
+    $('#ed-p-al-centro')!.addEventListener('click', () => alinear('center'));
+    $('#ed-p-al-der')!.addEventListener('click', () => alinear('right'));
     const toggle = (id: string, prop: 'negrita' | 'cursiva' | 'subrayado', aplicar: () => void) => {
       $(id)!.addEventListener('click', () => {
         elemento[prop] = !elemento[prop];
@@ -213,11 +286,13 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
     $('#ed-p-w')!.addEventListener('input', (e) => {
       elemento.w = Number((e.target as HTMLInputElement).value);
       objeto.set({ width: elemento.w });
+      objeto.setCoords();
       repintar();
     });
     $('#ed-p-h')!.addEventListener('input', (e) => {
       elemento.h = Number((e.target as HTMLInputElement).value);
       objeto.set({ height: elemento.h });
+      objeto.setCoords();
       repintar();
     });
     $('#ed-p-color')!.addEventListener('input', (e) => {
@@ -228,6 +303,32 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
     $('#ed-p-estilo')!.addEventListener('change', (e) => {
       elemento.estilo = (e.target as HTMLSelectElement).value as typeof elemento.estilo;
       objeto.set({ strokeDashArray: elemento.estilo === 'punteado' ? [4, 3] : undefined } as any);
+      repintar();
+    });
+  }
+
+  if (elemento.clase === 'linea') {
+    const actualizarOrientacion = (vertical: boolean) => {
+      if (vertical === elemento.h > elemento.w) return;
+      const temp = elemento.w;
+      elemento.w = elemento.h;
+      elemento.h = temp;
+      objeto.set({ width: elemento.w, height: elemento.h });
+      objeto.setCoords();
+      $('#ed-p-horizontal')!.classList.toggle('activo', !vertical);
+      $('#ed-p-vertical')!.classList.toggle('activo', vertical);
+      const wInput = $<HTMLInputElement>('#ed-p-w');
+      const hInput = $<HTMLInputElement>('#ed-p-h');
+      if (wInput) wInput.value = String(elemento.w);
+      if (hInput) hInput.value = String(elemento.h);
+      repintar();
+    };
+    $('#ed-p-horizontal')!.addEventListener('click', () => actualizarOrientacion(false));
+    $('#ed-p-vertical')!.addEventListener('click', () => actualizarOrientacion(true));
+    $('#ed-p-angulo')!.addEventListener('input', (e) => {
+      elemento.angulo = Number((e.target as HTMLInputElement).value);
+      objeto.set({ angle: elemento.angulo });
+      objeto.setCoords();
       repintar();
     });
   }
@@ -283,12 +384,20 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
       elemento.color = (e.target as HTMLInputElement).value;
       reconstruir();
     });
+    $('#ed-p-color-interno')!.addEventListener('change', (e) => {
+      elemento.colorInterno = (e.target as HTMLInputElement).value;
+      reconstruir();
+    });
     $('#ed-p-contorno')!.addEventListener('change', (e) => {
       elemento.estiloContorno = (e.target as HTMLSelectElement).value as typeof elemento.estiloContorno;
       reconstruir();
     });
     $('#ed-p-interno')!.addEventListener('change', (e) => {
       elemento.estiloInterno = (e.target as HTMLSelectElement).value as typeof elemento.estiloInterno;
+      reconstruir();
+    });
+    $('#ed-p-grosor')!.addEventListener('change', (e) => {
+      elemento.grosor = Number((e.target as HTMLInputElement).value);
       reconstruir();
     });
     $('#ed-p-radio')!.addEventListener('change', (e) => {
@@ -318,6 +427,7 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
     });
     $('#ed-p-proporcion')!.addEventListener('change', (e) => {
       elemento.proporcion = (e.target as HTMLInputElement).checked;
+      lienzo.uniformScaling = elemento.proporcion;
     });
     $('#ed-p-opacidad')!.addEventListener('input', (e) => {
       elemento.opacidad = Number((e.target as HTMLInputElement).value);

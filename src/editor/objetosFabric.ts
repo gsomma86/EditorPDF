@@ -35,6 +35,7 @@ export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObjec
         top: elemento.y,
         width: elemento.w,
         height: elemento.h,
+        angle: elemento.angulo,
         fill: elemento.color,
       });
     }
@@ -76,6 +77,7 @@ export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObjec
         ry: elemento.radio,
         fill: 'transparent',
         stroke: elemento.color,
+        strokeWidth: elemento.grosor,
         strokeDashArray: trazoDeEstilo(elemento.estiloContorno),
       });
 
@@ -96,7 +98,8 @@ export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObjec
         left: 0,
         top: 0,
         fill: '',
-        stroke: elemento.color,
+        stroke: elemento.colorInterno,
+        strokeWidth: elemento.grosor,
         strokeDashArray: trazoDeEstilo(elemento.estiloInterno),
       });
 
@@ -163,7 +166,12 @@ export function sincronizarGeometria(objeto: FabricObject): void {
   const anchoVisible = Math.round((objeto.width ?? elemento.w) * (objeto.scaleX ?? 1));
   const altoVisible = Math.round((objeto.height ?? elemento.h) * (objeto.scaleY ?? 1));
 
-  if (elemento.clase === 'rect' || elemento.clase === 'linea') {
+  if (elemento.clase === 'linea') {
+    elemento.w = anchoVisible;
+    elemento.h = altoVisible;
+    elemento.angulo = Math.round(objeto.angle ?? elemento.angulo);
+    objeto.set({ width: anchoVisible, height: altoVisible, scaleX: 1, scaleY: 1 });
+  } else if (elemento.clase === 'rect') {
     elemento.w = anchoVisible;
     elemento.h = altoVisible;
     objeto.set({ width: anchoVisible, height: altoVisible, scaleX: 1, scaleY: 1 });

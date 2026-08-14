@@ -1,22 +1,36 @@
 import './style.css';
 import { montarEspacioTrabajo } from './ui/shell';
 import { crearLienzo } from './editor/lienzo';
-import { crearElemento, crearElementoImagen, crearElementoTabla, type ClaseSimple } from './editor/elemento';
+import { crearElemento, crearElementoImagen, crearElementoTabla, establecerTamanoPagina, type ClaseSimple } from './editor/elemento';
 import { agregarAlLienzo, elementoDe, sincronizarGeometria } from './editor/objetosFabric';
+import { activarResizeTabla } from './editor/resizeTabla';
 import { mostrarPropiedades, mostrarSinSeleccion } from './ui/panelPropiedades';
 import { pedirFilasColumnas } from './ui/modalTabla';
 
 const raiz = document.querySelector<HTMLDivElement>('#app')!;
 const espacio = montarEspacioTrabajo(raiz);
 const lienzo = crearLienzo(espacio.lienzoCont);
+establecerTamanoPagina(lienzo.width, lienzo.height);
+activarResizeTabla(lienzo);
+
+function actualizarEscaladoUniforme(objeto: import('fabric').FabricObject): void {
+  const elemento = elementoDe(objeto);
+  lienzo.uniformScaling = elemento?.clase === 'imagen' ? elemento.proporcion : true;
+}
 
 lienzo.on('selection:created', (e) => {
   const objeto = e.selected?.[0];
-  if (objeto) mostrarPropiedades(espacio.panelPropiedades, lienzo, objeto);
+  if (objeto) {
+    mostrarPropiedades(espacio.panelPropiedades, lienzo, objeto);
+    actualizarEscaladoUniforme(objeto);
+  }
 });
 lienzo.on('selection:updated', (e) => {
   const objeto = e.selected?.[0];
-  if (objeto) mostrarPropiedades(espacio.panelPropiedades, lienzo, objeto);
+  if (objeto) {
+    mostrarPropiedades(espacio.panelPropiedades, lienzo, objeto);
+    actualizarEscaladoUniforme(objeto);
+  }
 });
 lienzo.on('selection:cleared', () => {
   mostrarSinSeleccion(espacio.panelPropiedades);
