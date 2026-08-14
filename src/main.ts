@@ -7,6 +7,7 @@ import { activarResizeTabla } from './editor/resizeTabla';
 import { mostrarPropiedades, mostrarSinSeleccion } from './ui/panelPropiedades';
 import { pedirFilasColumnas } from './ui/modalTabla';
 import { montarPanelCampos } from './ui/panelCampos';
+import { deshacer, inicializarHistorial, puedeDeshacer, puedeRehacer, registrarSnapshot, rehacer } from './editor/historial';
 
 const raiz = document.querySelector<HTMLDivElement>('#app')!;
 const espacio = montarEspacioTrabajo(raiz);
@@ -16,7 +17,9 @@ activarResizeTabla(lienzo);
 montarPanelCampos(espacio.panelCampos, async (nombre) => {
   const elemento = crearElementoCampo(nombre);
   await agregarAlLienzo(lienzo, elemento);
+  registrarSnapshot(lienzo);
 });
+inicializarHistorial(lienzo);
 
 function actualizarEscaladoUniforme(objeto: import('fabric').FabricObject): void {
   const elemento = elementoDe(objeto);
@@ -47,6 +50,7 @@ lienzo.on('object:modified', (e) => {
   if (lienzo.getActiveObject() === objeto && elementoDe(objeto)) {
     mostrarPropiedades(espacio.panelPropiedades, lienzo, objeto);
   }
+  registrarSnapshot(lienzo);
 });
 
 const SIMPLES: ClaseSimple[] = ['texto', 'linea', 'rect', 'qr'];
@@ -72,6 +76,7 @@ inputImagen.addEventListener('change', async () => {
   });
   const elemento = crearElementoImagen(src, dimensiones.ancho, dimensiones.alto);
   await agregarAlLienzo(lienzo, elemento);
+  registrarSnapshot(lienzo);
 });
 
 espacio.menubar.querySelectorAll<HTMLElement>('[data-dib]').forEach((boton) => {
@@ -89,12 +94,42 @@ espacio.menubar.querySelectorAll<HTMLElement>('[data-dib]').forEach((boton) => {
       if (!resultado) return;
       const elemento = crearElementoTabla(resultado.filas, resultado.columnas);
       await agregarAlLienzo(lienzo, elemento);
+      registrarSnapshot(lienzo);
       return;
     }
 
     if ((SIMPLES as string[]).includes(clase ?? '')) {
       const elemento = crearElemento(clase as ClaseSimple);
       await agregarAlLienzo(lienzo, elemento);
+      registrarSnapshot(lienzo);
     }
   });
+});
+
+async function accionDeshacer(): Promise<void> {
+  if (!puedeDeshacer()) return;
+  await deshacer(lienzo);
+  mostrarSinSeleccion(espacio.panelPropiedades);
+}
+
+async function accionRehacer(): Promise<void> {
+  if (!puedeRehacer()) return;
+  await rehacer(lienzo);
+  mostrarSinSeleccion(espacio.panelPropiedades);
+}
+
+document.getElementById('ed-undo')?.addEventListener('click', accionDeshacer);
+document.getElementById('ed-redo')?.addEventListener('click', accionRehacer);
+
+document.addEventListener('keydown', (e) => {
+  const enCampoDeTexto = ['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName);
+  if (enCampoDeTexto || !(e.ctrlKey || e.metaKey)) return;
+  const tecla = e.key.toLowerCase();
+  if (tecla === 'z' && !e.shiftKey) {
+    e.preventDefault();
+    accionDeshacer();
+  } else if (tecla === 'y' || (tecla === 'z' && e.shiftKey)) {
+    e.preventDefault();
+    accionRehacer();
+  }
 });

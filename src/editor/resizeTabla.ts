@@ -1,86 +1,110 @@
 import type { Canvas } from 'fabric';
 import { elementoDe, reemplazarObjeto } from './objetosFabric';
+import { registrarSnapshot } from './historial';
 import { altoTotalTabla, anchoTotalTabla, type ElementoTabla } from './elemento';
 
-const TOLERANCIA = 5;
-
-interface EstadoDrag {
-  elemento: ElementoTabla;
-  tipo: 'col' | 'row';
-  indice: number;
-}
+const MIN_COL = 8;
+const MIN_ROW = 6;
 
 export function activarResizeTabla(lienzo: Canvas): void {
-  let estado: EstadoDrag | null = null;
-  let ocupado = false;
+  const contenedor = lienzo.upperCanvasEl.parentElement as HTMLElement;
+  let barras: HTMLElement[] = [];
 
-  function divisorEnPuntero(elemento: ElementoTabla, localX: number, localY: number): EstadoDrag | null {
-    const ancho = anchoTotalTabla(elemento);
-    const alto = altoTotalTabla(elemento);
-    if (localX < -TOLERANCIA || localX > ancho + TOLERANCIA || localY < -TOLERANCIA || localY > alto + TOLERANCIA) return null;
-
-    let acum = 0;
-    for (let i = 0; i < elemento.cols.length - 1; i++) {
-      acum += elemento.cols[i];
-      if (Math.abs(localX - acum) <= TOLERANCIA) return { elemento, tipo: 'col', indice: i };
-    }
-    acum = 0;
-    for (let i = 0; i < elemento.rows.length - 1; i++) {
-      acum += elemento.rows[i];
-      if (Math.abs(localY - acum) <= TOLERANCIA) return { elemento, tipo: 'row', indice: i };
-    }
-    return null;
+  function limpiarBarras(): void {
+    barras.forEach((b) => b.remove());
+    barras = [];
   }
 
-  lienzo.on('mouse:down', (opt) => {
+  function actualizarBarras(): void {
+    limpiarBarras();
     const activo = lienzo.getActiveObject();
-    if (!activo) return;
-    const elemento = elementoDe(activo);
-    if (!elemento || elemento.clase !== 'tabla') return;
+    const elemento = activo ? elementoDe(activo) : undefined;
+    if (!activo || !elemento || elemento.clase !== 'tabla') return;
 
-    const puntero = lienzo.getScenePoint(opt.e);
-    const localX = puntero.x - (activo.left ?? 0);
-    const localY = puntero.y - (activo.top ?? 0);
-    const hit = divisorEnPuntero(elemento, localX, localY);
-    if (!hit) return;
+    const ancho = anchoTotalTabla(elemento);
+    const alto = altoTotalTabla(elemento);
+    const left = activo.left ?? 0;
+    const top = activo.top ?? 0;
 
-    estado = hit;
-    activo.set({ lockMovementX: true, lockMovementY: true });
-  });
-
-  lienzo.on('mouse:move', (opt) => {
-    if (!estado || ocupado) return;
-    const activo = lienzo.getActiveObject();
-    if (!activo) {
-      estado = null;
-      return;
+    let acumX = 0;
+    for (let i = 0; i < elemento.cols.length - 1; i++) {
+      acumX += elemento.cols[i];
+      const barra = document.createElement('div');
+      barra.className = 'ed-barra-col';
+      barra.style.left = `${left + acumX}px`;
+      barra.style.top = `${top}px`;
+      barra.style.height = `${alto}px`;
+      contenedor.appendChild(barra);
+      barras.push(barra);
+      wireDrag(barra, 'col', i);
     }
 
-    const puntero = lienzo.getScenePoint(opt.e);
-    const localX = puntero.x - (activo.left ?? 0);
-    const localY = puntero.y - (activo.top ?? 0);
-    const { elemento, tipo, indice } = estado;
-
-    let acumAnterior = 0;
-    if (tipo === 'col') {
-      for (let i = 0; i < indice; i++) acumAnterior += elemento.cols[i];
-      elemento.cols[indice] = Math.max(8, Math.round(localX - acumAnterior));
-    } else {
-      for (let i = 0; i < indice; i++) acumAnterior += elemento.rows[i];
-      elemento.rows[indice] = Math.max(6, Math.round(localY - acumAnterior));
+    let acumY = 0;
+    for (let i = 0; i < elemento.rows.length - 1; i++) {
+      acumY += elemento.rows[i];
+      const barra = document.createElement('div');
+      barra.className = 'ed-barra-fila';
+      barra.style.left = `${left}px`;
+      barra.style.top = `${top + acumY}px`;
+      barra.style.width = `${ancho}px`;
+      contenedor.appendChild(barra);
+      barras.push(barra);
+      wireDrag(barra, 'row', i);
     }
+  }
 
-    ocupado = true;
-    reemplazarObjeto(lienzo, activo, elemento).then((nuevo) => {
-      nuevo.set({ lockMovementX: true, lockMovementY: true });
-      ocupado = false;
+  function wireDrag(barra: HTMLElement, tipo: 'col' | 'row', indice: number): void {
+    barra.addEventListener('mousedown', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+
+      const activo = lienzo.getActiveObject();
+      const elemento = activo ? (elementoDe(activo) as ElementoTabla | undefined) : undefined;
+      if (!activo || !elemento) return;
+
+      let objetoActual = activo;
+      const inicioX = ev.clientX;
+      const inicioY = ev.clientY;
+      const medidaInicial = tipo === 'col' ? elemento.cols[indice] : elemento.rows[indice];
+      let ocupado = false;
+
+      const mover = (m: MouseEvent) => {
+        if (ocupado) return;
+        const delta = tipo === 'col' ? m.clientX - inicioX : m.clientY - inicioY;
+        const nuevaMedida = Math.max(tipo === 'col' ? MIN_COL : MIN_ROW, Math.round(medidaInicial + delta));
+        if (tipo === 'col') elemento.cols[indice] = nuevaMedida;
+        else elemento.rows[indice] = nuevaMedida;
+
+        ocupado = true;
+        reemplazarObjeto(lienzo, objetoActual, elemento).then((nuevo) => {
+          objetoActual = nuevo;
+          actualizarBarras();
+          ocupado = false;
+        });
+      };
+      const soltar = () => {
+        document.removeEventListener('mousemove', mover);
+        document.removeEventListener('mouseup', soltar);
+        registrarSnapshot(lienzo);
+      };
+      document.addEventListener('mousemove', mover);
+      document.addEventListener('mouseup', soltar);
     });
-  });
+  }
 
-  lienzo.on('mouse:up', () => {
-    if (!estado) return;
-    estado = null;
-    const activo = lienzo.getActiveObject();
-    if (activo) activo.set({ lockMovementX: false, lockMovementY: false });
+  lienzo.on('selection:created', actualizarBarras);
+  lienzo.on('selection:updated', actualizarBarras);
+  lienzo.on('selection:cleared', limpiarBarras);
+  lienzo.on('object:removed', (e) => {
+    if (elementoDe(e.target)?.clase === 'tabla') limpiarBarras();
+  });
+  // Las barras se calculan a partir de activo.left/top: si el usuario arrastra o escala la
+  // tabla (no solo al seleccionarla), hay que seguir el objeto en cada tick o quedan pegadas
+  // a la posición vieja — es justo lo que reportó Germán al mover la tabla.
+  lienzo.on('object:moving', (e) => {
+    if (elementoDe(e.target)?.clase === 'tabla') actualizarBarras();
+  });
+  lienzo.on('object:scaling', (e) => {
+    if (elementoDe(e.target)?.clase === 'tabla') actualizarBarras();
   });
 }

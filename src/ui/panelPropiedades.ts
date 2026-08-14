@@ -4,6 +4,7 @@ import QRCode from 'qrcode';
 import { elementoDe, reemplazarObjeto, agregarAlLienzo } from '../editor/objetosFabric';
 import { duplicarElemento, type Elemento } from '../editor/elemento';
 import { FAMILIAS_BASE, FAMILIAS_WEB, asegurarFuenteCargada } from '../editor/fuentes';
+import { registrarSnapshot } from '../editor/historial';
 
 const ETIQUETA_TIPO: Record<Elemento['clase'], string> = {
   texto: 'Texto',
@@ -279,22 +280,26 @@ function wireAcciones(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, 
     lienzo.discardActiveObject();
     lienzo.requestRenderAll();
     mostrarSinSeleccion(panel);
+    registrarSnapshot(lienzo);
   });
 
   panel.querySelector<HTMLButtonElement>('#ed-p-duplicar')!.addEventListener('click', async () => {
     const clon = duplicarElemento(elemento);
     const nuevo = await agregarAlLienzo(lienzo, clon);
     mostrarPropiedades(panel, lienzo, nuevo);
+    registrarSnapshot(lienzo);
   });
 
   panel.querySelector<HTMLButtonElement>('#ed-p-frente')!.addEventListener('click', () => {
     lienzo.bringObjectToFront(objeto);
     lienzo.requestRenderAll();
+    registrarSnapshot(lienzo);
   });
 
   panel.querySelector<HTMLButtonElement>('#ed-p-atras')!.addEventListener('click', () => {
     lienzo.sendObjectToBack(objeto);
     lienzo.requestRenderAll();
+    registrarSnapshot(lienzo);
   });
 }
 

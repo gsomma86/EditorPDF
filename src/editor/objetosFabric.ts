@@ -160,6 +160,21 @@ export async function agregarAlLienzo(lienzo: import('fabric').Canvas, elemento:
 }
 
 /**
+ * Vacía el lienzo y lo reconstruye desde cero a partir de una lista de elementos, en orden
+ * (usado por deshacer/rehacer para restaurar un estado anterior completo).
+ */
+export async function reconstruirLienzo(lienzo: import('fabric').Canvas, elementos: Elemento[]): Promise<void> {
+  lienzo.discardActiveObject();
+  lienzo.remove(...lienzo.getObjects());
+  for (const elemento of elementos) {
+    const objeto = await crearObjetoFabric(elemento);
+    datosPorObjeto.set(objeto, elemento);
+    lienzo.add(objeto);
+  }
+  lienzo.requestRenderAll();
+}
+
+/**
  * Reconstruye por completo el objeto de Fabric (necesario para 'tabla': es un Group armado de
  * hijos que no se pueden editar in-place cuando cambia la cantidad/estilo de sus líneas internas).
  */

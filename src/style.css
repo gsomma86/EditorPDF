@@ -357,6 +357,43 @@ button {
 .ed-lienzo-scroll canvas {
   box-shadow: 0 3px 16px rgba(0, 0, 0, 0.3);
 }
+.ed-barra-col,
+.ed-barra-fila {
+  position: absolute;
+  z-index: 5;
+}
+.ed-barra-col {
+  width: 7px;
+  margin-left: -3.5px;
+  cursor: col-resize;
+}
+.ed-barra-fila {
+  height: 7px;
+  margin-top: -3.5px;
+  cursor: row-resize;
+}
+.ed-barra-col::after,
+.ed-barra-fila::after {
+  content: '';
+  position: absolute;
+  background: transparent;
+}
+.ed-barra-col::after {
+  left: 3px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+.ed-barra-fila::after {
+  top: 3px;
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+.ed-barra-col:hover::after,
+.ed-barra-fila:hover::after {
+  background: var(--acento);
+}
 
 /* ---------- Panel de propiedades ---------- */
 .ed-props-tit {
