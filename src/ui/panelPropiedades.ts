@@ -433,10 +433,22 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
   }
 
   if (elemento.clase === 'qr') {
-    $('#ed-p-texto')!.addEventListener('change', async (e) => {
+    // setSrc es asincrónico: hay que esperarlo antes de repintar, o el dibujo queda con el QR
+    // anterior. El contador descarta respuestas fuera de orden si se tipea rápido.
+    let generacion = 0;
+    $('#ed-p-texto')!.addEventListener('input', async (e) => {
       elemento.texto = (e.target as HTMLInputElement).value;
-      const dataUrl = await QRCode.toDataURL(elemento.texto, { margin: 0 });
-      (objeto as any).setSrc(dataUrl, { crossOrigin: 'anonymous' });
+      const propia = ++generacion;
+      const imagen = objeto as InstanceType<typeof FabricImage>;
+      // Un QR vacío no se puede generar; se usa un espacio como en el editor público.
+      const dataUrl = await QRCode.toDataURL(elemento.texto || ' ', { margin: 0 });
+      if (propia !== generacion) return;
+      await imagen.setSrc(dataUrl);
+      if (propia !== generacion) return;
+      imagen.set({
+        scaleX: elemento.w / (imagen.width || elemento.w),
+        scaleY: elemento.h / (imagen.height || elemento.h),
+      });
       repintar();
     });
     $('#ed-p-size')!.addEventListener('input', (e) => {

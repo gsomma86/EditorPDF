@@ -160,6 +160,15 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
    fuente original no trae.
 9. **Verdana, Arial, Georgia y demás fuentes de Microsoft/Apple no se pueden redistribuir.** Usar
    equivalentes OFL (Noto Sans en lugar de Verdana, PT Serif en lugar de Georgia).
+10. **Varias APIs de Fabric devuelven una promesa y hay que esperarlas.** `FabricImage.setSrc()` es
+    la que ya mordió: sin `await`, el repintado corre antes de que la imagen nueva cargue y el
+    lienzo se queda con la anterior (pasó con el QR al cambiarle el texto). Si además el handler
+    se dispara por tecla, agregar un contador de generación para descartar respuestas fuera de
+    orden.
+11. **El relleno y el contorno son cosas distintas.** Una forma dibujada con `fill` ignora
+    `strokeDashArray` y `stroke`: la línea se dibujaba como rectángulo relleno y por eso los
+    estilos punteado/doble no hacían nada. Cuando un estilo de trazo tiene que verse, la forma
+    tiene que estar trazada, no rellena.
 
 ## Cómo verificar cambios
 
