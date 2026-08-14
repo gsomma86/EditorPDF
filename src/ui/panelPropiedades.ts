@@ -1,8 +1,8 @@
 import type { Canvas, FabricObject } from 'fabric';
 import { FabricImage } from 'fabric';
-import { elementoDe, reemplazarObjeto, agregarAlLienzo, generarQr } from '../editor/objetosFabric';
+import { elementoDe, reemplazarObjeto, agregarAlLienzo, generarQr, prepararFuente } from '../editor/objetosFabric';
 import { duplicarElemento, type Elemento } from '../editor/elemento';
-import { FAMILIAS_BASE, FAMILIAS_WEB, asegurarFuenteCargada } from '../editor/fuentes';
+import { FAMILIAS_BASE, FAMILIAS_WEB } from '../editor/fuentes';
 import { registrarSnapshot } from '../editor/historial';
 import type { TablaObjeto } from '../editor/tablaObjeto';
 import type { LineaObjeto } from '../editor/lineaObjeto';
@@ -50,7 +50,7 @@ function wireTipografia(
 ): void {
   $('#ed-p-familia')!.addEventListener('change', async (e) => {
     elemento.familia = (e.target as HTMLSelectElement).value;
-    await asegurarFuenteCargada(elemento.familia);
+    await prepararFuente(elemento.familia);
     aplicar({ fontFamily: elemento.familia });
     repintar();
   });

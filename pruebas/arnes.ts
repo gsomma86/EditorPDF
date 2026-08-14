@@ -129,12 +129,27 @@ for (const caso of CASOS) {
 {
   const bytes = await readFile(`${SALIDA}texto-open-sans.pdf`);
   const crudo = Buffer.from(bytes).toString('latin1');
-  // Un PDF solo puede llevar fuentes sfnt (TTF/OTF). Un woff2 se reconoce por su firma 'wOF2':
-  // si aparece, se incrustó el archivo comprimido tal cual y el visor no lo va a poder usar.
-  if (crudo.includes('wOF2')) {
-    fallos.push('texto-open-sans — la fuente se incrustó en formato woff2, que no es válido dentro de un PDF: el visor la descarta y sustituye por otra');
+  // Un PDF solo admite fuentes sfnt (TTF/OTF). Las firmas 'wOFF' y 'wOF2' delatan que se incrustó
+  // el archivo comprimido tal cual, que es lo que el visor no puede usar.
+  for (const firma of ['wOFF', 'wOF2']) {
+    if (crudo.includes(firma)) {
+      fallos.push(`texto-open-sans — la fuente se incrustó comprimida (firma ${firma}), formato que un PDF no admite: el visor la descarta y sustituye por otra`);
+    }
   }
-  filas.push(`     texto-open-sans: peso ${(bytes.length / 1024).toFixed(0)} KB`);
+
+  // Que la fuente esté de verdad adentro: pdf-lib la guarda como FontFile2 (sfnt) en el descriptor.
+  const doc = await PDFDocument.load(bytes);
+  const incrustada = doc.context
+    .enumerateIndirectObjects()
+    .some(([, objeto]) => typeof (objeto as any)?.get === 'function' && String((objeto as any).keys?.() ?? '').includes('FontFile'));
+  const conDescriptor = crudo.includes('FontFile2') || crudo.includes('FontFile3') || incrustada;
+  if (!conDescriptor) fallos.push('texto-open-sans — la fuente web no quedó incrustada en el PDF');
+
+  // Y que mupdf pueda usarla: si no la entiende, avisa y cae en una fuente del sistema.
+  const doc2 = mupdf.Document.openDocument(bytes, 'application/pdf');
+  doc2.loadPage(0).toPixmap(mupdf.Matrix.identity, mupdf.ColorSpace.DeviceRGB, false);
+
+  filas.push(`     texto-open-sans: peso ${(bytes.length / 1024).toFixed(0)} KB, fuente incrustada ${conDescriptor ? 'sí' : 'NO'}`);
 }
 
 // ---------- Campos AcroForm ----------

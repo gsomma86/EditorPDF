@@ -175,9 +175,33 @@ async function accionRehacer(): Promise<void> {
 document.getElementById('ed-undo')?.addEventListener('click', accionDeshacer);
 document.getElementById('ed-redo')?.addEventListener('click', accionRehacer);
 
+const FLECHAS: Record<string, [number, number]> = {
+  ArrowLeft: [-1, 0],
+  ArrowRight: [1, 0],
+  ArrowUp: [0, -1],
+  ArrowDown: [0, 1],
+};
+
 document.addEventListener('keydown', (e) => {
   const enCampoDeTexto = ['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName);
-  if (enCampoDeTexto || !(e.ctrlKey || e.metaKey)) return;
+  if (enCampoDeTexto) return;
+
+  const direccion = FLECHAS[e.key];
+  if (direccion && !e.ctrlKey && !e.metaKey) {
+    const objeto = lienzo.getActiveObject();
+    if (!objeto) return;
+    e.preventDefault(); // si no, las flechas scrollean la página
+    const paso = e.shiftKey ? 10 : 1;
+    objeto.set({ left: (objeto.left ?? 0) + direccion[0] * paso, top: (objeto.top ?? 0) + direccion[1] * paso });
+    objeto.setCoords();
+    // Se reusa el camino de soltar el mouse: vuelca la posición al modelo, refresca el panel,
+    // registra el paso en el historial y autoguarda.
+    lienzo.fire('object:modified', { target: objeto } as never);
+    lienzo.requestRenderAll();
+    return;
+  }
+
+  if (!(e.ctrlKey || e.metaKey)) return;
   const tecla = e.key.toLowerCase();
   if (tecla === 'z' && !e.shiftKey) {
     e.preventDefault();

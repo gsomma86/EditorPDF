@@ -10,6 +10,11 @@ import { crearObjetoFabric } from '../src/editor/objetosFabric';
 import { CASOS } from './casos';
 
 // Relativo al bundle (pruebas/dist-fabric/), para que los dos arneses escriban en pruebas/salida.
+// fabric/node arma su propio DOM pero no expone `document` global, y el catálogo de fuentes lo usa
+// para pedirle las familias web al navegador. Acá no hacen falta: node-canvas dibuja con las del
+// sistema, y los bytes para el PDF los lee el otro arnés desde node_modules.
+(globalThis as any).document ??= { fonts: { load: async () => [] } };
+
 const SALIDA = fileURLToPath(new URL('../salida/', import.meta.url));
 const ANCHO = 595;
 const ALTO = 842;

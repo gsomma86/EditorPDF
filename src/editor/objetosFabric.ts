@@ -1,6 +1,7 @@
-import { FabricImage, FabricObject, FabricText, Group, Rect } from 'fabric';
+import { cache, FabricImage, FabricObject, FabricText, Group, Rect } from 'fabric';
 import QRCode from 'qrcode';
 import { type Elemento, type ElementoQr } from './elemento';
+import { asegurarFuenteCargada } from './fuentes';
 import { TablaObjeto } from './tablaObjeto';
 import { LineaObjeto } from './lineaObjeto';
 import { RectObjeto } from './rectObjeto';
@@ -38,9 +39,19 @@ export function generarQr(elemento: ElementoQr): Promise<string> {
   });
 }
 
+/**
+ * Deja la familia lista antes de medir un texto. Si la fuente recién llegó, además se tira la
+ * caché de anchos de Fabric: guarda las medidas por familia, así que un texto que ya se midió con
+ * la fuente de reemplazo seguiría dibujándose fuera de su caja aunque la real ya esté disponible.
+ */
+export async function prepararFuente(familia: string): Promise<void> {
+  if (await asegurarFuenteCargada(familia)) cache.clearFontCache(familia);
+}
+
 export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObject> {
   switch (elemento.clase) {
     case 'texto': {
+      await prepararFuente(elemento.familia);
       const texto = new FabricText(elemento.text, {
         left: elemento.x,
         top: elemento.y,
@@ -72,6 +83,7 @@ export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObjec
     case 'tabla':
       return new TablaObjeto(elemento);
     case 'campo': {
+      await prepararFuente(elemento.familia);
       const esInvisible = elemento.invisible;
 
       // La apariencia de verdad: el borde y el fondo que el campo va a tener en el PDF.
