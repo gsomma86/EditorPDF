@@ -18,7 +18,7 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
 - [x] Herramientas de dibujo: Texto, Línea, Recuadro, QR (crear, seleccionar, editar propiedades, eliminar)
 - [x] Herramientas de dibujo: Tabla, Imagen
 - [x] Campos AcroForm (panel izquierdo: catálogo de IDs, colocar como campo interactivo en la hoja) — falta el modo "repetible" (comodín #, expansión en filas)
-- [ ] Deshacer / rehacer
+- [x] Deshacer / rehacer (Ctrl+Z / Ctrl+Y)
 - [ ] Modal Nuevo proyecto (tamaño, orientación, márgenes)
 - [ ] Guardar proyecto (.json) / Importar proyecto (.json)
 - [ ] Exportar PDF (con AcroForm real, vía `pdf-lib`)
