@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "verificar-export": "vite build --config pruebas/vite.fabric.config.ts && node pruebas/dist-fabric/arnesFabric.js && vite build --config pruebas/vite.ssr.config.ts && node pruebas/dist/arnes.js"
   },
   "devDependencies": {
     "@types/qrcode": "^1.5.6",

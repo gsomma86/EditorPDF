@@ -1,9 +1,20 @@
-import { FabricImage, FabricText, Group, Rect, type FabricObject } from 'fabric';
+import { FabricImage, FabricObject, FabricText, Group, Rect } from 'fabric';
 import QRCode from 'qrcode';
 import { type Elemento, type ElementoQr } from './elemento';
 import { TablaObjeto } from './tablaObjeto';
 import { LineaObjeto } from './lineaObjeto';
 import { RectObjeto } from './rectObjeto';
+
+/**
+ * Fabric 7 posiciona los objetos por su centro, pero acá x/y es la esquina superior izquierda:
+ * así lo entienden el modelo, el panel de propiedades, los márgenes, el enganche y el exportador.
+ * Sin esto, cada objeto se dibuja corrido media caja hacia arriba y a la izquierda respecto de
+ * donde dice el modelo, y el PDF sale distinto de lo que se ve en el lienzo.
+ * Va sobre el valor por defecto, en el módulo que traduce modelo -> Fabric, para que cualquier
+ * tipo de objeto que se agregue en el futuro lo herede sin tener que acordarse.
+ */
+FabricObject.ownDefaults.originX = 'left';
+FabricObject.ownDefaults.originY = 'top';
 
 const datosPorObjeto = new WeakMap<FabricObject, Elemento>();
 
@@ -62,14 +73,30 @@ export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObjec
       return new TablaObjeto(elemento);
     case 'campo': {
       const esInvisible = elemento.invisible;
+
+      // La apariencia de verdad: el borde y el fondo que el campo va a tener en el PDF.
       const fondo = new Rect({
         left: 0,
         top: 0,
         width: elemento.w,
         height: elemento.h,
-        fill: esInvisible ? 'rgba(55,138,221,0.05)' : elemento.conFondo ? elemento.fondoColor : 'transparent',
-        stroke: esInvisible ? '#378add' : elemento.bordeGrosor > 0 ? elemento.bordeColor : undefined,
-        strokeWidth: esInvisible ? 1 : elemento.bordeGrosor,
+        fill: elemento.conFondo ? elemento.fondoColor : 'transparent',
+        stroke: elemento.bordeGrosor > 0 ? elemento.bordeColor : undefined,
+        strokeWidth: elemento.bordeGrosor,
+      });
+
+      // Contorno de ayuda, solo para editar: sin esto un campo sin borde propio es invisible en
+      // la hoja y no se puede agarrar. No llega al PDF porque el exportador lee el modelo, no el
+      // lienzo. Igual que en el editor público: sólido para un campo normal, punteado si el
+      // campo está marcado como invisible.
+      const ayuda = new Rect({
+        left: 0,
+        top: 0,
+        width: elemento.w,
+        height: elemento.h,
+        fill: elemento.conFondo ? 'transparent' : esInvisible ? 'rgba(55,138,221,0.05)' : 'rgba(55,138,221,0.10)',
+        stroke: '#378add',
+        strokeWidth: 1,
         strokeDashArray: esInvisible ? [4, 3] : undefined,
       });
       const etiqueta = new FabricText(elemento.name, {
@@ -84,7 +111,7 @@ export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObjec
         fill: esInvisible ? '#185fa5' : elemento.color,
         textAlign: elemento.align,
       });
-      const grupo = new Group([fondo, etiqueta]);
+      const grupo = new Group([fondo, ayuda, etiqueta]);
       grupo.set({ left: elemento.x, top: elemento.y });
       grupo.setCoords();
       return grupo;

@@ -461,6 +461,9 @@ button {
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-bottom: 8px;
+  /* Los controles van al pie de cada celda: si una etiqueta ocupa dos renglones y la otra uno,
+     los inputs de las dos columnas igual quedan alineados entre sí. */
+  align-items: end;
 }
 .ed-fila-toggle {
   display: flex;

@@ -1,5 +1,11 @@
 node_modules/
 dist/
+
+# Arneses de verificación: se regeneran con `npm run verificar-export`
+pruebas/dist/
+pruebas/dist-fabric/
+pruebas/salida/
+
 .env
 .env.local
 *.log
