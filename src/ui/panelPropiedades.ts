@@ -2,7 +2,8 @@ import type { Canvas, FabricObject } from 'fabric';
 import { FabricImage } from 'fabric';
 import QRCode from 'qrcode';
 import { elementoDe, reemplazarObjeto, agregarAlLienzo } from '../editor/objetosFabric';
-import { duplicarElemento, type Elemento, type Familia } from '../editor/elemento';
+import { duplicarElemento, type Elemento } from '../editor/elemento';
+import { FAMILIAS_BASE, FAMILIAS_WEB, asegurarFuenteCargada } from '../editor/fuentes';
 
 const ETIQUETA_TIPO: Record<Elemento['clase'], string> = {
   texto: 'Texto',
@@ -74,7 +75,12 @@ function campoTexto(elemento: Elemento & { clase: 'texto' }): string {
         <div><label class="ed-lbl">Color</label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
       </div>
       <div><label class="ed-lbl">Familia</label><select id="ed-p-familia">
-        ${['Helvetica', 'Times', 'Courier'].map((f) => `<option ${f === elemento.familia ? 'selected' : ''}>${f}</option>`).join('')}
+        <optgroup label="Estándar (PDF)">
+          ${FAMILIAS_BASE.map((f) => `<option ${f === elemento.familia ? 'selected' : ''}>${f}</option>`).join('')}
+        </optgroup>
+        <optgroup label="Web (se incrustan al exportar)">
+          ${FAMILIAS_WEB.map((f) => `<option ${f === elemento.familia ? 'selected' : ''}>${f}</option>`).join('')}
+        </optgroup>
       </select></div>
       <div class="ed-fila-toggle">
         <button type="button" class="ed-toggle ${elemento.negrita ? 'activo' : ''}" id="ed-p-negrita" title="Negrita"><b>N</b></button>
@@ -252,8 +258,9 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
       objeto.set({ fill: elemento.color });
       repintar();
     });
-    $('#ed-p-familia')!.addEventListener('change', (e) => {
-      elemento.familia = (e.target as HTMLSelectElement).value as Familia;
+    $('#ed-p-familia')!.addEventListener('change', async (e) => {
+      elemento.familia = (e.target as HTMLSelectElement).value;
+      await asegurarFuenteCargada(elemento.familia);
       objeto.set({ fontFamily: elemento.familia } as any);
       repintar();
     });

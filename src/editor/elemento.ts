@@ -1,4 +1,4 @@
-export type Familia = 'Helvetica' | 'Times' | 'Courier';
+export type Familia = string;
 export type EstiloLinea = 'solido' | 'punteado' | 'doble';
 
 export interface ElementoTexto {
