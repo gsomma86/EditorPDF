@@ -1,6 +1,6 @@
 import { FabricImage, FabricText, Group, Rect, type FabricObject } from 'fabric';
 import QRCode from 'qrcode';
-import { type Elemento } from './elemento';
+import { type Elemento, type ElementoQr } from './elemento';
 import { TablaObjeto } from './tablaObjeto';
 import { LineaObjeto } from './lineaObjeto';
 
@@ -13,6 +13,21 @@ export function elementoDe(objeto: FabricObject): Elemento | undefined {
 function trazoDeEstilo(estilo: 'solido' | 'punteado' | 'doble'): number[] | undefined {
   if (estilo === 'punteado') return [4, 3];
   return undefined;
+}
+
+/**
+ * Genera la imagen del QR. Vive acá para que el lienzo y el panel de propiedades usen
+ * exactamente la misma configuración. Un texto vacío no se puede codificar: se manda un
+ * espacio, igual que en el editor público.
+ */
+export function generarQr(elemento: ElementoQr): Promise<string> {
+  return QRCode.toDataURL(elemento.texto || ' ', {
+    margin: 0,
+    color: {
+      dark: elemento.color,
+      light: elemento.conFondo ? elemento.fondoColor : '#00000000',
+    },
+  });
 }
 
 export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObject> {
@@ -48,7 +63,7 @@ export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObjec
       });
     }
     case 'qr': {
-      const dataUrl = await QRCode.toDataURL(elemento.texto, { margin: 0 });
+      const dataUrl = await generarQr(elemento);
       const imagen = await FabricImage.fromURL(dataUrl);
       imagen.set({
         left: elemento.x,

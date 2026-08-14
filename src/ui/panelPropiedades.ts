@@ -1,7 +1,6 @@
 import type { Canvas, FabricObject } from 'fabric';
 import { FabricImage } from 'fabric';
-import QRCode from 'qrcode';
-import { elementoDe, reemplazarObjeto, agregarAlLienzo } from '../editor/objetosFabric';
+import { elementoDe, reemplazarObjeto, agregarAlLienzo, generarQr } from '../editor/objetosFabric';
 import { duplicarElemento, type Elemento } from '../editor/elemento';
 import { FAMILIAS_BASE, FAMILIAS_WEB, asegurarFuenteCargada } from '../editor/fuentes';
 import { registrarSnapshot } from '../editor/historial';
@@ -209,10 +208,19 @@ function campoRect(elemento: Elemento & { clase: 'rect' }): string {
 }
 
 function campoQr(elemento: Elemento & { clase: 'qr' }): string {
-  return seccion(
-    'Contenido',
-    `<div><label class="ed-lbl">Texto / URL</label><input type="text" id="ed-p-texto" value="${escapeHtml(elemento.texto)}"></div>
-    <div><label class="ed-lbl">Tamaño (pt)</label><input type="number" id="ed-p-size" class="mono" value="${elemento.w}" min="20"></div>`
+  return (
+    seccion(
+      'Contenido',
+      `<div><label class="ed-lbl">Texto / URL</label><input type="text" id="ed-p-texto" value="${escapeHtml(elemento.texto)}"></div>
+      <div><label class="ed-lbl">Tamaño (pt)</label><input type="number" id="ed-p-size" class="mono" value="${elemento.w}" min="20"></div>`
+    ) +
+    seccion(
+      'Formato',
+      `<div><label class="ed-lbl">Color</label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
+      <label class="ed-check"><input type="checkbox" id="ed-p-qr-fondo" ${elemento.conFondo ? 'checked' : ''}> Con fondo</label>
+      <div><label class="ed-lbl">Color de fondo</label><input type="color" id="ed-p-qr-fondocolor" value="${elemento.fondoColor}"></div>
+      <p class="nota" style="margin-top:8px;">Un QR necesita buen contraste entre el color y el fondo para poder leerse.</p>`
+    )
   );
 }
 
@@ -436,12 +444,10 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
     // setSrc es asincrónico: hay que esperarlo antes de repintar, o el dibujo queda con el QR
     // anterior. El contador descarta respuestas fuera de orden si se tipea rápido.
     let generacion = 0;
-    $('#ed-p-texto')!.addEventListener('input', async (e) => {
-      elemento.texto = (e.target as HTMLInputElement).value;
+    const regenerar = async () => {
       const propia = ++generacion;
       const imagen = objeto as InstanceType<typeof FabricImage>;
-      // Un QR vacío no se puede generar; se usa un espacio como en el editor público.
-      const dataUrl = await QRCode.toDataURL(elemento.texto || ' ', { margin: 0 });
+      const dataUrl = await generarQr(elemento);
       if (propia !== generacion) return;
       await imagen.setSrc(dataUrl);
       if (propia !== generacion) return;
@@ -450,6 +456,23 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
         scaleY: elemento.h / (imagen.height || elemento.h),
       });
       repintar();
+    };
+
+    $('#ed-p-texto')!.addEventListener('input', (e) => {
+      elemento.texto = (e.target as HTMLInputElement).value;
+      regenerar();
+    });
+    $('#ed-p-color')!.addEventListener('input', (e) => {
+      elemento.color = (e.target as HTMLInputElement).value;
+      regenerar();
+    });
+    $('#ed-p-qr-fondo')!.addEventListener('change', (e) => {
+      elemento.conFondo = (e.target as HTMLInputElement).checked;
+      regenerar();
+    });
+    $('#ed-p-qr-fondocolor')!.addEventListener('input', (e) => {
+      elemento.fondoColor = (e.target as HTMLInputElement).value;
+      if (elemento.conFondo) regenerar();
     });
     $('#ed-p-size')!.addEventListener('input', (e) => {
       const tam = Number((e.target as HTMLInputElement).value);

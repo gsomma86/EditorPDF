@@ -51,6 +51,9 @@ export interface ElementoQr {
   w: number;
   h: number;
   texto: string;
+  color: string;
+  conFondo: boolean;
+  fondoColor: string;
 }
 
 export interface ElementoTabla {
@@ -150,7 +153,7 @@ export function crearElemento(clase: ClaseSimple): Elemento {
     }
     case 'qr': {
       const { x, y } = nuevaPosicion(80, 80);
-      return { clase, id, x, y, w: 80, h: 80, texto: 'https://recibomail.net.ar' };
+      return { clase, id, x, y, w: 80, h: 80, texto: 'https://recibomail.net.ar', color: '#000000', conFondo: true, fondoColor: '#ffffff' };
     }
   }
 }
