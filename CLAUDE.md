@@ -275,8 +275,11 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
 correr `npx tsc --noEmit` y `npm run build`, commitear, y avisarle qué probar. No abrir el navegador
 salvo que lo pida o que haya una duda técnica concreta que no se pueda resolver leyendo el código.
 
-Si toca verificar: Chrome/Edge vía `mcp__claude-in-chrome__*`, **nunca el navegador integrado**
-(rompe la sesión). Truco útil: las coordenadas exactas de los controles de un objeto de Fabric están
+Si toca verificar en el navegador: **con la pestaña a la vista**. Si el panel está oculto, el
+navegador no compone cuadros y `requestAnimationFrame` no se dispara nunca; como el render de
+pdf.js depende de eso, abrir un PDF queda colgado sin fallar ni dar ningún error, y parece un bug
+de la app. Pasó: se fue un buen rato en encontrarlo. Con `document.visibilityState` se confirma en
+un segundo. Truco útil: las coordenadas exactas de los controles de un objeto de Fabric están
 en `objeto.oCoords`; sumarles el `getBoundingClientRect()` del canvas da la posición en pantalla, y
 es mucho más confiable que estimar coordenadas mirando una captura.
 
