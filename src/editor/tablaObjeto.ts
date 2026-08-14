@@ -1,12 +1,9 @@
 import { Control, FabricObject, controlsUtils, type TPointerEvent, type Transform } from 'fabric';
-import { altoTotalTabla, anchoTotalTabla, type ElementoTabla, type EstiloLinea } from './elemento';
+import { altoTotalTabla, anchoTotalTabla, type ElementoTabla } from './elemento';
+import { guionDe, trazarRectangulo } from './trazos';
 
 const MIN_COL = 8;
 const MIN_ROW = 6;
-
-function trazo(estilo: EstiloLinea): number[] {
-  return estilo === 'punteado' ? [4, 3] : [];
-}
 
 /**
  * La tabla es un objeto propio del motor en vez de un Group de rectángulos y líneas.
@@ -47,28 +44,23 @@ export class TablaObjeto extends FabricObject {
     const y0 = -alto / 2;
 
     ctx.save();
-    ctx.lineWidth = datos.grosor;
 
-    // Contorno
     ctx.strokeStyle = datos.color;
-    ctx.setLineDash(trazo(datos.estiloContorno));
-    contorno(ctx, x0, y0, ancho, alto, datos.radio);
-    if (datos.estiloContorno === 'doble') {
-      const d = datos.grosor * 2;
-      contorno(ctx, x0 + d, y0 + d, ancho - d * 2, alto - d * 2, Math.max(0, datos.radio - d));
-    }
+    trazarRectangulo(ctx, x0, y0, ancho, alto, datos.radio, datos.estiloContorno, datos.grosor);
 
     // Divisiones internas
     ctx.strokeStyle = datos.colorInterno;
-    ctx.setLineDash(trazo(datos.estiloInterno));
     const doble = datos.estiloInterno === 'doble';
-    const sep = datos.grosor * 1.5;
+    // "Doble" son dos trazos finos separados que suman el grosor pedido, igual que el contorno.
+    const fino = doble ? Math.max(0.5, datos.grosor / 3) : datos.grosor;
+    const desplazamientos = doble ? [-fino, fino] : [0];
+    ctx.lineWidth = fino;
+    ctx.setLineDash(guionDe(datos.estiloInterno, datos.grosor));
 
     ctx.beginPath();
     let acumX = 0;
     for (let i = 0; i < datos.cols.length - 1; i++) {
       acumX += datos.cols[i];
-      const desplazamientos = doble ? [-sep, sep] : [0];
       for (const d of desplazamientos) {
         ctx.moveTo(x0 + acumX + d, y0);
         ctx.lineTo(x0 + acumX + d, y0 + alto);
@@ -77,7 +69,6 @@ export class TablaObjeto extends FabricObject {
     let acumY = 0;
     for (let i = 0; i < datos.rows.length - 1; i++) {
       acumY += datos.rows[i];
-      const desplazamientos = doble ? [-sep, sep] : [0];
       for (const d of desplazamientos) {
         ctx.moveTo(x0, y0 + acumY + d);
         ctx.lineTo(x0 + ancho, y0 + acumY + d);
@@ -86,13 +77,6 @@ export class TablaObjeto extends FabricObject {
     ctx.stroke();
     ctx.restore();
   }
-}
-
-function contorno(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, radio: number): void {
-  if (w <= 0 || h <= 0) return;
-  ctx.beginPath();
-  ctx.roundRect(x, y, w, h, Math.min(radio, w / 2, h / 2));
-  ctx.stroke();
 }
 
 /** Posición relativa (-0.5 a 0.5) del borde derecho de la columna `i`. */

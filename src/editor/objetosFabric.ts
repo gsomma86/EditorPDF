@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import { type Elemento, type ElementoQr } from './elemento';
 import { TablaObjeto } from './tablaObjeto';
 import { LineaObjeto } from './lineaObjeto';
+import { RectObjeto } from './rectObjeto';
 
 const datosPorObjeto = new WeakMap<FabricObject, Elemento>();
 
@@ -10,10 +11,6 @@ export function elementoDe(objeto: FabricObject): Elemento | undefined {
   return datosPorObjeto.get(objeto);
 }
 
-function trazoDeEstilo(estilo: 'solido' | 'punteado' | 'doble'): number[] | undefined {
-  if (estilo === 'punteado') return [4, 3];
-  return undefined;
-}
 
 /**
  * Genera la imagen del QR. Vive acá para que el lienzo y el panel de propiedades usen
@@ -48,20 +45,8 @@ export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObjec
     }
     case 'linea':
       return new LineaObjeto(elemento);
-    case 'rect': {
-      return new Rect({
-        left: elemento.x,
-        top: elemento.y,
-        width: elemento.w,
-        height: elemento.h,
-        rx: elemento.radio,
-        ry: elemento.radio,
-        fill: elemento.conRelleno ? elemento.rellenoColor : 'transparent',
-        stroke: elemento.color,
-        strokeWidth: elemento.grosor,
-        strokeDashArray: trazoDeEstilo(elemento.estilo),
-      });
-    }
+    case 'rect':
+      return new RectObjeto(elemento);
     case 'qr': {
       const dataUrl = await generarQr(elemento);
       const imagen = await FabricImage.fromURL(dataUrl);
@@ -225,7 +210,8 @@ export async function sincronizarGeometria(lienzo: import('fabric').Canvas, obje
   } else if (elemento.clase === 'rect') {
     elemento.w = anchoVisible;
     elemento.h = altoVisible;
-    objeto.set({ width: anchoVisible, height: altoVisible, scaleX: 1, scaleY: 1 });
+    objeto.set({ scaleX: 1, scaleY: 1 });
+    (objeto as RectObjeto).refrescarDesdeDatos();
   } else {
     // QR e imagen: el objeto de Fabric se dimensiona con scaleX/scaleY sobre el bitmap,
     // así que la escala se conserva y solo se registran las medidas resultantes.

@@ -169,6 +169,12 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
     `strokeDashArray` y `stroke`: la línea se dibujaba como rectángulo relleno y por eso los
     estilos punteado/doble no hacían nada. Cuando un estilo de trazo tiene que verse, la forma
     tiene que estar trazada, no rellena.
+12. **Las formas de Fabric trazan su borde una sola vez**, así que el estilo "doble" no se puede
+    expresar con `strokeDashArray` ni con ninguna propiedad: hay que dibujar dos trazos. Por eso
+    línea, recuadro y tabla son objetos propios con `_render`, y el trazado vive compartido en
+    `trazos.ts` — si se agrega otra forma con estilos de borde, usar ese helper y no reinventarlo.
+    "Doble" además necesita un grosor mínimo (`GROSOR_MINIMO_DOBLE`): por debajo, los dos trazos
+    y su separación no entran y se ve idéntico a sólida, así que el panel sube el grosor solo.
 
 ## Cómo verificar cambios
 

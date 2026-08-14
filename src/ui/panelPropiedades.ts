@@ -6,9 +6,8 @@ import { FAMILIAS_BASE, FAMILIAS_WEB, asegurarFuenteCargada } from '../editor/fu
 import { registrarSnapshot } from '../editor/historial';
 import type { TablaObjeto } from '../editor/tablaObjeto';
 import type { LineaObjeto } from '../editor/lineaObjeto';
-
-/** Grosor mínimo para que el estilo "doble" se distinga de una línea sólida. */
-const GROSOR_MINIMO_DOBLE = 5;
+import type { RectObjeto } from '../editor/rectObjeto';
+import { GROSOR_MINIMO_DOBLE } from '../editor/trazos';
 
 const ETIQUETA_TIPO: Record<Elemento['clase'], string> = {
   texto: 'Texto',
@@ -391,52 +390,47 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
   }
 
   if (elemento.clase === 'rect') {
+    // El recuadro se redibuja solo desde el modelo (RectObjeto).
+    const refrescar = () => {
+      (objeto as RectObjeto).refrescarDesdeDatos();
+      repintar();
+    };
     $('#ed-p-w')!.addEventListener('input', (e) => {
       elemento.w = Number((e.target as HTMLInputElement).value);
-      objeto.set({ width: elemento.w });
-      objeto.setCoords();
-      repintar();
+      refrescar();
     });
     $('#ed-p-h')!.addEventListener('input', (e) => {
       elemento.h = Number((e.target as HTMLInputElement).value);
-      objeto.set({ height: elemento.h });
-      objeto.setCoords();
-      repintar();
+      refrescar();
     });
     $('#ed-p-color')!.addEventListener('input', (e) => {
       elemento.color = (e.target as HTMLInputElement).value;
-      objeto.set({ stroke: elemento.color });
-      repintar();
+      refrescar();
     });
     $('#ed-p-estilo')!.addEventListener('change', (e) => {
       elemento.estilo = (e.target as HTMLSelectElement).value as typeof elemento.estilo;
-      objeto.set({ strokeDashArray: elemento.estilo === 'punteado' ? [4, 3] : undefined } as any);
-      repintar();
+      if (elemento.estilo === 'doble' && elemento.grosor < GROSOR_MINIMO_DOBLE) {
+        elemento.grosor = GROSOR_MINIMO_DOBLE;
+        const campo = $<HTMLInputElement>('#ed-p-grosor');
+        if (campo) campo.value = String(GROSOR_MINIMO_DOBLE);
+      }
+      refrescar();
     });
-  }
-
-  if (elemento.clase === 'rect') {
     $('#ed-p-grosor')!.addEventListener('input', (e) => {
       elemento.grosor = Number((e.target as HTMLInputElement).value);
-      objeto.set({ strokeWidth: elemento.grosor });
-      repintar();
+      refrescar();
     });
     $('#ed-p-radio')!.addEventListener('input', (e) => {
       elemento.radio = Number((e.target as HTMLInputElement).value);
-      objeto.set({ rx: elemento.radio, ry: elemento.radio } as any);
-      repintar();
+      refrescar();
     });
     $('#ed-p-con-relleno')!.addEventListener('change', (e) => {
       elemento.conRelleno = (e.target as HTMLInputElement).checked;
-      objeto.set({ fill: elemento.conRelleno ? elemento.rellenoColor : 'transparent' });
-      repintar();
+      refrescar();
     });
     $('#ed-p-relleno-color')!.addEventListener('input', (e) => {
       elemento.rellenoColor = (e.target as HTMLInputElement).value;
-      if (elemento.conRelleno) {
-        objeto.set({ fill: elemento.rellenoColor });
-        repintar();
-      }
+      if (elemento.conRelleno) refrescar();
     });
   }
 
@@ -499,12 +493,23 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
       elemento.colorInterno = (e.target as HTMLInputElement).value;
       refrescar();
     });
+    // Contorno e interno comparten el grosor, así que cualquiera de los dos en "doble" obliga
+    // al mínimo para que los dos trazos se distingan.
+    const asegurarGrosorParaDoble = () => {
+      if ((elemento.estiloContorno === 'doble' || elemento.estiloInterno === 'doble') && elemento.grosor < GROSOR_MINIMO_DOBLE) {
+        elemento.grosor = GROSOR_MINIMO_DOBLE;
+        const campo = $<HTMLInputElement>('#ed-p-grosor');
+        if (campo) campo.value = String(GROSOR_MINIMO_DOBLE);
+      }
+    };
     $('#ed-p-contorno')!.addEventListener('change', (e) => {
       elemento.estiloContorno = (e.target as HTMLSelectElement).value as typeof elemento.estiloContorno;
+      asegurarGrosorParaDoble();
       refrescar();
     });
     $('#ed-p-interno')!.addEventListener('change', (e) => {
       elemento.estiloInterno = (e.target as HTMLSelectElement).value as typeof elemento.estiloInterno;
+      asegurarGrosorParaDoble();
       refrescar();
     });
     $('#ed-p-grosor')!.addEventListener('input', (e) => {

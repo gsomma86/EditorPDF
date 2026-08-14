@@ -1,5 +1,6 @@
 import { FabricObject } from 'fabric';
 import type { ElementoLinea } from './elemento';
+import { guionDe } from './trazos';
 
 /**
  * La línea es un objeto propio en vez de un rectángulo relleno. Como rectángulo, el estilo
@@ -61,7 +62,7 @@ export class LineaObjeto extends FabricObject {
       segmento(-grosor / 2 + fino / 2, fino);
       segmento(grosor / 2 - fino / 2, fino);
     } else {
-      ctx.setLineDash(estilo === 'punteado' ? [Math.max(4, grosor * 3), Math.max(3, grosor * 2)] : []);
+      ctx.setLineDash(guionDe(estilo, grosor));
       segmento(0, grosor);
     }
 
