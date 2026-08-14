@@ -464,7 +464,11 @@ inputPdf.addEventListener('change', async () => {
     await mostrarAyuda(
       'PDF abierto',
       `<p>La hoja tomó el tamaño del PDF (${pdf.ancho} × ${pdf.alto} pt) y su contenido quedó de base.</p>
-       ${cuantos ? `<p>Se reconocieron <b>${cuantos} textos</b> editables: <b>doble clic sobre cualquiera</b> para reemplazarlo. El original se borra del PDF —no se tapa— y en su lugar queda un texto que se edita como cualquier otro.</p>` : '<p>No se reconoció texto editable: puede ser un PDF escaneado, o sea una imagen.</p>'}
+       ${
+         cuantos
+           ? `<p>Se ${cuantos === 1 ? 'reconoció <b>1 texto editable</b>' : `reconocieron <b>${cuantos} textos editables</b>`}: <b>doble clic</b> sobre cualquiera para reemplazarlo. El original se borra del PDF —no se tapa— y en su lugar queda un texto que se edita como cualquier otro.</p>`
+           : '<p>No se reconoció texto editable: puede ser un PDF escaneado, o sea una imagen.</p>'
+       }
        ${pdf.paginas > 1 ? `<p>El archivo tiene <b>${pdf.paginas} páginas</b> y por ahora se abre solo la primera.</p>` : ''}`
     );
   } catch (error) {

@@ -176,7 +176,13 @@ export async function borrarTextoDelPdf(objetivo: TextoDelPdf): Promise<string> 
   // Sin recuadro negro (lo tapado se reemplaza por el texto nuevo) y quitando el texto de verdad.
   pagina.applyRedactions(false, 0, 0, 0);
 
+  // `asUint8Array()` NO devuelve bytes propios: es una vista sobre la memoria de mupdf, que se
+  // reutiliza en cuanto se le pide cualquier otra cosa. Guardarla tal cual deja el PDF convertido
+  // en basura un rato después —la cabecera "%PDF-" pasa a ser cualquier cosa— y el error recién
+  // aparece al exportar, lejos de acá. Hay que copiarla en el momento.
+  const editado = new Uint8Array(documento.saveToBuffer('').asUint8Array());
+
   // Se relee todo desde los bytes nuevos: la redacción cambia el contenido y con él las cajas.
-  await asentarPdf(documento.saveToBuffer('').asUint8Array());
+  await asentarPdf(editado);
   return (await rasterizar()).fondo;
 }

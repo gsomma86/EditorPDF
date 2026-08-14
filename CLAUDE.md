@@ -57,9 +57,9 @@ Cualquiera que reciba el software puede exigir el código fuente completo.
 | Pieza | Qué hace |
 |---|---|
 | `fabric` v7 | Superficie de edición interactiva (el lienzo y sus objetos) |
-| `pdfjs-dist` | Render y extracción de PDFs existentes (fase 2, todavía sin usar) |
-| `mupdf` | Edición real de contenido preexistente vía redacción + reinserción (fase 2, sin usar) |
-| `@cantoo/pdf-lib` | Operaciones de bajo nivel: AcroForm, páginas, metadata (fase 1, sin usar) |
+| `pdfjs-dist` | Dibuja la página del PDF abierto para verla de fondo mientras se edita |
+| `mupdf` | Lee y edita el contenido real de un PDF existente (redacción + reinserción) |
+| `@cantoo/pdf-lib` | Genera el PDF final: dibujo, AcroForm, fuentes incrustadas |
 | `qrcode` | Generación de QR |
 | `@fontsource/*` | 8 familias tipográficas OFL, cargadas on-demand |
 | Vite + TypeScript | Build |
@@ -74,6 +74,7 @@ npm run dev              # servidor de desarrollo en http://localhost:5173
 npm run build            # build de producción
 npx tsc --noEmit         # chequeo de tipos (correr siempre antes de commitear)
 npm run verificar-export # compara el PDF exportado contra lo que dibuja el lienzo (headless)
+npm run verificar-pdf    # borra un texto de un PDF real y comprueba que no quedó tapado
 npm run medir-rendimiento # cuánto tarda el lienzo con 50, 200, 500 y 1000 elementos
 ```
 
@@ -257,14 +258,20 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
     el primero deja el texto de varias líneas más comprimido en el PDF que en pantalla. El factor
     vive en `PASO_RENGLON` (`elemento.ts`), en el modelo, porque el exportador no puede depender
     de Fabric.
-22. **mupdf mide la Y desde ARRIBA, al revés que el PDF crudo.** Vale para el texto estructurado
+22. **`asUint8Array()` de mupdf no devuelve bytes propios: es una vista sobre su memoria**, que se
+    reutiliza en cuanto se le pide cualquier otra cosa. Guardar esa vista deja el PDF convertido en
+    basura un rato después —la cabecera `%PDF-` pasa a ser cualquier cosa— y el error recién
+    aparece lejos, al exportar, como "No PDF header found" de pdf-lib. Hay que copiarla en el
+    momento: `new Uint8Array(...asUint8Array())`. Vale para cualquier buffer que venga de mupdf.
+    No se ve en Node si los bytes se usan enseguida; apareció recién probando en el navegador.
+23. **mupdf mide la Y desde ARRIBA, al revés que el PDF crudo.** Vale para el texto estructurado
     *y* para el rectángulo de una redacción. Invertirla —el reflejo natural viniendo de pdf-lib,
     donde la Y va desde abajo— hace que la redacción se aplique sobre la zona espejada: no borra
     nada, no da ningún error y encima deja el recuadro negro puesto, así que parece que funcionó.
     Costó un rato encontrarlo. Se cubre con `npm run verificar-pdf`.
     Además: `applyRedactions(false, 0, 0, 0)` = sin recuadro negro y quitando el texto de verdad;
     con los valores por defecto pinta el recuadro encima.
-23. **Un campo de formulario solo puede rotar en múltiplos de 90°.** El PDF guarda su recuadro
+24. **Un campo de formulario solo puede rotar en múltiplos de 90°.** El PDF guarda su recuadro
     siempre derecho y la rotación aparte, en la apariencia (`/MK /R`); pdf-lib directamente tira
     error con cualquier otro ángulo. Se redondea al más cercano y el preflight lo avisa. Aplanado
     no tiene esa limitación, porque ahí se dibuja como cualquier otra forma.
