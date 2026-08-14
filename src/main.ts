@@ -676,7 +676,11 @@ inputProyecto.addEventListener('change', async () => {
 
 // ---------- Autoguardado ----------
 
-document.getElementById('ed-nuevo')!.addEventListener('click', borrarAutoguardado);
+document.getElementById('ed-nuevo')!.addEventListener('click', async () => {
+  borrarAutoguardado();
+  // Empezar de cero también suelta el PDF de base, o quedaría de fondo de un diseño nuevo.
+  (await import('./editor/pdfExistente')).cerrarPdf();
+});
 
 // Al abrir, ofrecer seguir donde se dejó. Se pregunta en vez de restaurar solo, para no
 // pisar sin aviso a quien esperaba empezar en blanco.
@@ -686,6 +690,8 @@ if (hayAutoguardado()) {
     'Encontramos un diseño guardado automáticamente en este navegador. ¿Querés retomarlo?',
     'Retomar'
   );
+  const { recuperarPdfGuardado, cerrarPdf, textosDelPdf } = await import('./editor/pdfExistente');
+
   if (seguir) {
     const proyecto = await restaurarAutoguardado(lienzo);
     if (proyecto) {
@@ -693,7 +699,16 @@ if (hayAutoguardado()) {
       reflejarPagina();
       inicializarHistorial(lienzo);
     }
+    // El PDF de base va aparte del diseño: no entra en el autoguardado (no es texto y es
+    // grande), así que se recupera de su propio almacén. Sin esto quedaba la imagen de fondo
+    // pero no el PDF, y al exportar salía una foto en vez del original vectorial.
+    if (await recuperarPdfGuardado()) {
+      const cuantos = textosDelPdf().length;
+      espacio.raiz.querySelector('.ed-status-izq')!.textContent =
+        `PDF de base recuperado${cuantos ? ` — ${cuantos} textos editables con doble clic` : ''}`;
+    }
   } else {
     borrarAutoguardado();
+    cerrarPdf();
   }
 }

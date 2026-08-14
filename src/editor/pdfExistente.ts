@@ -10,6 +10,8 @@
  * almacenamiento del navegador. Guardar el proyecto guarda el diseño, no el PDF de base.
  */
 
+import { borrarPdfBase, guardarPdfBase, leerPdfBase } from './almacenPdf';
+
 /** Un texto encontrado en el PDF, en coordenadas de la hoja (Y desde arriba, como el lienzo). */
 export interface TextoDelPdf {
   x: number;
@@ -44,6 +46,28 @@ export function textosDelPdf(): TextoDelPdf[] {
 export function cerrarPdf(): void {
   bytesActuales = null;
   textos = [];
+  void borrarPdfBase();
+}
+
+/** Deja el PDF vigente en memoria y guardado, y relee sus textos editables. */
+async function asentar(bytes: Uint8Array): Promise<void> {
+  bytesActuales = bytes;
+  const mupdf = await motor();
+  const documento = mupdf.PDFDocument.openDocument(bytes.slice(), 'application/pdf') as InstanceType<typeof mupdf.PDFDocument>;
+  textos = leerTextos(documento.loadPage(0));
+  await guardarPdfBase(bytes);
+}
+
+/**
+ * Recupera el PDF de base guardado en sesiones anteriores. Se llama al retomar un diseño: sin
+ * esto, al recargar quedaba la imagen de fondo pero no el PDF, así que el trabajo hecho sobre su
+ * contenido se perdía y al exportar salía una foto en vez del original vectorial.
+ */
+export async function recuperarPdfGuardado(): Promise<boolean> {
+  const guardado = await leerPdfBase();
+  if (!guardado) return false;
+  await asentar(guardado);
+  return true;
 }
 
 /** El texto del PDF que cae bajo un punto de la hoja, si hay alguno. */
@@ -127,13 +151,7 @@ async function rasterizar(): Promise<{ fondo: string; ancho: number; alto: numbe
 }
 
 export async function abrirPdf(archivo: File): Promise<PdfAbierto> {
-  bytesActuales = new Uint8Array(await archivo.arrayBuffer());
-
-  const mupdf = await motor();
-  // `openDocument` está tipado como Document genérico; acá siempre es un PDF.
-  const documento = mupdf.PDFDocument.openDocument(bytesActuales.slice(), 'application/pdf') as InstanceType<typeof mupdf.PDFDocument>;
-  textos = leerTextos(documento.loadPage(0));
-
+  await asentar(new Uint8Array(await archivo.arrayBuffer()));
   return rasterizar();
 }
 
@@ -157,8 +175,7 @@ export async function borrarTextoDelPdf(objetivo: TextoDelPdf): Promise<string> 
   // Sin recuadro negro (lo tapado se reemplaza por el texto nuevo) y quitando el texto de verdad.
   pagina.applyRedactions(false, 0, 0, 0);
 
-  bytesActuales = documento.saveToBuffer('').asUint8Array();
-  textos = textos.filter((t) => t !== objetivo);
-
+  // Se relee todo desde los bytes nuevos: la redacción cambia el contenido y con él las cajas.
+  await asentar(documento.saveToBuffer('').asUint8Array());
   return (await rasterizar()).fondo;
 }
