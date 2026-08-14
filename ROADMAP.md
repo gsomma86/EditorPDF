@@ -63,7 +63,9 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
 - [x] Campo repetible con comodín `#` (expansión en filas) — completa AcroForm
 - [x] Rotación en todos los elementos, con control en el panel y en la selección múltiple
 - [x] Texto vertical (una letra por renglón), separación entre renglones y texto de varias líneas
-- [x] Atajos que faltaban: copiar/cortar/pegar, seleccionar todo, borrar, mover con las flechas
+- [x] Atajos que faltaban: copiar/cortar/pegar, seleccionar todo, borrar, mover con las flechas,
+      y los ítems del menú Editar cableados a las mismas funciones
+- [x] Paneles laterales colapsables y de ancho ajustable con el mouse, recordado entre sesiones
 - [x] Rendimiento con documentos grandes — **medido, no hace falta optimizar**. Con
       `npm run medir-rendimiento`: 1000 elementos (5 hojas A4 llenas) arman en 86 ms y redibujan
       en ~21 ms, o sea unos 48 cuadros por segundo. Una hoja llena de verdad ronda los 200.

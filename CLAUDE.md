@@ -134,6 +134,7 @@ src/
                           en pantalla, para los que muestran algo en vivo al escribir.
     ayuda.ts              Los textos del menú Ayuda, separados del mecanismo a propósito: es
                           el archivo a traducir cuando se sume el multiidioma.
+    columnas.ts           Ancho y colapso de los paneles laterales, guardados en el navegador.
 pruebas/                  Arneses headless, fuera del build. `casos.ts` tiene los casos: uno
                           los dibuja con Fabric y el otro los exporta a PDF, y se comparan.
 ```
@@ -271,7 +272,14 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
     Costó un rato encontrarlo. Se cubre con `npm run verificar-pdf`.
     Además: `applyRedactions(false, 0, 0, 0)` = sin recuadro negro y quitando el texto de verdad;
     con los valores por defecto pinta el recuadro encima.
-24. **Un campo de formulario solo puede rotar en múltiplos de 90°.** El PDF guarda su recuadro
+24. **Un estilo en línea le gana siempre a una clase de CSS.** Por eso el ancho y el colapso de los
+    paneles pasan los dos por las mismas variables CSS (`columnas.ts`): si el colapso fuera una
+    clase y el arrastre un estilo en línea, colapsar dejaría de andar después del primer arrastre.
+    Vale para cualquier cosa que se pueda cambiar por dos caminos.
+25. **Si un ítem de menú está dibujado, tiene que hacer algo.** Ya pasó dos veces que existía solo
+    el atajo de teclado y el ítem del menú era texto muerto (Ayuda, y Copiar/Pegar/Seleccionar
+    todo). Cablear los dos al MISMA función, nunca duplicar la lógica.
+26. **Un campo de formulario solo puede rotar en múltiplos de 90°.** El PDF guarda su recuadro
     siempre derecho y la rotación aparte, en la apariencia (`/MK /R`); pdf-lib directamente tira
     error con cualquier otro ángulo. Se redondea al más cercano y el preflight lo avisa. Aplanado
     no tiene esa limitación, porque ahí se dibuja como cualquier otra forma.
