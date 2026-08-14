@@ -1,4 +1,4 @@
-import { FabricImage, FabricText, Group, Line, Rect, type FabricObject } from 'fabric';
+import { FabricImage, FabricText, Group, Path, Rect, type FabricObject } from 'fabric';
 import QRCode from 'qrcode';
 import { anchoTotalTabla, altoTotalTabla, type Elemento } from './elemento';
 
@@ -66,31 +66,41 @@ export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObjec
     case 'tabla': {
       const ancho = anchoTotalTabla(elemento);
       const alto = altoTotalTabla(elemento);
-      const hijos: FabricObject[] = [
-        new Rect({
-          left: 0,
-          top: 0,
-          width: ancho,
-          height: alto,
-          rx: elemento.radio,
-          ry: elemento.radio,
-          fill: 'transparent',
-          stroke: elemento.color,
-          strokeDashArray: trazoDeEstilo(elemento.estiloContorno),
-        }),
-      ];
+
+      const contorno = new Rect({
+        left: 0,
+        top: 0,
+        width: ancho,
+        height: alto,
+        rx: elemento.radio,
+        ry: elemento.radio,
+        fill: 'transparent',
+        stroke: elemento.color,
+        strokeDashArray: trazoDeEstilo(elemento.estiloContorno),
+      });
+
+      let trazado = '';
       let acumX = 0;
       for (let i = 0; i < elemento.cols.length - 1; i++) {
         acumX += elemento.cols[i];
-        hijos.push(new Line([acumX, 0, acumX, alto], { stroke: elemento.color, strokeDashArray: trazoDeEstilo(elemento.estiloInterno) }));
+        trazado += `M ${acumX} 0 L ${acumX} ${alto} `;
       }
       let acumY = 0;
       for (let i = 0; i < elemento.rows.length - 1; i++) {
         acumY += elemento.rows[i];
-        hijos.push(new Line([0, acumY, ancho, acumY], { stroke: elemento.color, strokeDashArray: trazoDeEstilo(elemento.estiloInterno) }));
+        trazado += `M 0 ${acumY} L ${ancho} ${acumY} `;
       }
-      const grupo = new Group(hijos);
-      grupo.set({ left: elemento.x, top: elemento.y });
+      // Un Path vacío (tabla 1x1) no tiene bounding box propio; lo reemplazamos por un
+      // segmento invisible para que ocupe (0,0)-(ancho,alto) igual que el contorno.
+      const interno = new Path(trazado || `M 0 0 L 0 0`, {
+        left: 0,
+        top: 0,
+        fill: '',
+        stroke: elemento.color,
+        strokeDashArray: trazoDeEstilo(elemento.estiloInterno),
+      });
+
+      const grupo = new Group([contorno, interno], { left: elemento.x, top: elemento.y });
       grupo.setCoords();
       return grupo;
     }
