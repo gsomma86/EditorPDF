@@ -46,6 +46,15 @@ export function verificarDiseno(lienzo: Canvas): Hallazgo[] {
     if (!campo.name.trim()) {
       hallazgos.push({ gravedad: 'error', mensaje: 'Hay un campo sin ID: no se puede exportar como formulario.' });
     }
+    // El PDF guarda el recuadro de un campo siempre derecho y la rotación aparte, y solo admite
+    // múltiplos de 90. Con otro ángulo el campo editable se endereza al más cercano; el diseño
+    // aplanado sí respeta el ángulo exacto.
+    if (campo.angulo % 90 !== 0) {
+      hallazgos.push({
+        gravedad: 'advertencia',
+        mensaje: `${nombreDe(campo)} está rotado ${campo.angulo}°. Un campo de formulario solo puede rotar en múltiplos de 90°: al exportar con campos editables va a quedar en ${Math.round(campo.angulo / 90) * 90}°.`,
+      });
+    }
     vistos.set(campo.name, (vistos.get(campo.name) ?? 0) + 1);
   }
 

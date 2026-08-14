@@ -21,6 +21,7 @@ export class TablaObjeto extends FabricObject {
       top: datos.y,
       width: anchoTotalTabla(datos),
       height: altoTotalTabla(datos),
+      angle: datos.angulo,
       strokeWidth: 0,
       objectCaching: false,
     });
@@ -30,7 +31,7 @@ export class TablaObjeto extends FabricObject {
 
   /** Recalcula el tamaño de la caja y la posición relativa de cada control desde el modelo. */
   refrescarDesdeDatos(): void {
-    this.set({ width: anchoTotalTabla(this.datos), height: altoTotalTabla(this.datos) });
+    this.set({ width: anchoTotalTabla(this.datos), height: altoTotalTabla(this.datos), angle: this.datos.angulo });
     ubicarControles(this, this.datos);
     this.setCoords();
     this.dirty = true;

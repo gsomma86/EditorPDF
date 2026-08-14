@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage, type PDFTextField, type RGB } from '@cantoo/pdf-lib';
+import { PDFDocument, StandardFonts, degrees, rgb, type PDFFont, type PDFPage, type PDFTextField, type RGB } from '@cantoo/pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import type { Canvas } from 'fabric';
 import { anchoTotalTabla, altoTotalTabla, type Elemento, type ElementoLinea, type ElementoTabla, type EstiloLinea } from './elemento';
@@ -65,110 +65,120 @@ function creadorDeFuentes(doc: PDFDocument) {
 }
 
 /**
- * El lienzo mide desde arriba y el PDF desde abajo, así que toda coordenada Y hay que espejarla.
- * `alto` es el alto del elemento porque en el PDF la Y indica su base, no su tope.
+ * Puente entre el lienzo y el PDF para un elemento.
+ *
+ * Adentro de un elemento se razona en coordenadas locales: desde su esquina superior izquierda y
+ * con la Y creciendo hacia abajo, igual que en pantalla. `punto()` las lleva al PDF, que mide la
+ * Y desde abajo, aplicando además la rotación — todos los objetos rotan alrededor de esa esquina,
+ * que es la que marcan x/y (ver la lección 16 de CLAUDE.md).
+ *
+ * `grados` es el mismo ángulo para pdf-lib: negado, porque en el lienzo los ángulos crecen en el
+ * sentido de las agujas del reloj y en el PDF al revés.
  */
-function y(alturaPagina: number, yLienzo: number, altoElemento: number): number {
-  return alturaPagina - yLienzo - altoElemento;
+function ubicador(el: { x: number; y: number; angulo: number }, altoPagina: number) {
+  const radianes = (el.angulo * Math.PI) / 180;
+  const cos = Math.cos(radianes);
+  const sen = Math.sin(radianes);
+  return {
+    grados: degrees(-el.angulo),
+    punto(lx: number, ly: number) {
+      return {
+        x: el.x + lx * cos - ly * sen,
+        y: altoPagina - (el.y + lx * sen + ly * cos),
+      };
+    },
+  };
 }
 
+type Ubicador = ReturnType<typeof ubicador>;
+
+/**
+ * Dibuja un rectángulo dado en coordenadas locales del elemento (lx, ly = su esquina superior
+ * izquierda). pdf-lib ancla el rectángulo en su esquina inferior izquierda y rota alrededor de
+ * ese ancla, así que se le pasa esa esquina —local (lx, ly + alto)— ya rotada.
+ */
 function dibujarRectangulo(
   pagina: PDFPage,
-  x: number,
-  yBase: number,
+  ubi: Ubicador,
+  lx: number,
+  ly: number,
   ancho: number,
   alto: number,
   el: { color: string; estilo: EstiloLinea; grosor: number; conRelleno?: boolean; rellenoColor?: string }
 ): void {
+  const caja = (dx: number, dy: number, w: number, h: number) => {
+    const ancla = ubi.punto(lx + dx, ly + dy + h);
+    return { x: ancla.x, y: ancla.y, width: w, height: h, rotate: ubi.grados };
+  };
+
   const comun = {
-    x,
-    y: yBase,
-    width: ancho,
-    height: alto,
     borderColor: color(el.color),
     borderDashArray: guion(el.estilo, el.grosor),
   };
 
   if (el.conRelleno && el.rellenoColor) {
-    pagina.drawRectangle({ ...comun, borderWidth: 0, color: color(el.rellenoColor) });
+    pagina.drawRectangle({ ...comun, ...caja(0, 0, ancho, alto), borderWidth: 0, color: color(el.rellenoColor) });
   }
 
   if (el.estilo === 'doble') {
     const fino = Math.max(0.5, el.grosor / 3);
-    pagina.drawRectangle({ ...comun, x: x - fino, y: yBase - fino, width: ancho + fino * 2, height: alto + fino * 2, borderWidth: fino });
-    pagina.drawRectangle({ ...comun, x: x + fino, y: yBase + fino, width: ancho - fino * 2, height: alto - fino * 2, borderWidth: fino });
+    pagina.drawRectangle({ ...comun, ...caja(-fino, -fino, ancho + fino * 2, alto + fino * 2), borderWidth: fino });
+    pagina.drawRectangle({ ...comun, ...caja(fino, fino, ancho - fino * 2, alto - fino * 2), borderWidth: fino });
     return;
   }
 
-  pagina.drawRectangle({ ...comun, borderWidth: el.grosor });
+  pagina.drawRectangle({ ...comun, ...caja(0, 0, ancho, alto), borderWidth: el.grosor });
 }
 
 function dibujarTabla(pagina: PDFPage, el: ElementoTabla, alturaPagina: number): void {
+  const ubi = ubicador(el, alturaPagina);
   const ancho = anchoTotalTabla(el);
   const alto = altoTotalTabla(el);
-  const x = el.x;
-  const yBase = y(alturaPagina, el.y, alto);
 
-  dibujarRectangulo(pagina, x, yBase, ancho, alto, { color: el.color, estilo: el.estiloContorno, grosor: el.grosor });
+  dibujarRectangulo(pagina, ubi, 0, 0, ancho, alto, { color: el.color, estilo: el.estiloContorno, grosor: el.grosor });
 
   const doble = el.estiloInterno === 'doble';
   const fino = doble ? Math.max(0.5, el.grosor / 3) : el.grosor;
   const desplazamientos = doble ? [-fino, fino] : [0];
   const comun = { thickness: fino, color: color(el.colorInterno), dashArray: guion(el.estiloInterno, el.grosor) };
 
+  // Las líneas internas se describen en coordenadas de la tabla y se rotan con ella; `drawLine`
+  // no acepta rotación, pero tampoco hace falta: los dos extremos ya salen girados.
   let acumX = 0;
   for (let i = 0; i < el.cols.length - 1; i++) {
     acumX += el.cols[i];
     for (const d of desplazamientos) {
-      pagina.drawLine({ ...comun, start: { x: x + acumX + d, y: yBase }, end: { x: x + acumX + d, y: yBase + alto } });
+      pagina.drawLine({ ...comun, start: ubi.punto(acumX + d, 0), end: ubi.punto(acumX + d, alto) });
     }
   }
   let acumY = 0;
   for (let i = 0; i < el.rows.length - 1; i++) {
     acumY += el.rows[i];
     for (const d of desplazamientos) {
-      // acumY crece hacia abajo en el lienzo; en el PDF se mide desde la base de la tabla.
-      const yLinea = yBase + alto - acumY + d;
-      pagina.drawLine({ ...comun, start: { x, y: yLinea }, end: { x: x + ancho, y: yLinea } });
+      pagina.drawLine({ ...comun, start: ubi.punto(0, acumY + d), end: ubi.punto(ancho, acumY + d) });
     }
   }
 }
 
 /**
- * Extremos de una línea ya rotados y pasados a coordenadas del PDF. `drawLine` no acepta
- * rotación, así que hay que girar los puntos a mano: como en el lienzo, alrededor del centro
- * del elemento. `desplazamientoPerp` corre el trazo perpendicularmente (para el estilo doble).
+ * Extremos de una línea en coordenadas del PDF. El segmento corre por el medio del eje largo del
+ * elemento; el eje corto es su grosor. `desplazamientoPerp` corre el trazo perpendicularmente,
+ * que es como se dibuja el estilo doble.
  */
-function extremosLinea(el: ElementoLinea, altoPagina: number, desplazamientoPerp: number) {
+function extremosLinea(el: ElementoLinea, ubi: Ubicador, desplazamientoPerp: number) {
   const horizontal = el.w >= el.h;
-  const largo = horizontal ? el.w : el.h;
-  const radianes = (el.angulo * Math.PI) / 180;
-  const cos = Math.cos(radianes);
-  const sen = Math.sin(radianes);
-  const girar = (px: number, py: number) => ({ x: px * cos - py * sen, y: px * sen + py * cos });
-
-  const centro = girar(el.w / 2, el.h / 2);
-  const cx = el.x + centro.x;
-  const cy = el.y + centro.y;
-
-  const ex = horizontal ? largo / 2 : 0;
-  const ey = horizontal ? 0 : largo / 2;
-  const px = horizontal ? 0 : desplazamientoPerp;
-  const py = horizontal ? desplazamientoPerp : 0;
-
-  const desde = girar(-ex + px, -ey + py);
-  const hasta = girar(ex + px, ey + py);
-  return {
-    start: { x: cx + desde.x, y: altoPagina - (cy + desde.y) },
-    end: { x: cx + hasta.x, y: altoPagina - (cy + hasta.y) },
-  };
+  return horizontal
+    ? { start: ubi.punto(0, el.h / 2 + desplazamientoPerp), end: ubi.punto(el.w, el.h / 2 + desplazamientoPerp) }
+    : { start: ubi.punto(el.w / 2 + desplazamientoPerp, 0), end: ubi.punto(el.w / 2 + desplazamientoPerp, el.h) };
 }
 
-async function dibujarImagen(doc: PDFDocument, pagina: PDFPage, dataUrl: string, x: number, yBase: number, ancho: number, alto: number, opacidad = 1): Promise<void> {
+async function dibujarImagen(doc: PDFDocument, pagina: PDFPage, dataUrl: string, ubi: Ubicador, ancho: number, alto: number, opacidad = 1): Promise<void> {
   const bytes = await fetch(dataUrl).then((r) => r.arrayBuffer());
   const esPng = dataUrl.startsWith('data:image/png');
   const imagen = esPng ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
-  pagina.drawImage(imagen, { x, y: yBase, width: ancho, height: alto, opacity: opacidad });
+  // Como el rectángulo: pdf-lib ancla la imagen en su esquina inferior izquierda y rota ahí.
+  const ancla = ubi.punto(0, alto);
+  pagina.drawImage(imagen, { ...ancla, width: ancho, height: alto, opacity: opacidad, rotate: ubi.grados });
 }
 
 export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): Promise<Uint8Array> {
@@ -188,18 +198,22 @@ export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): P
     .filter((e): e is Elemento => !!e);
 
   for (const el of elementos) {
+    const ubi = ubicador(el, altoPagina);
+
     switch (el.clase) {
       case 'texto': {
         const fuente = await obtenerFuente(el.familia, el.negrita, el.cursiva);
-        // En el PDF la Y del texto es su línea de base, no el tope de la caja.
-        const base = altoPagina - el.y - fuente.heightAtSize(el.size, { descender: false });
-        pagina.drawText(el.text, { x: el.x, y: base, size: el.size, font: fuente, color: color(el.color) });
+        // En el PDF la Y del texto es su línea de base, no el tope de la caja: en coordenadas del
+        // elemento, la base está a una ascendente de su borde de arriba.
+        const ascendente = fuente.heightAtSize(el.size, { descender: false });
+        const base = ubi.punto(0, ascendente);
+        pagina.drawText(el.text, { ...base, size: el.size, font: fuente, color: color(el.color), rotate: ubi.grados });
         if (el.subrayado) {
           const anchoTexto = fuente.widthOfTextAtSize(el.text, el.size);
-          const ySub = base - el.size * 0.12;
+          const ySub = ascendente + el.size * 0.12;
           pagina.drawLine({
-            start: { x: el.x, y: ySub },
-            end: { x: el.x + anchoTexto, y: ySub },
+            start: ubi.punto(0, ySub),
+            end: ubi.punto(anchoTexto, ySub),
             thickness: Math.max(0.5, el.size * 0.05),
             color: color(el.color),
           });
@@ -214,7 +228,7 @@ export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): P
 
         for (const d of trazos) {
           pagina.drawLine({
-            ...extremosLinea(el, altoPagina, d),
+            ...extremosLinea(el, ubi, d),
             thickness: anchoTrazo,
             color: color(el.color),
             dashArray: guion(el.estilo, grosor),
@@ -224,7 +238,7 @@ export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): P
       }
 
       case 'rect':
-        dibujarRectangulo(pagina, el.x, y(altoPagina, el.y, el.h), el.w, el.h, el);
+        dibujarRectangulo(pagina, ubi, 0, 0, el.w, el.h, el);
         break;
 
       case 'tabla':
@@ -232,26 +246,28 @@ export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): P
         break;
 
       case 'qr':
-        await dibujarImagen(doc, pagina, await generarQr(el), el.x, y(altoPagina, el.y, el.h), el.w, el.h);
+        await dibujarImagen(doc, pagina, await generarQr(el), ubi, el.w, el.h);
         break;
 
       case 'imagen':
-        await dibujarImagen(doc, pagina, el.src, el.x, y(altoPagina, el.y, el.h), el.w, el.h, el.opacidad / 100);
+        await dibujarImagen(doc, pagina, el.src, ubi, el.w, el.h, el.opacidad / 100);
         break;
 
       case 'campo': {
-        const yBase = y(altoPagina, el.y, el.h);
         const fuente = await obtenerFuente(el.familia, el.negrita, el.cursiva);
 
         if (!opciones.conFormulario) {
           // Aplanado: se dibuja la apariencia, sin campo interactivo.
           if (el.invisible) break;
-          if (el.conFondo) pagina.drawRectangle({ x: el.x, y: yBase, width: el.w, height: el.h, color: color(el.fondoColor) });
+          if (el.conFondo) {
+            dibujarRectangulo(pagina, ubi, 0, 0, el.w, el.h, { color: el.fondoColor, estilo: 'solido', grosor: 0, conRelleno: true, rellenoColor: el.fondoColor });
+          }
           if (el.bordeGrosor > 0) {
-            pagina.drawRectangle({ x: el.x, y: yBase, width: el.w, height: el.h, borderWidth: el.bordeGrosor, borderColor: color(el.bordeColor) });
+            dibujarRectangulo(pagina, ubi, 0, 0, el.w, el.h, { color: el.bordeColor, estilo: 'solido', grosor: el.bordeGrosor });
           }
           if (el.defaultValue) {
-            pagina.drawText(el.defaultValue, { x: el.x + 2, y: yBase + (el.h - el.size) / 2, size: el.size, font: fuente, color: color(el.color) });
+            const linea = ubi.punto(2, (el.h + el.size) / 2);
+            pagina.drawText(el.defaultValue, { ...linea, size: el.size, font: fuente, color: color(el.color), rotate: ubi.grados });
           }
           break;
         }
@@ -265,9 +281,16 @@ export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): P
           if (el.readonly) campo.enableReadOnly();
           camposCreados.set(el.name, campo);
         }
+        // Un campo de formulario solo puede rotar en múltiplos de 90°: el PDF guarda su recuadro
+        // siempre derecho y la rotación aparte, en la apariencia. Con cualquier otro ángulo se
+        // redondea al múltiplo más cercano (el preflight lo avisa antes de exportar).
+        const anguloCampo = Math.round(el.angulo / 90) * 90;
+        const ancla = ubicador({ ...el, angulo: anguloCampo }, altoPagina).punto(0, el.h);
+
         campo.addToPage(pagina, {
-          x: el.x,
-          y: yBase,
+          x: ancla.x,
+          y: ancla.y,
+          rotate: degrees(-anguloCampo),
           width: el.w,
           height: el.h,
           font: fuente,

@@ -16,6 +16,7 @@ export class RectObjeto extends FabricObject {
       top: datos.y,
       width: datos.w,
       height: datos.h,
+      angle: datos.angulo,
       strokeWidth: 0,
       objectCaching: false,
     });
@@ -23,7 +24,7 @@ export class RectObjeto extends FabricObject {
   }
 
   refrescarDesdeDatos(): void {
-    this.set({ width: this.datos.w, height: this.datos.h });
+    this.set({ width: this.datos.w, height: this.datos.h, angle: this.datos.angulo });
     this.setCoords();
     this.dirty = true;
   }

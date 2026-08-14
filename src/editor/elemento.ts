@@ -6,6 +6,7 @@ export interface ElementoTexto {
   id: number;
   x: number;
   y: number;
+  angulo: number;
   text: string;
   size: number;
   familia: Familia;
@@ -33,6 +34,7 @@ export interface ElementoRect {
   id: number;
   x: number;
   y: number;
+  angulo: number;
   w: number;
   h: number;
   color: string;
@@ -48,6 +50,7 @@ export interface ElementoQr {
   id: number;
   x: number;
   y: number;
+  angulo: number;
   w: number;
   h: number;
   texto: string;
@@ -61,6 +64,7 @@ export interface ElementoTabla {
   id: number;
   x: number;
   y: number;
+  angulo: number;
   color: string;
   colorInterno: string;
   grosor: number;
@@ -76,6 +80,7 @@ export interface ElementoImagen {
   id: number;
   x: number;
   y: number;
+  angulo: number;
   w: number;
   h: number;
   src: string;
@@ -91,6 +96,7 @@ export interface ElementoCampo {
   name: string;
   x: number;
   y: number;
+  angulo: number;
   w: number;
   h: number;
   tipo: TipoDato;
@@ -158,7 +164,7 @@ export function crearElemento(clase: ClaseSimple): Elemento {
   switch (clase) {
     case 'texto': {
       const { x, y } = nuevaPosicion(60, 11);
-      return { clase, id, x, y, text: 'Texto', size: 11, familia: 'Helvetica', negrita: false, cursiva: false, subrayado: false, color: '#111111', align: 'left' };
+      return { clase, id, x, y, angulo: 0, text: 'Texto', size: 11, familia: 'Helvetica', negrita: false, cursiva: false, subrayado: false, color: '#111111', align: 'left' };
     }
     case 'linea': {
       const { x, y } = nuevaPosicion(200, 1);
@@ -166,11 +172,11 @@ export function crearElemento(clase: ClaseSimple): Elemento {
     }
     case 'rect': {
       const { x, y } = nuevaPosicion(180, 60);
-      return { clase, id, x, y, w: 180, h: 60, color: '#111111', estilo: 'solido', grosor: 1, radio: 0, conRelleno: false, rellenoColor: '#ffffff' };
+      return { clase, id, x, y, angulo: 0, w: 180, h: 60, color: '#111111', estilo: 'solido', grosor: 1, radio: 0, conRelleno: false, rellenoColor: '#ffffff' };
     }
     case 'qr': {
       const { x, y } = nuevaPosicion(80, 80);
-      return { clase, id, x, y, w: 80, h: 80, texto: 'https://recibomail.net.ar', color: '#000000', conFondo: true, fondoColor: '#ffffff' };
+      return { clase, id, x, y, angulo: 0, w: 80, h: 80, texto: 'https://recibomail.net.ar', color: '#000000', conFondo: true, fondoColor: '#ffffff' };
     }
   }
 }
@@ -184,6 +190,7 @@ export function crearElementoTabla(filas: number, columnas: number): ElementoTab
     id: secuencia++,
     x,
     y,
+    angulo: 0,
     color: '#111111',
     colorInterno: '#111111',
     grosor: 1,
@@ -205,6 +212,7 @@ export function crearElementoImagen(src: string, anchoNatural: number, altoNatur
     id: secuencia++,
     x,
     y,
+    angulo: 0,
     w,
     h,
     src,
@@ -221,6 +229,7 @@ export function crearElementoCampo(nombre: string): ElementoCampo {
     name: nombre,
     x,
     y,
+    angulo: 0,
     w: 150,
     h: 16,
     tipo: 'Texto',

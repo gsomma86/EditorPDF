@@ -55,6 +55,7 @@ export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObjec
       const texto = new FabricText(elemento.text, {
         left: elemento.x,
         top: elemento.y,
+        angle: elemento.angulo,
         fontSize: elemento.size,
         fontFamily: elemento.familia,
         fontWeight: elemento.negrita ? '700' : '400',
@@ -75,6 +76,7 @@ export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObjec
       imagen.set({
         left: elemento.x,
         top: elemento.y,
+        angle: elemento.angulo,
         scaleX: elemento.w / (imagen.width || elemento.w),
         scaleY: elemento.h / (imagen.height || elemento.h),
       });
@@ -124,7 +126,7 @@ export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObjec
         textAlign: elemento.align,
       });
       const grupo = new Group([fondo, ayuda, etiqueta]);
-      grupo.set({ left: elemento.x, top: elemento.y });
+      grupo.set({ left: elemento.x, top: elemento.y, angle: elemento.angulo });
       grupo.setCoords();
       return grupo;
     }
@@ -192,6 +194,11 @@ export async function sincronizarGeometria(lienzo: import('fabric').Canvas, obje
   const elemento = datosPorObjeto.get(objeto);
   if (!elemento) return objeto;
 
+  // El ángulo se vuelca igual para todos: rotar es lo único que no depende de cómo cada tipo
+  // absorbe la escala. Sin esto, rotar con el tirador se ve en pantalla pero no queda en el
+  // modelo, así que se pierde al guardar, al duplicar y al exportar.
+  elemento.angulo = Math.round(objeto.angle ?? elemento.angulo);
+
   if (elemento.clase === 'tabla') {
     elemento.x = Math.round(objeto.left ?? elemento.x);
     elemento.y = Math.round(objeto.top ?? elemento.y);
@@ -243,7 +250,6 @@ export async function sincronizarGeometria(lienzo: import('fabric').Canvas, obje
   if (elemento.clase === 'linea') {
     elemento.w = anchoVisible;
     elemento.h = altoVisible;
-    elemento.angulo = Math.round(objeto.angle ?? elemento.angulo);
     objeto.set({ scaleX: 1, scaleY: 1 });
     (objeto as LineaObjeto).refrescarDesdeDatos();
   } else if (elemento.clase === 'rect') {

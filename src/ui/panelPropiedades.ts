@@ -87,6 +87,12 @@ export function mostrarSinSeleccion(panel: HTMLElement): void {
 
 type Alineacion = 'izq' | 'centroH' | 'der' | 'arriba' | 'centroV' | 'abajo';
 
+/** El ángulo si todos los seleccionados comparten el mismo; si no, null (el campo va vacío). */
+function anguloComun(objetos: FabricObject[]): number | null {
+  const angulos = objetos.map((o) => elementoDe(o)?.angulo ?? 0);
+  return angulos.every((a) => a === angulos[0]) ? angulos[0] : null;
+}
+
 /**
  * Panel para varios elementos a la vez. Las acciones operan sobre los objetos sueltos: primero se
  * deshace la selección (ahí Fabric escribe las coordenadas absolutas en cada uno) y después se
@@ -112,6 +118,11 @@ export function mostrarMultiSeleccion(
         <button type="button" class="ed-toggle" data-alinear="centroV" title="Centro vertical">⇕</button>
         <button type="button" class="ed-toggle" data-alinear="abajo" title="Abajo">⤓</button>
       </div>
+    </div>
+    <div class="ed-sec">
+      <div class="ed-sec-tit">Rotación</div>
+      <div><label class="ed-lbl">Ángulo (°)</label><input type="number" id="ed-multi-angulo" class="mono" value="${anguloComun(objetos) ?? ''}" step="1" placeholder="varios"></div>
+      <p class="nota">Cada elemento rota sobre su propia esquina, no alrededor del conjunto.</p>
     </div>
     <div class="ed-acciones2">
       <button type="button" id="ed-multi-duplicar">Duplicar</button>
@@ -151,6 +162,21 @@ export function mostrarMultiSeleccion(
       });
       alTerminar(lista);
     });
+  });
+
+  // 'change' y no 'input': cada cambio deshace y rearma la selección, así que conviene esperar a
+  // que termine de escribir el valor.
+  panel.querySelector<HTMLInputElement>('#ed-multi-angulo')!.addEventListener('change', (e) => {
+    const angulo = Number((e.target as HTMLInputElement).value);
+    if (!Number.isFinite(angulo)) return;
+    const lista = soltar();
+    for (const objeto of lista) {
+      const elemento = elementoDe(objeto);
+      if (elemento) elemento.angulo = angulo;
+      objeto.set({ angle: angulo });
+      objeto.setCoords();
+    }
+    alTerminar(lista);
   });
 
   panel.querySelector<HTMLButtonElement>('#ed-multi-duplicar')!.addEventListener('click', async () => {
@@ -223,6 +249,7 @@ function seccionPosicion(elemento: Elemento): string {
              <div><label class="ed-lbl">Alto</label><input type="number" id="ed-p-h" class="mono" value="${elemento.h}" min="1"></div>`
           : ''
       }
+      <div><label class="ed-lbl">Ángulo (°)</label><input type="number" id="ed-p-angulo" class="mono" value="${elemento.angulo}" step="1"></div>
     </div>`
   );
 }
@@ -276,10 +303,9 @@ function campoLinea(elemento: Elemento & { clase: 'linea' }): string {
     // La orientación se resuelve con el ángulo (90° = vertical), así que no hacen falta
     // botones Horizontal/Vertical aparte: eran una segunda forma de hacer lo mismo y
     // quedaban desfasados cuando la línea tenía rotación.
-    `<div class="ed-row2">
-      <div><label class="ed-lbl">Color</label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
-      <div><label class="ed-lbl">Ángulo (°)</label><input type="number" id="ed-p-angulo" class="mono" value="${elemento.angulo}" step="1"></div>
-    </div>
+    // El ángulo vive en la sección Posición, junto al resto de la geometría y como en todos los
+    // demás tipos: acá quedaría un segundo control con el mismo id.
+    `<div><label class="ed-lbl">Color</label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
     <div><label class="ed-lbl">Estilo</label><select id="ed-p-estilo">
       ${['solido', 'punteado', 'doble'].map((e) => `<option value="${e}" ${e === elemento.estilo ? 'selected' : ''}>${etiquetaEstilo(e)}</option>`).join('')}
     </select></div>`
@@ -420,6 +446,14 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
     objeto.setCoords();
     repintar();
   });
+  $('#ed-p-angulo')!.addEventListener('input', (e) => {
+    elemento.angulo = Number((e.target as HTMLInputElement).value);
+    // Todos los objetos rotan alrededor de su esquina superior izquierda, que es lo que x/y
+    // señalan: así el ángulo no mueve el elemento de lugar.
+    objeto.set({ angle: elemento.angulo });
+    objeto.setCoords();
+    repintar();
+  });
   $('#ed-p-y')!.addEventListener('input', (e) => {
     elemento.y = Number((e.target as HTMLInputElement).value);
     objeto.set({ top: elemento.y });
@@ -479,10 +513,6 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
           if (campo) campo.value = String(GROSOR_MINIMO_DOBLE);
         }
       }
-      refrescar();
-    });
-    $('#ed-p-angulo')!.addEventListener('input', (e) => {
-      elemento.angulo = Number((e.target as HTMLInputElement).value);
       refrescar();
     });
   }
