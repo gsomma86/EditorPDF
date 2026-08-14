@@ -70,10 +70,18 @@ Tauri para escritorio (fase 5), reusando el mismo frontend.
 ## Comandos
 
 ```bash
-npm run dev      # servidor de desarrollo en http://localhost:5173
-npm run build    # build de producción
-npx tsc --noEmit # chequeo de tipos (correr siempre antes de commitear)
+npm run dev              # servidor de desarrollo en http://localhost:5173
+npm run build            # build de producción
+npx tsc --noEmit         # chequeo de tipos (correr siempre antes de commitear)
+npm run verificar-export # compara el PDF exportado contra lo que dibuja el lienzo (headless)
 ```
+
+`verificar-export` es la red de seguridad del exportador y **conviene correrlo ante cualquier
+cambio de geometría, del exportador o de cómo se crean los objetos de Fabric**. Dibuja cada caso
+en un lienzo de Fabric en Node, exporta el mismo caso a PDF, rasteriza los dos a 72 dpi (1 punto =
+1 píxel) y compara las cajas de tinta: responde la única pregunta que importa al exportar, que es
+si el PDF se ve donde se ve en pantalla. Vive en `pruebas/` (los casos, en `pruebas/casos.ts`).
+El texto se compara con holgura porque en Node no están las fuentes reales y los glifos cambian.
 
 ## Estructura
 
@@ -193,10 +201,16 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
     `strokeDashArray` y `stroke`: la línea se dibujaba como rectángulo relleno y por eso los
     estilos punteado/doble no hacían nada. Cuando un estilo de trazo tiene que verse, la forma
     tiene que estar trazada, no rellena.
-12. **Para incrustar fuentes en el PDF no hacen falta `.ttf`**: fontkit acepta los `.woff2` que ya
-    instala `@fontsource`. Pero **hay que embeber con `subset: false`** — fontkit no puede
-    subsetear fuentes comprimidas y falla con "Index out of range". No es problema: los archivos
-    de fontsource ya vienen separados por alfabeto, así que el "latin" pesa ~20 KB.
+12. **Un `.woff2` NO sirve para incrustar en un PDF, aunque `embedFont` no se queje.** Esta lección
+    decía lo contrario y estaba mal: fontkit *parsea* woff2, así que `embedFont(bytes)` pasa sin
+    error, pero con `subset: false` pdf-lib incrusta los bytes originales — el contenedor
+    comprimido — y un PDF solo admite fuentes sfnt (TTF/OTF). El visor descarta la fuente y
+    sustituye por otra. Se ve corriendo `npm run verificar-export`: mupdf avisa
+    "unknown file format ... attempting to load system font". Y no hay salida por el lado del
+    subseteo: fontkit no puede subsetear fuentes comprimidas (falla con "Index out of range").
+    Para que las fuentes web salgan de verdad hay que **descomprimir a sfnt antes de embeber**
+    (los `.woff` v1 de `@fontsource` son zlib, así que se descomprimen sin dependencias nuevas)
+    o sumar `.ttf` al repo.
 13. **Un mismo ID de campo colocado varias veces es UN campo AcroForm con varias apariencias.**
     `form.createTextField(nombre)` tira error si el nombre ya existe: hay que crearlo una vez y
     llamar `addToPage` por cada posición. Repetir un campo es una función del panel, no un caso
@@ -211,6 +225,19 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
     `trazos.ts` — si se agrega otra forma con estilos de borde, usar ese helper y no reinventarlo.
     "Doble" además necesita un grosor mínimo (`GROSOR_MINIMO_DOBLE`): por debajo, los dos trazos
     y su separación no entran y se ve idéntico a sólida, así que el panel sube el grosor solo.
+16. **Fabric 7 posiciona los objetos por su centro** (`originX`/`originY` vienen en `'center'`),
+    pero acá `x`/`y` es la esquina superior izquierda: así lo entienden el modelo, el panel, los
+    márgenes, el enganche, las guías y el exportador. Sin corregirlo, todo se dibuja corrido media
+    caja hacia arriba y a la izquierda de lo que dice el panel, y el PDF sale distinto del lienzo.
+    El valor por defecto se cambia una sola vez en `objetosFabric.ts`, así que un tipo de objeto
+    nuevo lo hereda; **no hace falta ponerlo objeto por objeto, pero sí no pisarlo**.
+17. **La línea rota alrededor de su esquina superior izquierda, no de su centro** (es consecuencia
+    de la lección anterior). `extremosLinea` en `exportarPdf.ts` hace exactamente eso; si algún
+    día se cambia el origen de los objetos, esa función hay que revisarla junto.
+18. **Los adornos de edición van en el lienzo y nunca en el modelo.** El contorno azul de los
+    campos AcroForm existe solo para poder verlos y agarrarlos mientras se edita; no llega al PDF
+    porque el exportador lee el modelo, no el lienzo. Es el mismo criterio que la cuadrícula y los
+    márgenes (ver `vista.ts`).
 
 ## Cómo verificar cambios
 

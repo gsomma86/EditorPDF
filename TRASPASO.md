@@ -1,31 +1,40 @@
 # Traspaso — dónde retomar
 
-Estado al cerrar la sesión del 14/08/2026. Todo está commiteado y pusheado a
-[gsomma86/EditorPDF](https://github.com/gsomma86/EditorPDF) (rama `main`, último commit `c170325`).
+Estado al cerrar la sesión del 14/08/2026, segunda tanda. Todo commiteado en
+[gsomma86/EditorPDF](https://github.com/gsomma86/EditorPDF) (rama `main`).
 
 **Antes de tocar nada, leer [CLAUDE.md](CLAUDE.md)**: ahí están la regla de alcance, las
 convenciones, y la lista de bugs ya resueltos que conviene no repetir.
 
 ## Lo primero: verificar
 
-Germán **verifica siempre él mismo** en el navegador (`npm run dev`). Las últimas tres tandas se
-entregaron compiladas pero **él todavía no las probó**:
+Germán **verifica siempre él mismo** en el navegador (`npm run dev`). De la primera pasada
+salieron cuatro bugs, ya arreglados, que conviene volver a mirar en pantalla:
 
-1. Zoom, cuadrícula, reglas y guías de alineación.
-2. Autoguardado, selección múltiple, catálogo de campos en CSV.
-3. Verificar diseño (preflight) y peso del PDF.
+1. **Zoom**: no existía el atajo Ctrl+rueda, y al acercar el canvas empujaba el layout y se comía
+   el panel de Propiedades.
+2. **Posición de todo lo dibujado**: Fabric 7 posiciona por el centro y el editor entiende x/y
+   como esquina superior izquierda, así que cada objeto caía corrido media caja (lección 16).
+   Es el arreglo más profundo de la tanda: conviene probar mover, redimensionar, rotar, duplicar,
+   deshacer/rehacer y el enganche a la cuadrícula.
+3. **Campos AcroForm**: ahora llevan siempre el contorno azul de ayuda; antes, sin borde propio,
+   eran invisibles en la hoja.
+4. **Panel de propiedades**: las dos columnas quedaban desalineadas cuando una etiqueta ocupaba
+   dos renglones.
 
-Tampoco probó a fondo la **exportación a PDF**, que es la pieza más nueva y la más delicada.
-Puntos donde es más probable que aparezca un problema, por orden:
+Sin probar todavía en el navegador: zoom/cuadrícula/reglas/guías, autoguardado, selección
+múltiple, catálogo de campos en CSV, y preflight/peso del PDF.
 
-- **Posición vertical del texto exportado.** El PDF mide desde abajo y usa la línea de base, no el
-  tope de la caja; es lo más fácil que quede corrido unos puntos respecto del lienzo.
-- **Líneas con ángulo**: los extremos se giran a mano (`extremosLinea` en `exportarPdf.ts`) porque
-  `drawLine` no acepta rotación.
-- **Campos AcroForm**: exportar con y sin el tilde de "Conservar campos editables" y abrir ambos.
-- **Fuentes web** contra las estándar.
+La **exportación a PDF** ya está verificada de forma automática con `npm run verificar-export`:
+compara el PDF contra lo que dibuja el lienzo y hoy da diferencia cero en texto, líneas (incluida
+la de 45°), recuadros, tablas, QR y campos, con el ID repetido resolviéndose en un solo campo con
+dos apariencias. Quedan dos pendientes reales que esa corrida dejó a la vista:
 
-Si algo de eso falla, arreglarlo antes de sumar funciones nuevas.
+- **Las fuentes web no se incrustan de verdad**: se embebe el `.woff2` tal cual y el PDF no admite
+  fuentes comprimidas, así que el visor sustituye por otra. Ver la lección 12 de CLAUDE.md.
+- **Posición vertical del texto**: medido headless queda ~0,17 × el cuerpo más arriba que en el
+  lienzo (7 pt con cuerpo 40). La medición usa fuentes sustituidas, así que **hay que confirmarlo
+  en el navegador con una fuente real antes de tocar la fórmula** de `exportarPdf.ts`.
 
 ## Lo que falta de la Fase 1
 

@@ -41,8 +41,16 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
 - [ ] Fondo de página (imagen / PDF) — el menú Página del original lo tiene; el caso "PDF" es
       en realidad la puerta de entrada de la fase 2
 - [x] Guardar proyecto (.json) / Importar proyecto (.json)
-- [x] **Exportar PDF** con AcroForm real, vía `pdf-lib`. Incrusta las fuentes web (fontkit acepta
-      los `.woff2` de `@fontsource`, no hicieron falta `.ttf`). Opción de exportar aplanado.
+- [x] **Exportar PDF** con AcroForm real, vía `pdf-lib`. Opción de exportar aplanado. Verificado
+      contra el lienzo con `npm run verificar-export`: texto, líneas (incluidas las rotadas),
+      recuadros, tablas, QR y campos caen en el PDF exactamente donde se ven en pantalla.
+- [ ] **Incrustar de verdad las fuentes web al exportar.** Hoy se incrusta el `.woff2` tal cual y
+      un PDF no admite fuentes comprimidas: el visor las descarta y sustituye por otra. Hay que
+      descomprimir a sfnt antes de embeber (los `.woff` v1 de `@fontsource` son zlib) o sumar
+      `.ttf`. Ver la lección 12 en CLAUDE.md.
+- [ ] Revisar la posición vertical del texto exportado: medido headless queda ~0,17 × el cuerpo
+      más arriba que en el lienzo (7 pt con cuerpo 40), pero la medición usa fuentes sustituidas,
+      así que falta confirmarlo en el navegador con una fuente real antes de tocar nada.
 - [x] Selección múltiple (Ctrl/Shift y recuadro de arrastre) y sus acciones de grupo
 - [x] Menú Ver: cuadrícula con enganche, reglas, guías de alineación
 - [x] Zoom (25%–300%)
