@@ -21,7 +21,10 @@ export interface ElementoTexto {
   text: string;
   /** Letras apiladas, una debajo de la otra, en vez de escritas de corrido. */
   vertical: boolean;
-  /** Puntos de separación que se suman al paso normal entre letras apiladas. Puede ser negativo. */
+  /**
+   * Puntos que se suman al paso normal entre renglones: entre las letras si el texto es vertical,
+   * y entre las líneas si tiene varias. Puede ser negativo, para juntarlos.
+   */
   separacion: number;
   /** Permite escribir varios renglones en el contenido. */
   multilinea: boolean;

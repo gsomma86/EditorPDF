@@ -273,7 +273,7 @@ function campoTexto(elemento: Elemento & { clase: 'texto' }): string {
       </div>
       ${bloqueTipografia(elemento)}
       <label class="ed-check"><input type="checkbox" id="ed-p-vertical" ${elemento.vertical ? 'checked' : ''}> Texto vertical (una letra por renglón)</label>
-      <div><label class="ed-lbl">Separación entre letras (pt)</label><input type="number" id="ed-p-separacion" class="mono" value="${elemento.separacion}" step="0.5" ${elemento.vertical ? '' : 'disabled'}></div>`
+      <div><label class="ed-lbl">Separación (pt)</label><input type="number" id="ed-p-separacion" class="mono" value="${elemento.separacion}" step="0.5"></div>`
     )
   );
 }
@@ -484,9 +484,6 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
     });
     $('#ed-p-vertical')!.addEventListener('change', (e) => {
       elemento.vertical = (e.target as HTMLInputElement).checked;
-      // La separación solo tiene sentido con las letras apiladas.
-      const separacion = $<HTMLInputElement>('#ed-p-separacion');
-      if (separacion) separacion.disabled = !elemento.vertical;
       redibujarTexto();
       registrarSnapshot(lienzo);
     });
