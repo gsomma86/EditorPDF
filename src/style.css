@@ -414,12 +414,6 @@ button {
   font-size: 13px;
   white-space: nowrap;
 }
-/* Para toggles con etiqueta de texto (no un solo glifo): reparten el ancho del panel. */
-.ed-fila-toggle.expandido .ed-toggle {
-  flex: 1;
-  min-width: 0;
-  font-size: 12px;
-}
 .ed-toggle:hover {
   border-color: var(--acento);
 }

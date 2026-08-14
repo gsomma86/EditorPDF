@@ -2,6 +2,7 @@ import { FabricImage, FabricText, Group, Rect, type FabricObject } from 'fabric'
 import QRCode from 'qrcode';
 import { type Elemento } from './elemento';
 import { TablaObjeto } from './tablaObjeto';
+import { LineaObjeto } from './lineaObjeto';
 
 const datosPorObjeto = new WeakMap<FabricObject, Elemento>();
 
@@ -30,16 +31,8 @@ export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObjec
       });
       return texto;
     }
-    case 'linea': {
-      return new Rect({
-        left: elemento.x,
-        top: elemento.y,
-        width: elemento.w,
-        height: elemento.h,
-        angle: elemento.angulo,
-        fill: elemento.color,
-      });
-    }
+    case 'linea':
+      return new LineaObjeto(elemento);
     case 'rect': {
       return new Rect({
         left: elemento.x,
@@ -212,7 +205,8 @@ export async function sincronizarGeometria(lienzo: import('fabric').Canvas, obje
     elemento.w = anchoVisible;
     elemento.h = altoVisible;
     elemento.angulo = Math.round(objeto.angle ?? elemento.angulo);
-    objeto.set({ width: anchoVisible, height: altoVisible, scaleX: 1, scaleY: 1 });
+    objeto.set({ scaleX: 1, scaleY: 1 });
+    (objeto as LineaObjeto).refrescarDesdeDatos();
   } else if (elemento.clase === 'rect') {
     elemento.w = anchoVisible;
     elemento.h = altoVisible;

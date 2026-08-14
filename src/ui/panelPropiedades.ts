@@ -6,6 +6,10 @@ import { duplicarElemento, type Elemento } from '../editor/elemento';
 import { FAMILIAS_BASE, FAMILIAS_WEB, asegurarFuenteCargada } from '../editor/fuentes';
 import { registrarSnapshot } from '../editor/historial';
 import type { TablaObjeto } from '../editor/tablaObjeto';
+import type { LineaObjeto } from '../editor/lineaObjeto';
+
+/** Grosor mínimo para que el estilo "doble" se distinga de una línea sólida. */
+const GROSOR_MINIMO_DOBLE = 5;
 
 const ETIQUETA_TIPO: Record<Elemento['clase'], string> = {
   texto: 'Texto',
@@ -171,15 +175,12 @@ function campoCampo(elemento: Elemento & { clase: 'campo' }): string {
 }
 
 function campoLinea(elemento: Elemento & { clase: 'linea' }): string {
-  const esVertical = elemento.h > elemento.w;
   return seccion(
     'Formato',
-    `<label class="ed-lbl">Orientación</label>
-    <div class="ed-fila-toggle expandido">
-      <button type="button" class="ed-toggle ${!esVertical ? 'activo' : ''}" id="ed-p-horizontal">Horizontal</button>
-      <button type="button" class="ed-toggle ${esVertical ? 'activo' : ''}" id="ed-p-vertical">Vertical</button>
-    </div>
-    <div class="ed-row2" style="margin-top:8px;">
+    // La orientación se resuelve con el ángulo (90° = vertical), así que no hacen falta
+    // botones Horizontal/Vertical aparte: eran una segunda forma de hacer lo mismo y
+    // quedaban desfasados cuando la línea tenía rotación.
+    `<div class="ed-row2">
       <div><label class="ed-lbl">Color</label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
       <div><label class="ed-lbl">Ángulo (°)</label><input type="number" id="ed-p-angulo" class="mono" value="${elemento.angulo}" step="1"></div>
     </div>
@@ -341,7 +342,47 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
     return;
   }
 
-  if (elemento.clase === 'linea' || elemento.clase === 'rect') {
+  if (elemento.clase === 'linea') {
+    // La línea se redibuja sola desde el modelo (LineaObjeto), así que alcanza con refrescar.
+    const refrescar = () => {
+      (objeto as LineaObjeto).refrescarDesdeDatos();
+      repintar();
+    };
+    $('#ed-p-w')!.addEventListener('input', (e) => {
+      elemento.w = Number((e.target as HTMLInputElement).value);
+      refrescar();
+    });
+    $('#ed-p-h')!.addEventListener('input', (e) => {
+      elemento.h = Number((e.target as HTMLInputElement).value);
+      refrescar();
+    });
+    $('#ed-p-color')!.addEventListener('input', (e) => {
+      elemento.color = (e.target as HTMLInputElement).value;
+      refrescar();
+    });
+    $('#ed-p-estilo')!.addEventListener('change', (e) => {
+      elemento.estilo = (e.target as HTMLSelectElement).value as typeof elemento.estilo;
+      // "Doble" son dos trazos con un espacio entre medio: con poco grosor no entran y se ve
+      // igual que una línea sólida. Se sube al mínimo para que el estilo elegido sea el que
+      // realmente se va a ver (y a exportar).
+      if (elemento.estilo === 'doble') {
+        const horizontal = elemento.w >= elemento.h;
+        if ((horizontal ? elemento.h : elemento.w) < GROSOR_MINIMO_DOBLE) {
+          if (horizontal) elemento.h = GROSOR_MINIMO_DOBLE;
+          else elemento.w = GROSOR_MINIMO_DOBLE;
+          const campo = $<HTMLInputElement>(horizontal ? '#ed-p-h' : '#ed-p-w');
+          if (campo) campo.value = String(GROSOR_MINIMO_DOBLE);
+        }
+      }
+      refrescar();
+    });
+    $('#ed-p-angulo')!.addEventListener('input', (e) => {
+      elemento.angulo = Number((e.target as HTMLInputElement).value);
+      refrescar();
+    });
+  }
+
+  if (elemento.clase === 'rect') {
     $('#ed-p-w')!.addEventListener('input', (e) => {
       elemento.w = Number((e.target as HTMLInputElement).value);
       objeto.set({ width: elemento.w });
@@ -356,38 +397,12 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
     });
     $('#ed-p-color')!.addEventListener('input', (e) => {
       elemento.color = (e.target as HTMLInputElement).value;
-      objeto.set(elemento.clase === 'linea' ? { fill: elemento.color } : { stroke: elemento.color });
+      objeto.set({ stroke: elemento.color });
       repintar();
     });
     $('#ed-p-estilo')!.addEventListener('change', (e) => {
       elemento.estilo = (e.target as HTMLSelectElement).value as typeof elemento.estilo;
       objeto.set({ strokeDashArray: elemento.estilo === 'punteado' ? [4, 3] : undefined } as any);
-      repintar();
-    });
-  }
-
-  if (elemento.clase === 'linea') {
-    const actualizarOrientacion = (vertical: boolean) => {
-      if (vertical === elemento.h > elemento.w) return;
-      const temp = elemento.w;
-      elemento.w = elemento.h;
-      elemento.h = temp;
-      objeto.set({ width: elemento.w, height: elemento.h });
-      objeto.setCoords();
-      $('#ed-p-horizontal')!.classList.toggle('activo', !vertical);
-      $('#ed-p-vertical')!.classList.toggle('activo', vertical);
-      const wInput = $<HTMLInputElement>('#ed-p-w');
-      const hInput = $<HTMLInputElement>('#ed-p-h');
-      if (wInput) wInput.value = String(elemento.w);
-      if (hInput) hInput.value = String(elemento.h);
-      repintar();
-    };
-    $('#ed-p-horizontal')!.addEventListener('click', () => actualizarOrientacion(false));
-    $('#ed-p-vertical')!.addEventListener('click', () => actualizarOrientacion(true));
-    $('#ed-p-angulo')!.addEventListener('input', (e) => {
-      elemento.angulo = Number((e.target as HTMLInputElement).value);
-      objeto.set({ angle: elemento.angulo });
-      objeto.setCoords();
       repintar();
     });
   }

@@ -163,12 +163,14 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
 
 ## Cómo verificar cambios
 
-Germán pide **confirmación antes de arrancar una prueba en el navegador**. Usar Chrome/Edge
-(`mcp__claude-in-chrome__*`), **nunca el navegador integrado** (rompe la sesión).
+**Germán verifica siempre él mismo en el navegador.** El flujo por defecto es: terminar el cambio,
+correr `npx tsc --noEmit` y `npm run build`, commitear, y avisarle qué probar. No abrir el navegador
+salvo que lo pida o que haya una duda técnica concreta que no se pueda resolver leyendo el código.
 
-Truco útil: las coordenadas exactas de los controles de un objeto de Fabric están en
-`objeto.oCoords`; sumarles el `getBoundingClientRect()` del canvas da la posición en pantalla.
-Es mucho más confiable que estimar coordenadas mirando una captura.
+Si toca verificar: Chrome/Edge vía `mcp__claude-in-chrome__*`, **nunca el navegador integrado**
+(rompe la sesión). Truco útil: las coordenadas exactas de los controles de un objeto de Fabric están
+en `objeto.oCoords`; sumarles el `getBoundingClientRect()` del canvas da la posición en pantalla, y
+es mucho más confiable que estimar coordenadas mirando una captura.
 
 ## Estado y próximos pasos
 
