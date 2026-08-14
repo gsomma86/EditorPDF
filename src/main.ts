@@ -41,12 +41,13 @@ lienzo.on('selection:updated', (e) => {
 lienzo.on('selection:cleared', () => {
   mostrarSinSeleccion(espacio.panelPropiedades);
 });
-lienzo.on('object:modified', (e) => {
+lienzo.on('object:modified', async (e) => {
   const objeto = e.target;
   if (!objeto) return;
-  sincronizarGeometria(objeto);
-  if (lienzo.getActiveObject() === objeto && elementoDe(objeto)) {
-    mostrarPropiedades(espacio.panelPropiedades, lienzo, objeto);
+  const vigente = await sincronizarGeometria(lienzo, objeto);
+  lienzo.requestRenderAll();
+  if (lienzo.getActiveObject() === vigente && elementoDe(vigente)) {
+    mostrarPropiedades(espacio.panelPropiedades, lienzo, vigente);
   }
   registrarSnapshot(lienzo);
 });

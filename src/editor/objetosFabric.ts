@@ -149,15 +149,16 @@ export async function reemplazarObjeto(lienzo: import('fabric').Canvas, viejo: F
 }
 
 /**
- * Después de mover/redimensionar un objeto arrastrando sus controles, Fabric.js deja el cambio
- * como una transformación (left/top/scaleX/scaleY) en vez de tocar w/h — hay que volcarlo al
- * elemento para que el panel de propiedades y la futura exportación a PDF vean el tamaño real.
- * Los grupos (tabla) quedan afuera por ahora: reconstruir cols/rows a partir de la escala es
- * una cuenta más larga que no bloquea nada todavía (no hay exportación a PDF aún).
+ * Después de mover/redimensionar un objeto arrastrando sus controles, Fabric deja el cambio como
+ * una transformación (left/top/scaleX/scaleY) y no toca las medidas del modelo. Hay que volcarlo,
+ * porque el modelo es la fuente de verdad para el panel, para Duplicar, para deshacer/rehacer y
+ * para la futura exportación a PDF: si no, todo eso trabaja con el tamaño viejo.
+ *
+ * Devuelve el objeto vigente — puede ser otro si hubo que reconstruirlo (caso 'campo').
  */
-export function sincronizarGeometria(objeto: FabricObject): void {
+export async function sincronizarGeometria(lienzo: import('fabric').Canvas, objeto: FabricObject): Promise<FabricObject> {
   const elemento = datosPorObjeto.get(objeto);
-  if (!elemento) return;
+  if (!elemento) return objeto;
 
   if (elemento.clase === 'tabla') {
     elemento.x = Math.round(objeto.left ?? elemento.x);
@@ -172,13 +173,34 @@ export function sincronizarGeometria(objeto: FabricObject): void {
       objeto.set({ scaleX: 1, scaleY: 1 });
       (objeto as TablaObjeto).refrescarDesdeDatos();
     }
-    return;
+    return objeto;
   }
 
   if (elemento.clase === 'texto') {
     elemento.x = Math.round(objeto.left ?? elemento.x);
     elemento.y = Math.round(objeto.top ?? elemento.y);
-    return;
+    // Estirar un texto desde una esquina equivale a cambiarle el cuerpo de la fuente.
+    const escala = objeto.scaleY ?? 1;
+    if (escala !== 1) {
+      elemento.size = Math.max(5, Math.round(elemento.size * escala));
+      objeto.set({ fontSize: elemento.size, scaleX: 1, scaleY: 1 } as Partial<FabricObject>);
+    }
+    return objeto;
+  }
+
+  if (elemento.clase === 'campo') {
+    elemento.x = Math.round(objeto.left ?? elemento.x);
+    elemento.y = Math.round(objeto.top ?? elemento.y);
+    const escalaX = objeto.scaleX ?? 1;
+    const escalaY = objeto.scaleY ?? 1;
+    if (escalaX !== 1 || escalaY !== 1) {
+      // El cuerpo de la fuente no cambia: en un campo de formulario la caja se dimensiona
+      // aparte del texto, igual que en el editor público.
+      elemento.w = Math.round(elemento.w * escalaX);
+      elemento.h = Math.round(elemento.h * escalaY);
+      return reemplazarObjeto(lienzo, objeto, elemento);
+    }
+    return objeto;
   }
 
   elemento.x = Math.round(objeto.left ?? elemento.x);
@@ -196,7 +218,11 @@ export function sincronizarGeometria(objeto: FabricObject): void {
     elemento.h = altoVisible;
     objeto.set({ width: anchoVisible, height: altoVisible, scaleX: 1, scaleY: 1 });
   } else {
+    // QR e imagen: el objeto de Fabric se dimensiona con scaleX/scaleY sobre el bitmap,
+    // así que la escala se conserva y solo se registran las medidas resultantes.
     elemento.w = anchoVisible;
     elemento.h = altoVisible;
   }
+
+  return objeto;
 }

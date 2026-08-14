@@ -141,9 +141,14 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
 4. **`canvas.uniformScaling`** es lo que controla si arrastrar un vértice mantiene la proporción.
    El checkbox "Mantener proporción" tiene que escribir esa propiedad; no alcanza con guardarla
    en el modelo.
-5. **Al arrastrar controles, Fabric no toca `width`/`height`**: deja `scaleX`/`scaleY`. Hay que
-   volcarlo al modelo (`sincronizarGeometria`) o el panel y la futura exportación muestran valores
-   viejos.
+5. **Al arrastrar controles, Fabric no toca las medidas: deja `scaleX`/`scaleY`.** Hay que volcar
+   eso al modelo en `sincronizarGeometria`, y cada tipo lo absorbe distinto: texto → sube el cuerpo
+   de la fuente; línea/recuadro → `w`/`h` con escala de vuelta a 1; tabla → reparte entre filas y
+   columnas; campo → `w`/`h` sin tocar la fuente (la caja se dimensiona aparte, como en el
+   original); QR/imagen → conservan la escala porque así se dimensiona el bitmap.
+   **El modelo es la fuente de verdad de todo lo demás** (panel, Duplicar, deshacer/rehacer,
+   exportación). Si un tipo nuevo no absorbe su escala, el síntoma aparece lejos: por ejemplo,
+   agrandar un texto arrastrando y después duplicarlo daba una copia con el tamaño viejo.
 6. **Los estilos tienen que ir a `src/style.css`**, no quedarse en un mockup descartable. Pasó con
    `.ed-toggle`, `.ed-row2`, `.ed-sec` y `.mono`: los botones se veían sin estilo porque las clases
    nunca habían llegado al CSS real.
