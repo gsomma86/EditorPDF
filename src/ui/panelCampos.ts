@@ -1,22 +1,25 @@
-export function montarPanelCampos(panel: HTMLElement, onColocar: (nombre: string) => void): void {
-  const catalogo: string[] = [];
+export interface PanelCampos {
+  obtenerCatalogo(): string[];
+  establecerCatalogo(nombres: string[]): void;
+}
 
-  const contHead = panel.querySelector<HTMLElement>('.ed-col-n')!;
+export function montarPanelCampos(panel: HTMLElement, onColocar: (nombre: string) => void): PanelCampos {
+  let catalogo: string[] = [];
+
+  const contador = panel.querySelector<HTMLElement>('.ed-col-n')!;
   const input = panel.querySelector<HTMLInputElement>('#ed-campo-nuevo')!;
   const agregarBtn = panel.querySelector<HTMLButtonElement>('#ed-campo-agregar')!;
   const lista = panel.querySelector<HTMLElement>('#ed-lista-campos')!;
   const nota = panel.querySelector<HTMLElement>('.nota')!;
 
-  function actualizarContador(): void {
-    contHead.textContent = String(catalogo.length);
+  function render(): void {
+    contador.textContent = String(catalogo.length);
     nota.style.display = catalogo.length ? 'none' : '';
-  }
 
-  function renderLista(): void {
     lista.innerHTML = catalogo
       .map(
         (nombre, i) => `
-        <div class="ed-campo-fila" data-i="${i}">
+        <div class="ed-campo-fila">
           <button type="button" class="ed-chip" data-colocar="${i}">${nombre}</button>
           <button type="button" class="quitar" data-quitar="${i}" title="Quitar del catálogo">✕</button>
         </div>`
@@ -29,8 +32,7 @@ export function montarPanelCampos(panel: HTMLElement, onColocar: (nombre: string
     lista.querySelectorAll<HTMLButtonElement>('[data-quitar]').forEach((btn) => {
       btn.addEventListener('click', () => {
         catalogo.splice(Number(btn.dataset.quitar), 1);
-        renderLista();
-        actualizarContador();
+        render();
       });
     });
   }
@@ -40,8 +42,7 @@ export function montarPanelCampos(panel: HTMLElement, onColocar: (nombre: string
     if (!nombre || catalogo.includes(nombre)) return;
     catalogo.push(nombre);
     input.value = '';
-    renderLista();
-    actualizarContador();
+    render();
   }
 
   agregarBtn.addEventListener('click', agregar);
@@ -49,5 +50,13 @@ export function montarPanelCampos(panel: HTMLElement, onColocar: (nombre: string
     if (e.key === 'Enter') agregar();
   });
 
-  actualizarContador();
+  render();
+
+  return {
+    obtenerCatalogo: () => [...catalogo],
+    establecerCatalogo: (nombres) => {
+      catalogo = [...nombres];
+      render();
+    },
+  };
 }

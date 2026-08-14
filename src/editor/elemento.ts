@@ -116,22 +116,39 @@ export type ClaseSimple = 'texto' | 'linea' | 'rect' | 'qr';
 
 let secuencia = 0;
 let cantidadColocados = 0;
-const MARGEN = 20;
-let paginaAncho = 595;
-let paginaAlto = 842;
+let area = { x: 10, y: 10, ancho: 575, alto: 822 };
 
-export function establecerTamanoPagina(ancho: number, alto: number): void {
-  paginaAncho = ancho;
-  paginaAlto = alto;
+/**
+ * Al importar un proyecto hay que correr el contador por encima de los IDs que ya vienen usados,
+ * o los elementos nuevos repetirían un ID existente.
+ */
+export function reservarIds(elementos: Elemento[]): void {
+  for (const elemento of elementos) {
+    if (elemento.id >= secuencia) secuencia = elemento.id + 1;
+  }
+}
+
+/** El área útil (la hoja menos sus márgenes) acota dónde caen los elementos nuevos. */
+export function establecerAreaUtil(
+  anchoPagina: number,
+  altoPagina: number,
+  margenes: { arriba: number; abajo: number; izquierda: number; derecha: number }
+): void {
+  area = {
+    x: margenes.izquierda,
+    y: margenes.arriba,
+    ancho: Math.max(1, anchoPagina - margenes.izquierda - margenes.derecha),
+    alto: Math.max(1, altoPagina - margenes.arriba - margenes.abajo),
+  };
 }
 
 function nuevaPosicion(anchoEl: number, altoEl: number): { x: number; y: number } {
   cantidadColocados += 1;
-  const rangoX = Math.max(1, paginaAncho - MARGEN * 2 - anchoEl);
-  const rangoY = Math.max(1, paginaAlto - MARGEN * 2 - altoEl);
+  const rangoX = Math.max(1, area.ancho - anchoEl);
+  const rangoY = Math.max(1, area.alto - altoEl);
   return {
-    x: MARGEN + ((cantidadColocados * 24) % Math.min(120, rangoX)),
-    y: MARGEN + ((cantidadColocados * 24) % Math.min(200, rangoY)),
+    x: area.x + ((cantidadColocados * 24) % Math.min(120, rangoX)),
+    y: area.y + ((cantidadColocados * 24) % Math.min(200, rangoY)),
   };
 }
 

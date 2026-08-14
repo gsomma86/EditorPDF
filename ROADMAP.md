@@ -36,12 +36,16 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
 - [x] Herramientas de dibujo: Tabla, Imagen
 - [x] Campos AcroForm (panel izquierdo: catálogo de IDs, colocar como campo interactivo en la hoja) — falta el modo "repetible" (comodín #, expansión en filas)
 - [x] Deshacer / rehacer (Ctrl+Z / Ctrl+Y)
-- [ ] Modal Nuevo proyecto (tamaño, orientación, márgenes) — el modal ya existe en el mockup
-- [ ] Cambiar tamaño/orientación/fondo de página desde el menú Página
-- [ ] Guardar proyecto (.json) / Importar proyecto (.json)
-- [ ] **Exportar PDF** (con AcroForm real, vía `pdf-lib`). Lo más importante que falta. Requiere
-      `@pdf-lib/fontkit` para incrustar las fuentes web — hoy se pueden elegir y ver en pantalla,
-      pero todavía no viajan al PDF.
+- [x] Modal Nuevo proyecto (tamaño, orientación, márgenes)
+- [x] Cambiar tamaño/orientación de página desde el menú Página, y márgenes visibles en la hoja
+- [ ] Fondo de página (imagen / PDF) — el menú Página del original lo tiene; el caso "PDF" es
+      en realidad la puerta de entrada de la fase 2
+- [x] Guardar proyecto (.json) / Importar proyecto (.json)
+- [ ] **Exportar PDF** (con AcroForm real, vía `pdf-lib`). Lo más importante que falta.
+      **Pendiente resolver antes**: las fuentes web se instalan vía `@fontsource`, que solo trae
+      `.woff/.woff2`, y `@pdf-lib/fontkit` necesita `.ttf/.otf`. Hay que decidir entre sumar los
+      `.ttf` al repo o descomprimir woff2 en tiempo de ejecución. Las 3 fuentes estándar del PDF
+      (Helvetica/Times/Courier) no tienen este problema y se pueden exportar ya.
 - [ ] Selección múltiple (Ctrl/Shift y recuadro de arrastre) y sus acciones de grupo
 - [ ] Menú Ver: cuadrícula, reglas, guías de alineación (los checkboxes existen, no hacen nada)
 - [ ] Zoom (el control de la barra de estado existe, no hace nada)

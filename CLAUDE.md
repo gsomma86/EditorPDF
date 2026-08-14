@@ -80,7 +80,11 @@ src/
                           lienzo, el menú Campos, la carga de imágenes y los atajos de teclado.
   style.css               Todos los estilos. Copia fiel de la paleta del editor público.
   editor/
-    pagina.ts             Tamaños de hoja (A4/Carta/Oficio/A5) y orientación.
+    pagina.ts             Tamaños de hoja (A4/Carta/Oficio/A5), orientación y márgenes.
+    documento.ts          Config de página vigente: la aplica al lienzo y dibuja la guía de
+                          márgenes (en 'after:render', no como objeto, para que no se pueda
+                          seleccionar ni entre al historial ni al PDF).
+    proyecto.ts           Serializar/leer el .json del proyecto (página + elementos + catálogo).
     lienzo.ts             Crea el canvas de Fabric con el tamaño de página en puntos.
     elemento.ts           EL MODELO. Tipos de cada elemento (texto/linea/rect/qr/tabla/imagen/
                           campo) y sus constructores con valores por defecto.
@@ -95,7 +99,9 @@ src/
     panelPropiedades.ts   Panel derecho: campos por tipo de elemento + acciones (duplicar,
                           borrar, al frente, enviar atrás).
     panelCampos.ts        Panel izquierdo: catálogo de IDs de campos AcroForm.
-    modalTabla.ts         Modal de filas × columnas al insertar una tabla.
+    modales.ts            Todos los modales (nuevo proyecto, márgenes, nombre de archivo,
+                          filas × columnas, confirmación). Usar `abrir()` de acá para
+                          cualquier modal nuevo en vez de armar otro sistema.
 ```
 
 **Arquitectura**: el modelo (`elemento.ts`) es la fuente de verdad; los objetos de Fabric son su

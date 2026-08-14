@@ -1,11 +1,11 @@
 const MENU_ARCHIVO = `
-  <div class="ed-dd-item">Nuevo proyecto</div>
-  <div class="ed-dd-item">Abrir PDF…</div>
-  <div class="ed-dd-item">Importar proyecto (.json)…</div>
+  <div class="ed-dd-item" id="ed-nuevo">Nuevo proyecto</div>
+  <div class="ed-dd-item" id="ed-abrir-pdf">Abrir PDF…</div>
+  <div class="ed-dd-item" id="ed-importar-proyecto">Importar proyecto (.json)…</div>
   <div class="ed-dd-sep"></div>
-  <div class="ed-dd-item">Guardar proyecto…</div>
-  <div class="ed-dd-item">Verificar diseño</div>
-  <div class="ed-dd-item">Exportar PDF…</div>
+  <div class="ed-dd-item" id="ed-guardar-proyecto">Guardar proyecto…</div>
+  <div class="ed-dd-item" id="ed-verificar">Verificar diseño</div>
+  <div class="ed-dd-item" id="ed-exportar-pdf">Exportar PDF…</div>
 `;
 
 const MENU_EDITAR = `
@@ -23,10 +23,24 @@ const MENU_VER = `
 `;
 
 const MENU_PAGINA = `
-  <div class="ed-dd-item">Tamaño</div>
-  <div class="ed-dd-item">Orientación</div>
-  <div class="ed-dd-item">Fondo</div>
-  <div class="ed-dd-item">Configurar márgenes…</div>
+  <div class="ed-dd-item ed-dd-persistente">
+    <span>Tamaño</span>
+    <select id="ed-tamano">
+      <option value="A4">A4</option>
+      <option value="Carta">Carta</option>
+      <option value="Oficio">Oficio</option>
+      <option value="A5">A5</option>
+    </select>
+  </div>
+  <div class="ed-dd-item ed-dd-persistente">
+    <span>Orientación</span>
+    <select id="ed-orient">
+      <option value="vertical">Vertical</option>
+      <option value="horizontal">Horizontal</option>
+    </select>
+  </div>
+  <div class="ed-dd-sep"></div>
+  <div class="ed-dd-item" id="ed-margenes">Configurar márgenes…</div>
 `;
 
 const MENU_CAMPOS = `
@@ -157,6 +171,11 @@ function wireMenuDesplegable(menubar: HTMLElement): void {
         boton.classList.add('abierto');
       }
     });
+  });
+
+  // Las filas con un select adentro (tamaño, orientación) no deben cerrar el menú al usarlas.
+  menubar.querySelectorAll('.ed-dd-persistente').forEach((fila) => {
+    fila.addEventListener('click', (evento) => evento.stopPropagation());
   });
 
   document.addEventListener('click', cerrarTodos);
