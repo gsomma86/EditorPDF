@@ -3,6 +3,21 @@
 Editor de PDF real, gratuito y open source (AGPL-3.0), al estilo Sejda PDF / Nitro PDF.
 Repo: [gsomma86/EditorPDF](https://github.com/gsomma86/EditorPDF). Autor: Germán Somma.
 
+## Regla: mantener esta documentación al día
+
+Germán trabaja este proyecto con **varios agentes en paralelo**, y estos archivos son la única
+fuente de verdad compartida entre ellos. Al cerrar cada tanda de trabajo, antes de dar el tema por
+terminado y sin esperar a que te lo pidan:
+
+- Tildar en [ROADMAP.md](ROADMAP.md) lo que quedó listo, y agregar lo que se descubrió que falta.
+- Si apareció una decisión de arquitectura, una convención nueva o un bug con causa no obvia,
+  anotarlo acá (en "Lecciones aprendidas" o donde corresponda) para que el próximo agente no lo
+  vuelva a tropezar.
+- Commitear esos cambios junto con el código.
+
+Documentación desactualizada es peor que no tener documentación: manda al próximo agente en la
+dirección equivocada.
+
 ## Regla de alcance (la más importante)
 
 **El objetivo es tener TODAS las funciones del editor público de ReciboMail, MÁS la capacidad de
