@@ -175,7 +175,7 @@ function campoLinea(elemento: Elemento & { clase: 'linea' }): string {
   return seccion(
     'Formato',
     `<label class="ed-lbl">Orientación</label>
-    <div class="ed-fila-toggle">
+    <div class="ed-fila-toggle expandido">
       <button type="button" class="ed-toggle ${!esVertical ? 'activo' : ''}" id="ed-p-horizontal">Horizontal</button>
       <button type="button" class="ed-toggle ${esVertical ? 'activo' : ''}" id="ed-p-vertical">Vertical</button>
     </div>
