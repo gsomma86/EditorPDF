@@ -1,6 +1,6 @@
-import { FabricImage, FabricText, Rect, type FabricObject } from 'fabric';
+import { FabricImage, FabricText, Group, Line, Rect, type FabricObject } from 'fabric';
 import QRCode from 'qrcode';
-import type { Elemento } from './elemento';
+import { anchoTotalTabla, altoTotalTabla, type Elemento } from './elemento';
 
 const datosPorObjeto = new WeakMap<FabricObject, Elemento>();
 
@@ -13,7 +13,7 @@ function trazoDeEstilo(estilo: 'solido' | 'punteado' | 'doble'): number[] | unde
   return undefined;
 }
 
-async function crearObjetoFabric(elemento: Elemento): Promise<FabricObject> {
+export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObject> {
   switch (elemento.clase) {
     case 'texto': {
       const texto = new FabricText(elemento.text, {
@@ -63,6 +63,48 @@ async function crearObjetoFabric(elemento: Elemento): Promise<FabricObject> {
       });
       return imagen;
     }
+    case 'tabla': {
+      const ancho = anchoTotalTabla(elemento);
+      const alto = altoTotalTabla(elemento);
+      const hijos: FabricObject[] = [
+        new Rect({
+          left: 0,
+          top: 0,
+          width: ancho,
+          height: alto,
+          rx: elemento.radio,
+          ry: elemento.radio,
+          fill: 'transparent',
+          stroke: elemento.color,
+          strokeDashArray: trazoDeEstilo(elemento.estiloContorno),
+        }),
+      ];
+      let acumX = 0;
+      for (let i = 0; i < elemento.cols.length - 1; i++) {
+        acumX += elemento.cols[i];
+        hijos.push(new Line([acumX, 0, acumX, alto], { stroke: elemento.color, strokeDashArray: trazoDeEstilo(elemento.estiloInterno) }));
+      }
+      let acumY = 0;
+      for (let i = 0; i < elemento.rows.length - 1; i++) {
+        acumY += elemento.rows[i];
+        hijos.push(new Line([0, acumY, ancho, acumY], { stroke: elemento.color, strokeDashArray: trazoDeEstilo(elemento.estiloInterno) }));
+      }
+      const grupo = new Group(hijos);
+      grupo.set({ left: elemento.x, top: elemento.y });
+      grupo.setCoords();
+      return grupo;
+    }
+    case 'imagen': {
+      const imagen = await FabricImage.fromURL(elemento.src);
+      imagen.set({
+        left: elemento.x,
+        top: elemento.y,
+        scaleX: elemento.w / (imagen.width || elemento.w),
+        scaleY: elemento.h / (imagen.height || elemento.h),
+        opacity: elemento.opacidad / 100,
+      });
+      return imagen;
+    }
   }
 }
 
@@ -73,4 +115,50 @@ export async function agregarAlLienzo(lienzo: import('fabric').Canvas, elemento:
   lienzo.setActiveObject(objeto);
   lienzo.requestRenderAll();
   return objeto;
+}
+
+/**
+ * Reconstruye por completo el objeto de Fabric (necesario para 'tabla': es un Group armado de
+ * hijos que no se pueden editar in-place cuando cambia la cantidad/estilo de sus líneas internas).
+ */
+export async function reemplazarObjeto(lienzo: import('fabric').Canvas, viejo: FabricObject, elemento: Elemento): Promise<FabricObject> {
+  const nuevo = await crearObjetoFabric(elemento);
+  datosPorObjeto.set(nuevo, elemento);
+  lienzo.remove(viejo);
+  lienzo.add(nuevo);
+  lienzo.setActiveObject(nuevo);
+  lienzo.requestRenderAll();
+  return nuevo;
+}
+
+/**
+ * Después de mover/redimensionar un objeto arrastrando sus controles, Fabric.js deja el cambio
+ * como una transformación (left/top/scaleX/scaleY) en vez de tocar w/h — hay que volcarlo al
+ * elemento para que el panel de propiedades y la futura exportación a PDF vean el tamaño real.
+ * Los grupos (tabla) quedan afuera por ahora: reconstruir cols/rows a partir de la escala es
+ * una cuenta más larga que no bloquea nada todavía (no hay exportación a PDF aún).
+ */
+export function sincronizarGeometria(objeto: FabricObject): void {
+  const elemento = datosPorObjeto.get(objeto);
+  if (!elemento || elemento.clase === 'tabla' || elemento.clase === 'texto') {
+    if (elemento) {
+      elemento.x = Math.round(objeto.left ?? elemento.x);
+      elemento.y = Math.round(objeto.top ?? elemento.y);
+    }
+    return;
+  }
+
+  elemento.x = Math.round(objeto.left ?? elemento.x);
+  elemento.y = Math.round(objeto.top ?? elemento.y);
+  const anchoVisible = Math.round((objeto.width ?? elemento.w) * (objeto.scaleX ?? 1));
+  const altoVisible = Math.round((objeto.height ?? elemento.h) * (objeto.scaleY ?? 1));
+
+  if (elemento.clase === 'rect' || elemento.clase === 'linea') {
+    elemento.w = anchoVisible;
+    elemento.h = altoVisible;
+    objeto.set({ width: anchoVisible, height: altoVisible, scaleX: 1, scaleY: 1 });
+  } else {
+    elemento.w = anchoVisible;
+    elemento.h = altoVisible;
+  }
 }

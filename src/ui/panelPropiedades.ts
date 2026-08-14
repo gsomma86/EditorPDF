@@ -1,5 +1,5 @@
 import type { Canvas, FabricObject } from 'fabric';
-import { elementoDe } from '../editor/objetosFabric';
+import { elementoDe, reemplazarObjeto } from '../editor/objetosFabric';
 import type { Elemento, Familia } from '../editor/elemento';
 import QRCode from 'qrcode';
 import { FabricImage } from 'fabric';
@@ -9,6 +9,8 @@ const ETIQUETA_TIPO: Record<Elemento['clase'], string> = {
   linea: 'Línea',
   rect: 'Recuadro',
   qr: 'QR',
+  tabla: 'Tabla',
+  imagen: 'Imagen',
 };
 
 export function mostrarSinSeleccion(panel: HTMLElement): void {
@@ -109,6 +111,33 @@ function campoQr(elemento: Elemento & { clase: 'qr' }): string {
   `;
 }
 
+function campoTabla(elemento: Elemento & { clase: 'tabla' }): string {
+  return `
+    <div class="nota">${elemento.rows.length} filas × ${elemento.cols.length} columnas. Arrastrá la esquina para redimensionar.</div>
+    <div><label class="ed-lbl">Color</label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
+    <div class="ed-row2">
+      <div><label class="ed-lbl">Estilo del contorno</label><select id="ed-p-contorno">
+        ${['solido', 'punteado', 'doble'].map((e) => `<option value="${e}" ${e === elemento.estiloContorno ? 'selected' : ''}>${etiquetaEstilo(e)}</option>`).join('')}
+      </select></div>
+      <div><label class="ed-lbl">Estilo interno</label><select id="ed-p-interno">
+        ${['solido', 'punteado', 'doble'].map((e) => `<option value="${e}" ${e === elemento.estiloInterno ? 'selected' : ''}>${etiquetaEstilo(e)}</option>`).join('')}
+      </select></div>
+    </div>
+    <div><label class="ed-lbl">Radio de esquina (pt)</label><input type="number" id="ed-p-radio" class="mono" value="${elemento.radio}" min="0"></div>
+  `;
+}
+
+function campoImagen(elemento: Elemento & { clase: 'imagen' }): string {
+  return `
+    <div class="ed-row2">
+      <div><label class="ed-lbl">Ancho (pt)</label><input type="number" id="ed-p-w" class="mono" value="${elemento.w}" min="1"></div>
+      <div><label class="ed-lbl">Alto (pt)</label><input type="number" id="ed-p-h" class="mono" value="${elemento.h}" min="1"></div>
+    </div>
+    <label class="ed-check"><input type="checkbox" id="ed-p-proporcion" ${elemento.proporcion ? 'checked' : ''}> Mantener proporción al redimensionar</label>
+    <div><label class="ed-lbl">Opacidad</label><input type="range" id="ed-p-opacidad" min="10" max="100" value="${elemento.opacidad}"></div>
+  `;
+}
+
 function camposPara(elemento: Elemento): string {
   switch (elemento.clase) {
     case 'texto':
@@ -119,6 +148,10 @@ function camposPara(elemento: Elemento): string {
       return campoRect(elemento);
     case 'qr':
       return campoQr(elemento);
+    case 'tabla':
+      return campoTabla(elemento);
+    case 'imagen':
+      return campoImagen(elemento);
   }
 }
 
@@ -237,6 +270,58 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
       elemento.h = tam;
       const img = objeto as InstanceType<typeof FabricImage>;
       objeto.set({ scaleX: tam / (img.width || tam), scaleY: tam / (img.height || tam) });
+      repintar();
+    });
+  }
+
+  if (elemento.clase === 'tabla') {
+    const reconstruir = async () => {
+      const nuevo = await reemplazarObjeto(lienzo, objeto, elemento);
+      mostrarPropiedades(panel, lienzo, nuevo);
+    };
+    $('#ed-p-color')!.addEventListener('change', (e) => {
+      elemento.color = (e.target as HTMLInputElement).value;
+      reconstruir();
+    });
+    $('#ed-p-contorno')!.addEventListener('change', (e) => {
+      elemento.estiloContorno = (e.target as HTMLSelectElement).value as typeof elemento.estiloContorno;
+      reconstruir();
+    });
+    $('#ed-p-interno')!.addEventListener('change', (e) => {
+      elemento.estiloInterno = (e.target as HTMLSelectElement).value as typeof elemento.estiloInterno;
+      reconstruir();
+    });
+    $('#ed-p-radio')!.addEventListener('change', (e) => {
+      elemento.radio = Number((e.target as HTMLInputElement).value);
+      reconstruir();
+    });
+  }
+
+  if (elemento.clase === 'imagen') {
+    $('#ed-p-w')!.addEventListener('input', (e) => {
+      const ancho = Number((e.target as HTMLInputElement).value);
+      const relacion = elemento.h / elemento.w;
+      elemento.w = ancho;
+      if (elemento.proporcion) elemento.h = Math.round(ancho * relacion);
+      const img = objeto as InstanceType<typeof FabricImage>;
+      objeto.set({ scaleX: elemento.w / (img.width || elemento.w), scaleY: elemento.h / (img.height || elemento.h) });
+      repintar();
+    });
+    $('#ed-p-h')!.addEventListener('input', (e) => {
+      const alto = Number((e.target as HTMLInputElement).value);
+      const relacion = elemento.w / elemento.h;
+      elemento.h = alto;
+      if (elemento.proporcion) elemento.w = Math.round(alto * relacion);
+      const img = objeto as InstanceType<typeof FabricImage>;
+      objeto.set({ scaleX: elemento.w / (img.width || elemento.w), scaleY: elemento.h / (img.height || elemento.h) });
+      repintar();
+    });
+    $('#ed-p-proporcion')!.addEventListener('change', (e) => {
+      elemento.proporcion = (e.target as HTMLInputElement).checked;
+    });
+    $('#ed-p-opacidad')!.addEventListener('input', (e) => {
+      elemento.opacidad = Number((e.target as HTMLInputElement).value);
+      objeto.set({ opacity: elemento.opacidad / 100 });
       repintar();
     });
   }

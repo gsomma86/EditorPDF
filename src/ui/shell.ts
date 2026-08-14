@@ -34,7 +34,7 @@ const MENU_CAMPOS = `
   <div class="ed-dd-item" data-dib="texto">✏ Texto</div>
   <div class="ed-dd-item" data-dib="linea">➖ Línea</div>
   <div class="ed-dd-item" data-dib="rect">▭ Recuadro</div>
-  <div class="ed-dd-item" data-dib="grilla">▦ Tabla</div>
+  <div class="ed-dd-item" data-dib="tabla">▦ Tabla</div>
   <div class="ed-dd-item" data-dib="imagen">🖼 Imagen</div>
   <div class="ed-dd-item" data-dib="qr">▪ QR</div>
   <div class="ed-dd-sep"></div>
