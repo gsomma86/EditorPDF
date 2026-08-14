@@ -1,7 +1,7 @@
 import './style.css';
 import { montarEspacioTrabajo } from './ui/shell';
 import { crearLienzo } from './editor/lienzo';
-import { crearElemento, crearElementoCampo, crearElementoImagen, crearElementoTabla, type ClaseSimple } from './editor/elemento';
+import { crearElemento, crearElementoCampo, crearElementoImagen, crearElementoTabla, duplicarElemento, type ClaseSimple, type Elemento } from './editor/elemento';
 import { agregarAlLienzo, elementoDe, reconstruirLienzo, sincronizarGeometria } from './editor/objetosFabric';
 import { mostrarMultiSeleccion, mostrarPropiedades, mostrarSinSeleccion } from './ui/panelPropiedades';
 import { ActiveSelection, type FabricObject } from 'fabric';
@@ -253,8 +253,78 @@ document.addEventListener('keydown', (e) => {
   } else if (tecla === 'y' || (tecla === 'z' && e.shiftKey)) {
     e.preventDefault();
     accionRehacer();
+  } else if (tecla === 'c' || tecla === 'x') {
+    if (!copiarSeleccion(tecla === 'x')) return;
+    e.preventDefault();
+  } else if (tecla === 'v') {
+    e.preventDefault();
+    pegar();
+  } else if (tecla === 'a') {
+    const objetos = lienzo.getObjects();
+    if (!objetos.length) return;
+    e.preventDefault(); // si no, el navegador selecciona el texto de toda la página
+    lienzo.discardActiveObject();
+    lienzo.setActiveObject(objetos.length === 1 ? objetos[0] : new ActiveSelection([...objetos], { canvas: lienzo }));
+    lienzo.requestRenderAll();
   }
 });
+
+// ---------- Copiar, cortar y pegar ----------
+
+/**
+ * El portapapeles es propio, no el del sistema: lo que se copia son elementos del modelo, que no
+ * tienen forma de viajar por el portapapeles del navegador sin inventar un formato.
+ */
+let portapapeles: Elemento[] = [];
+
+function seleccionados(): FabricObject[] {
+  const activo = lienzo.getActiveObject();
+  if (!activo) return [];
+  return activo instanceof ActiveSelection ? activo.getObjects() : [activo];
+}
+
+/** Devuelve false si no había nada que copiar, para no comerse el atajo del navegador. */
+function copiarSeleccion(cortar: boolean): boolean {
+  const objetos = seleccionados();
+  const elementos = objetos.map((o) => elementoDe(o)).filter((el): el is Elemento => !!el);
+  if (!elementos.length) return false;
+
+  portapapeles = JSON.parse(JSON.stringify(elementos));
+
+  if (cortar) {
+    lienzo.discardActiveObject();
+    lienzo.remove(...objetos);
+    lienzo.requestRenderAll();
+    mostrarSinSeleccion(espacio.panelPropiedades);
+    registrarSnapshot(lienzo);
+    guardar();
+  }
+  return true;
+}
+
+async function pegar(): Promise<void> {
+  if (!portapapeles.length) return;
+
+  const nuevos: FabricObject[] = [];
+  for (const elemento of portapapeles) {
+    // duplicarElemento le da un ID nuevo y lo corre un poco, así la copia no tapa al original.
+    nuevos.push(await agregarAlLienzo(lienzo, duplicarElemento(elemento)));
+  }
+
+  // El portapapeles se queda con lo recién pegado: pegar de nuevo vuelve a correrse en vez de
+  // apilar todas las copias en el mismo lugar.
+  portapapeles = nuevos.map((o) => elementoDe(o)).filter((el): el is Elemento => !!el).map((el) => JSON.parse(JSON.stringify(el)));
+
+  lienzo.discardActiveObject();
+  if (nuevos.length === 1) {
+    lienzo.setActiveObject(nuevos[0]);
+  } else {
+    lienzo.setActiveObject(new ActiveSelection(nuevos, { canvas: lienzo }));
+  }
+  lienzo.requestRenderAll();
+  registrarSnapshot(lienzo);
+  guardar();
+}
 
 // ---------- Página ----------
 
