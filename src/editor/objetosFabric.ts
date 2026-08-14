@@ -1,6 +1,7 @@
-import { FabricImage, FabricText, Group, Path, Rect, type FabricObject } from 'fabric';
+import { FabricImage, FabricText, Group, Rect, type FabricObject } from 'fabric';
 import QRCode from 'qrcode';
-import { anchoTotalTabla, altoTotalTabla, type Elemento } from './elemento';
+import { type Elemento } from './elemento';
+import { TablaObjeto } from './tablaObjeto';
 
 const datosPorObjeto = new WeakMap<FabricObject, Elemento>();
 
@@ -64,49 +65,8 @@ export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObjec
       });
       return imagen;
     }
-    case 'tabla': {
-      const ancho = anchoTotalTabla(elemento);
-      const alto = altoTotalTabla(elemento);
-
-      const contorno = new Rect({
-        left: 0,
-        top: 0,
-        width: ancho,
-        height: alto,
-        rx: elemento.radio,
-        ry: elemento.radio,
-        fill: 'transparent',
-        stroke: elemento.color,
-        strokeWidth: elemento.grosor,
-        strokeDashArray: trazoDeEstilo(elemento.estiloContorno),
-      });
-
-      let trazado = '';
-      let acumX = 0;
-      for (let i = 0; i < elemento.cols.length - 1; i++) {
-        acumX += elemento.cols[i];
-        trazado += `M ${acumX} 0 L ${acumX} ${alto} `;
-      }
-      let acumY = 0;
-      for (let i = 0; i < elemento.rows.length - 1; i++) {
-        acumY += elemento.rows[i];
-        trazado += `M 0 ${acumY} L ${ancho} ${acumY} `;
-      }
-      // Un Path vacío (tabla 1x1) no tiene bounding box propio; lo reemplazamos por un
-      // segmento invisible para que ocupe (0,0)-(ancho,alto) igual que el contorno.
-      const interno = new Path(trazado || `M 0 0 L 0 0`, {
-        left: 0,
-        top: 0,
-        fill: '',
-        stroke: elemento.colorInterno,
-        strokeWidth: elemento.grosor,
-        strokeDashArray: trazoDeEstilo(elemento.estiloInterno),
-      });
-
-      const grupo = new Group([contorno, interno], { left: elemento.x, top: elemento.y });
-      grupo.setCoords();
-      return grupo;
-    }
+    case 'tabla':
+      return new TablaObjeto(elemento);
     case 'campo': {
       const esInvisible = elemento.invisible;
       const fondo = new Rect({
@@ -197,11 +157,27 @@ export async function reemplazarObjeto(lienzo: import('fabric').Canvas, viejo: F
  */
 export function sincronizarGeometria(objeto: FabricObject): void {
   const elemento = datosPorObjeto.get(objeto);
-  if (!elemento || elemento.clase === 'tabla' || elemento.clase === 'texto') {
-    if (elemento) {
-      elemento.x = Math.round(objeto.left ?? elemento.x);
-      elemento.y = Math.round(objeto.top ?? elemento.y);
+  if (!elemento) return;
+
+  if (elemento.clase === 'tabla') {
+    elemento.x = Math.round(objeto.left ?? elemento.x);
+    elemento.y = Math.round(objeto.top ?? elemento.y);
+    // Escalar desde una esquina reparte el cambio entre todas las filas/columnas y vuelve
+    // la escala a 1, para que el grosor de las líneas no se deforme.
+    const escalaX = objeto.scaleX ?? 1;
+    const escalaY = objeto.scaleY ?? 1;
+    if (escalaX !== 1 || escalaY !== 1) {
+      elemento.cols = elemento.cols.map((c) => Math.max(8, Math.round(c * escalaX)));
+      elemento.rows = elemento.rows.map((r) => Math.max(6, Math.round(r * escalaY)));
+      objeto.set({ scaleX: 1, scaleY: 1 });
+      (objeto as TablaObjeto).refrescarDesdeDatos();
     }
+    return;
+  }
+
+  if (elemento.clase === 'texto') {
+    elemento.x = Math.round(objeto.left ?? elemento.x);
+    elemento.y = Math.round(objeto.top ?? elemento.y);
     return;
   }
 

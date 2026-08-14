@@ -5,6 +5,7 @@ import { elementoDe, reemplazarObjeto, agregarAlLienzo } from '../editor/objetos
 import { duplicarElemento, type Elemento } from '../editor/elemento';
 import { FAMILIAS_BASE, FAMILIAS_WEB, asegurarFuenteCargada } from '../editor/fuentes';
 import { registrarSnapshot } from '../editor/historial';
+import type { TablaObjeto } from '../editor/tablaObjeto';
 
 const ETIQUETA_TIPO: Record<Elemento['clase'], string> = {
   texto: 'Texto',
@@ -434,33 +435,35 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
   }
 
   if (elemento.clase === 'tabla') {
-    const reconstruir = async () => {
-      const nuevo = await reemplazarObjeto(lienzo, objeto, elemento);
-      mostrarPropiedades(panel, lienzo, nuevo);
+    // La tabla se redibuja sola desde el modelo: no hace falta reconstruir el objeto
+    // (reconstruirlo perdería los controles de fila/columna).
+    const refrescar = () => {
+      (objeto as TablaObjeto).refrescarDesdeDatos();
+      repintar();
     };
-    $('#ed-p-color')!.addEventListener('change', (e) => {
+    $('#ed-p-color')!.addEventListener('input', (e) => {
       elemento.color = (e.target as HTMLInputElement).value;
-      reconstruir();
+      refrescar();
     });
-    $('#ed-p-color-interno')!.addEventListener('change', (e) => {
+    $('#ed-p-color-interno')!.addEventListener('input', (e) => {
       elemento.colorInterno = (e.target as HTMLInputElement).value;
-      reconstruir();
+      refrescar();
     });
     $('#ed-p-contorno')!.addEventListener('change', (e) => {
       elemento.estiloContorno = (e.target as HTMLSelectElement).value as typeof elemento.estiloContorno;
-      reconstruir();
+      refrescar();
     });
     $('#ed-p-interno')!.addEventListener('change', (e) => {
       elemento.estiloInterno = (e.target as HTMLSelectElement).value as typeof elemento.estiloInterno;
-      reconstruir();
+      refrescar();
     });
-    $('#ed-p-grosor')!.addEventListener('change', (e) => {
+    $('#ed-p-grosor')!.addEventListener('input', (e) => {
       elemento.grosor = Number((e.target as HTMLInputElement).value);
-      reconstruir();
+      refrescar();
     });
-    $('#ed-p-radio')!.addEventListener('change', (e) => {
+    $('#ed-p-radio')!.addEventListener('input', (e) => {
       elemento.radio = Number((e.target as HTMLInputElement).value);
-      reconstruir();
+      refrescar();
     });
   }
 
