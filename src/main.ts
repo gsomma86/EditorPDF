@@ -512,8 +512,13 @@ lienzo.on('mouse:dblclick', async (e) => {
   elemento.negrita = original.negrita;
   elemento.cursiva = original.cursiva;
   elemento.x = Math.round(original.x);
-  // El modelo mide desde el tope de la caja del texto y el PDF desde su línea de base.
-  elemento.y = Math.round(original.lineaBase - original.size * 0.75);
+  // El modelo mide desde el tope de la caja del texto y el PDF desde su línea de base, así que
+  // hay que restar la ascendente. Se pide la de verdad —la misma que va a usar la exportación—
+  // para que el reemplazo caiga exactamente en el renglón del original.
+  // Sin redondear: la ascendente tiene decimales y redondear la posición devolvía el reemplazo
+  // un punto arriba del original. Los redondeos vienen después, si se lo mueve a mano.
+  const { ascendenteDeFuente } = await import('./editor/exportarPdf');
+  elemento.y = original.lineaBase - (await ascendenteDeFuente(elemento.familia, elemento.negrita, elemento.cursiva, elemento.size));
 
   const objeto = await agregarAlLienzo(lienzo, elemento);
   mostrarPropiedades(espacio.panelPropiedades, lienzo, objeto);

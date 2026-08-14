@@ -383,6 +383,21 @@ export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): P
   return doc.save();
 }
 
+/**
+ * Ascendente real de una tipografía, en puntos: lo que va del tope de la caja del texto a su línea
+ * de base. Sirve para colocar un texto sabiendo dónde tiene que apoyar — por ejemplo al reemplazar
+ * uno del PDF, que hay que dejar en el mismo renglón que el original.
+ *
+ * Se mide embebiendo la fuente igual que al exportar, y no con una regla aparte, para que las dos
+ * cuentas no puedan separarse: estimarla en 0,75 × el cuerpo dejaba el reemplazo 2 pt más arriba.
+ */
+export async function ascendenteDeFuente(familia: string, negrita: boolean, cursiva: boolean, size: number): Promise<number> {
+  const doc = await PDFDocument.create();
+  doc.registerFontkit(fontkit);
+  const fuente = await creadorDeFuentes(doc)(familia, negrita, cursiva);
+  return fuente.heightAtSize(size, { descender: false });
+}
+
 export function descargarPdf(bytes: Uint8Array, nombre: string): void {
   const limpio = nombre.trim().replace(/[\\/:*?"<>|]/g, '') || 'documento';
   const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
