@@ -87,8 +87,13 @@ lienzo.on('object:modified', async (e) => {
   if (objeto instanceof ActiveSelection) {
     const hijos = objeto.getObjects();
     lienzo.discardActiveObject();
-    for (const hijo of hijos) await sincronizarGeometria(lienzo, hijo);
-    lienzo.setActiveObject(new ActiveSelection(hijos, { canvas: lienzo }));
+    // Sincronizar puede devolver OTRO objeto: un campo se reconstruye cuando cambia de tamaño, y
+    // moverlo dentro de una selección le deja escala. Hay que quedarse con el objeto vigente; si
+    // se rearma la selección con el viejo, el que se acababa de sacar del lienzo vuelve y queda
+    // duplicado en cada movimiento.
+    const vigentes: FabricObject[] = [];
+    for (const hijo of hijos) vigentes.push(await sincronizarGeometria(lienzo, hijo));
+    lienzo.setActiveObject(new ActiveSelection(vigentes, { canvas: lienzo }));
     lienzo.requestRenderAll();
     registrarSnapshot(lienzo);
     guardar();
@@ -185,6 +190,20 @@ const FLECHAS: Record<string, [number, number]> = {
 document.addEventListener('keydown', (e) => {
   const enCampoDeTexto = ['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName);
   if (enCampoDeTexto) return;
+
+  if (e.key === 'Delete' || e.key === 'Backspace') {
+    const activo = lienzo.getActiveObject();
+    if (!activo) return;
+    e.preventDefault();
+    const objetos = activo instanceof ActiveSelection ? activo.getObjects() : [activo];
+    lienzo.discardActiveObject();
+    lienzo.remove(...objetos);
+    lienzo.requestRenderAll();
+    mostrarSinSeleccion(espacio.panelPropiedades);
+    registrarSnapshot(lienzo);
+    guardar();
+    return;
+  }
 
   const direccion = FLECHAS[e.key];
   if (direccion && !e.ctrlKey && !e.metaKey) {
