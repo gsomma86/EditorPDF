@@ -114,6 +114,25 @@ export function pedirFilasColumnas(): Promise<{ filas: number; columnas: number 
   ) as Promise<{ filas: number; columnas: number } | null>;
 }
 
+export function pedirExportarPdf(sugerido: string): Promise<{ nombre: string; conFormulario: boolean } | null> {
+  return abrir(
+    `<div class="ed-modal-tit">Exportar PDF</div>
+     <div class="ed-modal-sub">Se genera y descarga el PDF final del diseño.</div>
+     <label class="ed-lbl">Nombre del archivo</label>
+     <input type="text" data-nombre value="${sugerido}" maxlength="120">
+     <label class="ed-check" style="margin-top:12px;"><input type="checkbox" data-formulario checked> Conservar campos editables (AcroForm)</label>
+     <p class="nota" style="margin-top:6px;">Sin esto, los campos se dibujan aplanados con su valor por defecto y el PDF deja de ser rellenable.</p>
+     <div class="ed-modal-acciones">
+       <button type="button" data-cancelar>Cancelar</button>
+       <button type="button" class="primario" data-confirmar>Exportar</button>
+     </div>`,
+    (raiz) => ({
+      nombre: raiz.querySelector<HTMLInputElement>('[data-nombre]')!.value,
+      conFormulario: raiz.querySelector<HTMLInputElement>('[data-formulario]')!.checked,
+    })
+  ) as Promise<{ nombre: string; conFormulario: boolean } | null>;
+}
+
 export function confirmar(titulo: string, mensaje: string, etiquetaAceptar = 'Aceptar'): Promise<boolean> {
   return abrir(
     `<div class="ed-modal-tit">${titulo}</div>

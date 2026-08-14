@@ -4,7 +4,7 @@ import { crearLienzo } from './editor/lienzo';
 import { crearElemento, crearElementoCampo, crearElementoImagen, crearElementoTabla, type ClaseSimple } from './editor/elemento';
 import { agregarAlLienzo, elementoDe, reconstruirLienzo, sincronizarGeometria } from './editor/objetosFabric';
 import { mostrarPropiedades, mostrarSinSeleccion } from './ui/panelPropiedades';
-import { confirmar, pedirFilasColumnas, pedirMargenes, pedirNombreArchivo, pedirNuevoProyecto } from './ui/modales';
+import { confirmar, pedirExportarPdf, pedirFilasColumnas, pedirMargenes, pedirNombreArchivo, pedirNuevoProyecto } from './ui/modales';
 import { montarPanelCampos } from './ui/panelCampos';
 import { deshacer, inicializarHistorial, puedeDeshacer, puedeRehacer, registrarSnapshot, rehacer } from './editor/historial';
 import { aplicarConfigPagina, configActual, dibujarGuiaMargenes } from './editor/documento';
@@ -201,6 +201,19 @@ document.getElementById('ed-importar-proyecto')!.addEventListener('click', async
   if (hayTrabajo && !(await confirmar('Importar proyecto', 'Se va a reemplazar el diseño actual. ¿Continuar?', 'Importar'))) return;
   inputProyecto.value = '';
   inputProyecto.click();
+});
+
+document.getElementById('ed-exportar-pdf')!.addEventListener('click', async () => {
+  const opciones = await pedirExportarPdf('documento');
+  if (!opciones) return;
+  try {
+    // pdf-lib y fontkit pesan bastante y solo hacen falta al exportar: se cargan recién acá.
+    const { exportarPdf, descargarPdf } = await import('./editor/exportarPdf');
+    const bytes = await exportarPdf(lienzo, { conFormulario: opciones.conFormulario });
+    descargarPdf(bytes, opciones.nombre);
+  } catch (error) {
+    await confirmar('No se pudo exportar', error instanceof Error ? error.message : 'Ocurrió un error al generar el PDF.', 'Entendido');
+  }
 });
 
 inputProyecto.addEventListener('change', async () => {

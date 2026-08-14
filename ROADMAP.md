@@ -41,11 +41,8 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
 - [ ] Fondo de página (imagen / PDF) — el menú Página del original lo tiene; el caso "PDF" es
       en realidad la puerta de entrada de la fase 2
 - [x] Guardar proyecto (.json) / Importar proyecto (.json)
-- [ ] **Exportar PDF** (con AcroForm real, vía `pdf-lib`). Lo más importante que falta.
-      **Pendiente resolver antes**: las fuentes web se instalan vía `@fontsource`, que solo trae
-      `.woff/.woff2`, y `@pdf-lib/fontkit` necesita `.ttf/.otf`. Hay que decidir entre sumar los
-      `.ttf` al repo o descomprimir woff2 en tiempo de ejecución. Las 3 fuentes estándar del PDF
-      (Helvetica/Times/Courier) no tienen este problema y se pueden exportar ya.
+- [x] **Exportar PDF** con AcroForm real, vía `pdf-lib`. Incrusta las fuentes web (fontkit acepta
+      los `.woff2` de `@fontsource`, no hicieron falta `.ttf`). Opción de exportar aplanado.
 - [ ] Selección múltiple (Ctrl/Shift y recuadro de arrastre) y sus acciones de grupo
 - [ ] Menú Ver: cuadrícula, reglas, guías de alineación (los checkboxes existen, no hacen nada)
 - [ ] Zoom (el control de la barra de estado existe, no hace nada)

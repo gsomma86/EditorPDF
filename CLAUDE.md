@@ -85,6 +85,8 @@ src/
                           márgenes (en 'after:render', no como objeto, para que no se pueda
                           seleccionar ni entre al historial ni al PDF).
     proyecto.ts           Serializar/leer el .json del proyecto (página + elementos + catálogo).
+    exportarPdf.ts        Genera el PDF con pdf-lib. Se carga con import dinámico desde main.ts
+                          porque pesa ~1,5 MB y solo hace falta al exportar.
     lienzo.ts             Crea el canvas de Fabric con el tamaño de página en puntos.
     elemento.ts           EL MODELO. Tipos de cada elemento (texto/linea/rect/qr/tabla/imagen/
                           campo) y sus constructores con valores por defecto.
@@ -175,7 +177,19 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
     `strokeDashArray` y `stroke`: la línea se dibujaba como rectángulo relleno y por eso los
     estilos punteado/doble no hacían nada. Cuando un estilo de trazo tiene que verse, la forma
     tiene que estar trazada, no rellena.
-12. **Las formas de Fabric trazan su borde una sola vez**, así que el estilo "doble" no se puede
+12. **Para incrustar fuentes en el PDF no hacen falta `.ttf`**: fontkit acepta los `.woff2` que ya
+    instala `@fontsource`. Pero **hay que embeber con `subset: false`** — fontkit no puede
+    subsetear fuentes comprimidas y falla con "Index out of range". No es problema: los archivos
+    de fontsource ya vienen separados por alfabeto, así que el "latin" pesa ~20 KB.
+13. **Un mismo ID de campo colocado varias veces es UN campo AcroForm con varias apariencias.**
+    `form.createTextField(nombre)` tira error si el nombre ya existe: hay que crearlo una vez y
+    llamar `addToPage` por cada posición. Repetir un campo es una función del panel, no un caso
+    raro.
+14. **El PDF mide la Y desde abajo y el lienzo desde arriba.** Toda coordenada hay que espejarla
+    (`y.pdf = altoPagina − y.lienzo − altoElemento`), y para el texto la Y del PDF es la línea de
+    base, no el tope de la caja. `drawLine` tampoco acepta rotación: los extremos de una línea
+    con ángulo hay que girarlos a mano alrededor de su centro.
+15. **Las formas de Fabric trazan su borde una sola vez**, así que el estilo "doble" no se puede
     expresar con `strokeDashArray` ni con ninguna propiedad: hay que dibujar dos trazos. Por eso
     línea, recuadro y tabla son objetos propios con `_render`, y el trazado vive compartido en
     `trazos.ts` — si se agrega otra forma con estilos de borde, usar ese helper y no reinventarlo.
