@@ -17,6 +17,7 @@ import { elementoDe } from './objetosFabric';
 import { configActual } from './documento';
 import { dimensionesDe } from './pagina';
 import { bytesDeFuente } from './fuentes';
+import { bytesDelPdf } from './pdfExistente';
 import { generarQr } from './objetosFabric';
 
 export interface OpcionesExportar {
@@ -200,17 +201,22 @@ async function dibujarImagen(doc: PDFDocument, pagina: PDFPage, dataUrl: string,
 
 export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): Promise<Uint8Array> {
   const config = configActual();
-  const { ancho: anchoPagina, alto: altoPagina } = dimensionesDe(config);
 
-  const doc = await PDFDocument.create();
+  // Si hay un PDF abierto, es la base: se dibuja el diseño encima de su contenido real, que sigue
+  // siendo vectorial. Usar de fondo la imagen que se ve en pantalla lo dejaría como una foto.
+  const base = bytesDelPdf();
+  const doc = base ? await PDFDocument.load(base.slice()) : await PDFDocument.create();
   doc.registerFontkit(fontkit);
-  const pagina = doc.addPage([anchoPagina, altoPagina]);
+
+  const pagina = base ? doc.getPage(0) : doc.addPage([dimensionesDe(config).ancho, dimensionesDe(config).alto]);
+  const { width: anchoPagina, height: altoPagina } = pagina.getSize();
   const obtenerFuente = creadorDeFuentes(doc);
   const formulario = doc.getForm();
   const camposCreados = new Map<string, PDFTextField>();
 
-  // El fondo va primero, estirado a toda la hoja, para que todo lo demás quede encima.
-  if (config.fondo) {
+  // El fondo va primero, estirado a toda la hoja, para que todo lo demás quede encima. Con un PDF
+  // de base no corresponde: su propio contenido ya es el fondo, y en mejor calidad.
+  if (config.fondo && !base) {
     const bytes = await fetch(config.fondo).then((r) => r.arrayBuffer());
     const imagen = config.fondo.startsWith('data:image/png') ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
     pagina.drawImage(imagen, { x: 0, y: 0, width: anchoPagina, height: altoPagina });

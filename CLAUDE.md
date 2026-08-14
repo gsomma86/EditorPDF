@@ -257,7 +257,14 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
     el primero deja el texto de varias líneas más comprimido en el PDF que en pantalla. El factor
     vive en `PASO_RENGLON` (`elemento.ts`), en el modelo, porque el exportador no puede depender
     de Fabric.
-22. **Un campo de formulario solo puede rotar en múltiplos de 90°.** El PDF guarda su recuadro
+22. **mupdf mide la Y desde ARRIBA, al revés que el PDF crudo.** Vale para el texto estructurado
+    *y* para el rectángulo de una redacción. Invertirla —el reflejo natural viniendo de pdf-lib,
+    donde la Y va desde abajo— hace que la redacción se aplique sobre la zona espejada: no borra
+    nada, no da ningún error y encima deja el recuadro negro puesto, así que parece que funcionó.
+    Costó un rato encontrarlo. Se cubre con `npm run verificar-pdf`.
+    Además: `applyRedactions(false, 0, 0, 0)` = sin recuadro negro y quitando el texto de verdad;
+    con los valores por defecto pinta el recuadro encima.
+23. **Un campo de formulario solo puede rotar en múltiplos de 90°.** El PDF guarda su recuadro
     siempre derecho y la rotación aparte, en la apariencia (`/MK /R`); pdf-lib directamente tira
     error con cualquier otro ángulo. Se redondea al más cercano y el preflight lo avisa. Aplanado
     no tiene esa limitación, porque ahí se dibuja como cualquier otra forma.

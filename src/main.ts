@@ -454,23 +454,53 @@ inputPdf.addEventListener('change', async () => {
   if (!archivo) return;
 
   try {
-    const { abrirPdf } = await import('./editor/pdfExistente');
+    const { abrirPdf, textosDelPdf } = await import('./editor/pdfExistente');
     const pdf = await abrirPdf(archivo);
 
     // La hoja toma las medidas del PDF, que puede no ser de ningún tamaño del catálogo.
     cambiarPagina({ fondo: pdf.fondo, medidas: { ancho: pdf.ancho, alto: pdf.alto }, ...tamanoParecido(pdf.ancho, pdf.alto) });
 
-    if (pdf.paginas > 1) {
-      await mostrarAyuda(
-        'PDF abierto',
-        `<p>El archivo tiene <b>${pdf.paginas} páginas</b> y por ahora se abre solo la primera: el editor todavía trabaja de a una hoja.</p>
-         <p>La hoja tomó el tamaño del PDF (${pdf.ancho} × ${pdf.alto} pt) y su primera página quedó de fondo, así que ya se puede dibujar y poner campos encima.</p>
-         <p>Editar el texto que ya trae el PDF es el paso siguiente del proyecto; todavía no está disponible.</p>`
-      );
-    }
+    const cuantos = textosDelPdf().length;
+    await mostrarAyuda(
+      'PDF abierto',
+      `<p>La hoja tomó el tamaño del PDF (${pdf.ancho} × ${pdf.alto} pt) y su contenido quedó de base.</p>
+       ${cuantos ? `<p>Se reconocieron <b>${cuantos} textos</b> editables: <b>doble clic sobre cualquiera</b> para reemplazarlo. El original se borra del PDF —no se tapa— y en su lugar queda un texto que se edita como cualquier otro.</p>` : '<p>No se reconoció texto editable: puede ser un PDF escaneado, o sea una imagen.</p>'}
+       ${pdf.paginas > 1 ? `<p>El archivo tiene <b>${pdf.paginas} páginas</b> y por ahora se abre solo la primera.</p>` : ''}`
+    );
   } catch (error) {
     await mostrarAyuda('No se pudo abrir el PDF', `<p>${(error as Error).message}</p><p>Puede estar dañado o protegido con contraseña.</p>`);
   }
+});
+
+/**
+ * Doble clic sobre un texto del PDF de base: se borra del contenido original y se agrega como
+ * elemento del diseño, en el mismo lugar y con el mismo cuerpo, listo para editar. De ahí en más
+ * es un texto común, con todo lo que eso trae (panel, deshacer, exportación).
+ */
+lienzo.on('mouse:dblclick', async (e) => {
+  const { hayPdfAbierto, textoEn, borrarTextoDelPdf } = await import('./editor/pdfExistente');
+  if (!hayPdfAbierto() || e.target) return; // si cayó sobre un objeto, manda el objeto
+
+  const punto = lienzo.getScenePoint(e.e);
+  const original = textoEn(punto.x, punto.y);
+  if (!original) return;
+
+  const fondo = await borrarTextoDelPdf(original);
+  cambiarPagina({ fondo });
+
+  const elemento = crearElemento('texto') as Elemento & { clase: 'texto' };
+  elemento.text = original.texto;
+  elemento.size = original.size;
+  elemento.negrita = original.negrita;
+  elemento.cursiva = original.cursiva;
+  elemento.x = Math.round(original.x);
+  // El modelo mide desde el tope de la caja del texto y el PDF desde su línea de base.
+  elemento.y = Math.round(original.lineaBase - original.size * 0.75);
+
+  const objeto = await agregarAlLienzo(lienzo, elemento);
+  mostrarPropiedades(espacio.panelPropiedades, lienzo, objeto);
+  registrarSnapshot(lienzo);
+  guardar();
 });
 
 selFondo.addEventListener('change', () => {

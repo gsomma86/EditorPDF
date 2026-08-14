@@ -75,8 +75,15 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
       toma las medidas de su primera página y esa página queda de fondo, así que ya se puede
       dibujar y poner campos encima. Los bytes originales quedan en memoria (`pdfExistente.ts`),
       que son la materia prima del paso siguiente. Falta: más de una página (hoy solo la primera).
-- [ ] Detectar y editar texto existente in-place (Redact + reinserción con la fuente original o de reemplazo)
+- [x] **Detectar y editar texto existente in-place.** Doble clic sobre un texto del PDF: se borra
+      del contenido real con una redacción de mupdf —no se tapa, `npm run verificar-pdf` lo
+      comprueba— y en su lugar queda un texto del diseño, editable como cualquier otro. Al
+      exportar, el PDF editado es la base, así que lo que ya traía sigue siendo vectorial.
+- [ ] Afinar el reemplazo: hoy el texto nuevo se coloca estimando la ascendente en 0,75 × el
+      cuerpo, y usa la tipografía elegida en el panel en vez de la original del PDF
 - [ ] Manejo de fuentes subseteadas (fallback cuando falta un glifo)
+- [ ] Que el PDF de base sobreviva a recargar la página: hoy vive en memoria y el proyecto guarda
+      solo el diseño
 
 ## Fase 3 — Edición real de formas preexistentes
 
