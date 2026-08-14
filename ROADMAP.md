@@ -16,7 +16,7 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
 - [x] Shell de la app: encabezado, barra de menús, layout de paneles, barra de estado
 - [x] Lienzo en blanco (Fabric.js) con tamaño de página real en puntos
 - [x] Herramientas de dibujo: Texto, Línea, Recuadro, QR (crear, seleccionar, editar propiedades, eliminar)
-- [ ] Herramientas de dibujo: Tabla, Imagen
+- [x] Herramientas de dibujo: Tabla, Imagen
 - [ ] Campos AcroForm (panel izquierdo: catálogo de IDs, colocar como campo interactivo en la hoja)
 - [ ] Deshacer / rehacer
 - [ ] Modal Nuevo proyecto (tamaño, orientación, márgenes)
