@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, degrees, rgb, type PDFFont, type PDFPage, type PDFTextField, type RGB } from '@cantoo/pdf-lib';
+import { PDFDocument, StandardFonts, TextAlignment, degrees, rgb, type PDFFont, type PDFPage, type PDFTextField, type RGB } from '@cantoo/pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import type { Canvas } from 'fabric';
 import { anchoTotalTabla, altoTotalTabla, pasoDeRenglon, PASO_RENGLON, type Elemento, type ElementoLinea, type ElementoTabla, type EstiloLinea } from './elemento';
@@ -279,7 +279,9 @@ export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): P
             const paso = el.size * PASO_RENGLON;
             const primero = el.multilinea ? el.size : (el.h + el.size) / 2;
             renglones.forEach((renglon, i) => {
-              const linea = ubi.punto(2, primero + i * paso);
+              const anchoRenglon = fuente.widthOfTextAtSize(renglon, el.size);
+              const izquierda = el.align === 'right' ? el.w - anchoRenglon - 2 : el.align === 'center' ? (el.w - anchoRenglon) / 2 : 2;
+              const linea = ubi.punto(izquierda, primero + i * paso);
               pagina.drawText(renglon, { ...linea, size: el.size, font: fuente, color: color(el.color), rotate: ubi.grados });
             });
           }
@@ -291,6 +293,7 @@ export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): P
         let campo = camposCreados.get(el.name);
         if (!campo) {
           campo = formulario.createTextField(el.name);
+          campo.setAlignment(el.align === 'right' ? TextAlignment.Right : el.align === 'center' ? TextAlignment.Center : TextAlignment.Left);
           if (el.multilinea) campo.enableMultiline();
           if (el.defaultValue) campo.setText(el.defaultValue);
           if (el.readonly) campo.enableReadOnly();

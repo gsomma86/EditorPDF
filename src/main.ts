@@ -39,6 +39,18 @@ function guardar(): void {
   programarPeso();
 }
 
+/**
+ * Lo que se cambia desde el panel de propiedades no pasa por ningún evento del lienzo, así que
+ * sin esto no se autoguardaba nada: al recargar se perdían el color, la alineación, la separación
+ * entre letras y todo lo demás. Se escucha en el panel porque input/change/click burbujean: vale
+ * para todos sus controles y para los que se agreguen después, sin avisar en cada handler.
+ * No registra un paso en el historial: tipear o arrastrar un color no genera uno, igual que en el
+ * editor público (ver `registrarSnapshot`).
+ */
+for (const evento of ['input', 'change', 'click']) {
+  espacio.panelPropiedades.addEventListener(evento, () => guardar());
+}
+
 let temporizadorPeso: number | undefined;
 let generacionPeso = 0;
 

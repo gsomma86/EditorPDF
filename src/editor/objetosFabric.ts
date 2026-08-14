@@ -169,7 +169,11 @@ export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObjec
         strokeDashArray: esInvisible ? [4, 3] : undefined,
       });
       const etiqueta = new FabricText(elemento.name, {
-        left: 4,
+        // La etiqueta se ancla en el lado que marca la alineación del campo, para que se vea en
+        // pantalla dónde va a quedar el texto. `textAlign` no alcanza: solo reparte los renglones
+        // dentro de la caja del texto, que acá mide lo mismo que la etiqueta.
+        left: elemento.align === 'right' ? elemento.w - 4 : elemento.align === 'center' ? elemento.w / 2 : 4,
+        originX: elemento.align === 'right' ? 'right' : elemento.align === 'center' ? 'center' : 'left',
         top: elemento.h / 2,
         originY: 'center',
         fontSize: elemento.size,
