@@ -71,7 +71,10 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
 
 ## Fase 2 — Edición real de texto preexistente
 
-- [ ] Abrir un PDF de otra herramienta (mupdf.js)
+- [x] **Abrir un PDF de otra herramienta y verlo.** Archivo → Abrir PDF: se lee con pdf.js, la hoja
+      toma las medidas de su primera página y esa página queda de fondo, así que ya se puede
+      dibujar y poner campos encima. Los bytes originales quedan en memoria (`pdfExistente.ts`),
+      que son la materia prima del paso siguiente. Falta: más de una página (hoy solo la primera).
 - [ ] Detectar y editar texto existente in-place (Redact + reinserción con la fuente original o de reemplazo)
 - [ ] Manejo de fuentes subseteadas (fallback cuando falta un glifo)
 

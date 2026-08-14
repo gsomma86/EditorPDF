@@ -2,7 +2,7 @@ import type { Canvas } from 'fabric';
 import { anchoTotalTabla, altoTotalTabla, nombresDeCampo, pasoRepeticion, type Elemento } from './elemento';
 import { elementoDe } from './objetosFabric';
 import { configActual } from './documento';
-import { dimensionesPagina } from './pagina';
+import { dimensionesDe } from './pagina';
 
 export interface Hallazgo {
   gravedad: 'error' | 'advertencia';
@@ -31,7 +31,7 @@ export function verificarDiseno(lienzo: Canvas): Hallazgo[] {
 
   const hallazgos: Hallazgo[] = [];
   const config = configActual();
-  const { ancho: anchoPagina, alto: altoPagina } = dimensionesPagina(config.tamano, config.orientacion);
+  const { ancho: anchoPagina, alto: altoPagina } = dimensionesDe(config);
   const m = config.margenes;
 
   if (!elementos.length) {

@@ -69,7 +69,8 @@ export function pedirNuevoProyecto(actual: ConfigPagina): Promise<ConfigPagina |
       tamano: raiz.querySelector<HTMLSelectElement>('[data-tamano]')!.value as TamanoPagina,
       orientacion: raiz.querySelector<HTMLSelectElement>('[data-orient]')!.value as Orientacion,
       margenes: leerMargenes(raiz),
-      fondo: null, // un diseño nuevo arranca con la hoja en blanco
+      fondo: null, // un diseño nuevo arranca con la hoja en blanco, y con un tamaño del catálogo
+      medidas: null,
     })
   ) as Promise<ConfigPagina | null>;
 }

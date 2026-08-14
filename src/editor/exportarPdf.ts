@@ -15,7 +15,7 @@ import {
 } from './elemento';
 import { elementoDe } from './objetosFabric';
 import { configActual } from './documento';
-import { dimensionesPagina } from './pagina';
+import { dimensionesDe } from './pagina';
 import { bytesDeFuente } from './fuentes';
 import { generarQr } from './objetosFabric';
 
@@ -200,7 +200,7 @@ async function dibujarImagen(doc: PDFDocument, pagina: PDFPage, dataUrl: string,
 
 export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): Promise<Uint8Array> {
   const config = configActual();
-  const { ancho: anchoPagina, alto: altoPagina } = dimensionesPagina(config.tamano, config.orientacion);
+  const { ancho: anchoPagina, alto: altoPagina } = dimensionesDe(config);
 
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);

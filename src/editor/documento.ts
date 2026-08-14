@@ -1,5 +1,5 @@
 import { FabricImage, type Canvas } from 'fabric';
-import { configPorDefecto, dimensionesPagina, type ConfigPagina } from './pagina';
+import { configPorDefecto, dimensionesDe, type ConfigPagina } from './pagina';
 import { establecerAreaUtil } from './elemento';
 import { refrescarLienzo } from './vista';
 
@@ -15,7 +15,7 @@ export function configActual(): ConfigPagina {
  */
 export function aplicarConfigPagina(lienzo: Canvas, nueva: ConfigPagina): void {
   config = nueva;
-  const { ancho, alto } = dimensionesPagina(nueva.tamano, nueva.orientacion);
+  const { ancho, alto } = dimensionesDe(nueva);
   establecerAreaUtil(ancho, alto, nueva.margenes);
   refrescarLienzo(lienzo);
   void aplicarFondo(lienzo);
@@ -33,7 +33,7 @@ export async function aplicarFondo(lienzo: Canvas): Promise<void> {
     return;
   }
 
-  const { ancho, alto } = dimensionesPagina(config.tamano, config.orientacion);
+  const { ancho, alto } = dimensionesDe(config);
   const imagen = await FabricImage.fromURL(config.fondo);
   imagen.set({
     originX: 'left',

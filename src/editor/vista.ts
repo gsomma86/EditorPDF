@@ -1,6 +1,6 @@
 import type { Canvas, FabricObject } from 'fabric';
 import { configActual } from './documento';
-import { dimensionesPagina } from './pagina';
+import { dimensionesDe } from './pagina';
 import { pasoRepeticion } from './elemento';
 import { elementoDe } from './objetosFabric';
 
@@ -28,7 +28,7 @@ let guiasY: number[] = [];
 
 export function tamanoPaginaActual(): { ancho: number; alto: number } {
   const config = configActual();
-  return dimensionesPagina(config.tamano, config.orientacion);
+  return dimensionesDe(config);
 }
 
 /** Ajusta el tamaño del canvas al de la hoja por el zoom. Llamar tras cambiar página o zoom. */

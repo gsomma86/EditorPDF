@@ -7,14 +7,14 @@ import { mostrarMultiSeleccion, mostrarPropiedades, mostrarSinSeleccion } from '
 import { ActiveSelection, type FabricObject } from 'fabric';
 import { borrarAutoguardado, hayAutoguardado, programarAutoguardado, restaurarAutoguardado } from './editor/autoguardado';
 import { camposDesdeCsv, csvDesdeCampos, descargarCsv } from './editor/csvCampos';
-import { confirmar, mostrarPreflight, pedirExportarPdf, pedirFilasColumnas, pedirMargenes, pedirNombreArchivo, pedirNuevoProyecto } from './ui/modales';
+import { confirmar, mostrarAyuda, mostrarPreflight, pedirExportarPdf, pedirFilasColumnas, pedirMargenes, pedirNombreArchivo, pedirNuevoProyecto } from './ui/modales';
 import { formatearPeso, pesoDelPdf, verificarDiseno } from './editor/preflight';
 import { montarPanelCampos } from './ui/panelCampos';
 import { cablearAyuda } from './ui/ayuda';
 import { deshacer, inicializarHistorial, puedeDeshacer, puedeRehacer, registrarSnapshot, rehacer } from './editor/historial';
 import { aplicarConfigPagina, configActual } from './editor/documento';
 import { activarVista, configurarVista, establecerZoom, vistaActual } from './editor/vista';
-import { configPorDefecto, type Orientacion, type TamanoPagina } from './editor/pagina';
+import { configPorDefecto, tamanoParecido, type Orientacion, type TamanoPagina } from './editor/pagina';
 import { cargarProyecto, descargarProyecto, leerProyecto, serializarProyecto } from './editor/proyecto';
 
 const raiz = document.querySelector<HTMLDivElement>('#app')!;
@@ -423,6 +423,46 @@ inputFondo.addEventListener('change', async () => {
     lector.readAsDataURL(archivo);
   });
   cambiarPagina({ fondo });
+});
+
+// ---------- Abrir un PDF existente ----------
+
+const inputPdf = document.createElement('input');
+inputPdf.type = 'file';
+inputPdf.accept = 'application/pdf';
+inputPdf.style.display = 'none';
+document.body.appendChild(inputPdf);
+
+document.getElementById('ed-abrir-pdf')!.addEventListener('click', async () => {
+  if (lienzo.getObjects().length && !(await confirmar('Abrir PDF', 'El PDF va a quedar de fondo y la hoja va a tomar su tamaño. El diseño actual se conserva encima. ¿Continuar?', 'Abrir'))) {
+    return;
+  }
+  inputPdf.value = '';
+  inputPdf.click();
+});
+
+inputPdf.addEventListener('change', async () => {
+  const archivo = inputPdf.files?.[0];
+  if (!archivo) return;
+
+  try {
+    const { abrirPdf } = await import('./editor/pdfExistente');
+    const pdf = await abrirPdf(archivo);
+
+    // La hoja toma las medidas del PDF, que puede no ser de ningún tamaño del catálogo.
+    cambiarPagina({ fondo: pdf.fondo, medidas: { ancho: pdf.ancho, alto: pdf.alto }, ...tamanoParecido(pdf.ancho, pdf.alto) });
+
+    if (pdf.paginas > 1) {
+      await mostrarAyuda(
+        'PDF abierto',
+        `<p>El archivo tiene <b>${pdf.paginas} páginas</b> y por ahora se abre solo la primera: el editor todavía trabaja de a una hoja.</p>
+         <p>La hoja tomó el tamaño del PDF (${pdf.ancho} × ${pdf.alto} pt) y su primera página quedó de fondo, así que ya se puede dibujar y poner campos encima.</p>
+         <p>Editar el texto que ya trae el PDF es el paso siguiente del proyecto; todavía no está disponible.</p>`
+      );
+    }
+  } catch (error) {
+    await mostrarAyuda('No se pudo abrir el PDF', `<p>${(error as Error).message}</p><p>Puede estar dañado o protegido con contraseña.</p>`);
+  }
 });
 
 selFondo.addEventListener('change', () => {
