@@ -74,6 +74,7 @@ npm run dev              # servidor de desarrollo en http://localhost:5173
 npm run build            # build de producción
 npx tsc --noEmit         # chequeo de tipos (correr siempre antes de commitear)
 npm run verificar-export # compara el PDF exportado contra lo que dibuja el lienzo (headless)
+npm run medir-rendimiento # cuánto tarda el lienzo con 50, 200, 500 y 1000 elementos
 ```
 
 `verificar-export` es la red de seguridad del exportador y **conviene correrlo ante cualquier
@@ -126,8 +127,14 @@ src/
                           al frente, enviar atrás) y el panel de selección múltiple.
     panelCampos.ts        Panel izquierdo: catálogo de IDs de campos AcroForm.
     modales.ts            Todos los modales (nuevo proyecto, márgenes, nombre de archivo,
-                          filas × columnas, exportar, preflight, ayuda, confirmación). Usar
-                          `abrir()` de acá para cualquier modal nuevo en vez de armar otro sistema.
+                          filas × columnas, campo repetible, exportar, preflight, ayuda,
+                          confirmación). Usar `abrir()` de acá para cualquier modal nuevo en
+                          vez de armar otro sistema; su tercer parámetro corre con el modal ya
+                          en pantalla, para los que muestran algo en vivo al escribir.
+    ayuda.ts              Los textos del menú Ayuda, separados del mecanismo a propósito: es
+                          el archivo a traducir cuando se sume el multiidioma.
+pruebas/                  Arneses headless, fuera del build. `casos.ts` tiene los casos: uno
+                          los dibuja con Fabric y el otro los exporta a PDF, y se comparan.
 ```
 
 **Arquitectura**: el modelo (`elemento.ts`) es la fuente de verdad; los objetos de Fabric son su
@@ -236,8 +243,24 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
     día se cambia el origen de los objetos, esa función hay que revisarla junto.
 18. **Los adornos de edición van en el lienzo y nunca en el modelo.** El contorno azul de los
     campos AcroForm existe solo para poder verlos y agarrarlos mientras se edita; no llega al PDF
-    porque el exportador lee el modelo, no el lienzo. Es el mismo criterio que la cuadrícula y los
-    márgenes (ver `vista.ts`).
+    porque el exportador lee el modelo, no el lienzo. Es el mismo criterio que la cuadrícula, los
+    márgenes y los fantasmas de un campo repetible (ver `vista.ts`).
+19. **Mover un objeto de Fabric no es cambiar el diseño: hay que volcarlo al modelo.** Lo que se
+    guarda, lo que entra al historial y lo que se exporta sale del modelo, así que un `objeto.set()`
+    suelto se pierde al recargar. Ya pasó dos veces: alinear una selección múltiple y rotar dentro
+    de un grupo. Después de mover objetos a mano, llamar a `sincronizarGeometria`.
+20. **Lo que se toca en el panel de propiedades tampoco pasa por ningún evento del lienzo.** El
+    autoguardado se dispara desde `main.ts`, que escucha `input`/`change`/`click` sobre el panel
+    entero —los eventos burbujean— justamente para no tener que acordarse en cada handler. Si se
+    agrega otro panel, necesita el mismo enganche.
+21. **Fabric separa los renglones por `lineHeight` (1,16) POR `_fontSizeMult` (1,13).** Usar solo
+    el primero deja el texto de varias líneas más comprimido en el PDF que en pantalla. El factor
+    vive en `PASO_RENGLON` (`elemento.ts`), en el modelo, porque el exportador no puede depender
+    de Fabric.
+22. **Un campo de formulario solo puede rotar en múltiplos de 90°.** El PDF guarda su recuadro
+    siempre derecho y la rotación aparte, en la apariencia (`/MK /R`); pdf-lib directamente tira
+    error con cualquier otro ángulo. Se redondea al más cercano y el preflight lo avisa. Aplanado
+    no tiene esa limitación, porque ahí se dibuja como cualquier otra forma.
 
 ## Cómo verificar cambios
 
@@ -252,10 +275,11 @@ es mucho más confiable que estimar coordenadas mirando una captura.
 
 ## Estado y próximos pasos
 
-Ver [ROADMAP.md](ROADMAP.md). Resumen: **fase 1 (MVP) en curso**. Ya están el espacio de trabajo,
-todas las herramientas de dibujo, los campos AcroForm y deshacer/rehacer. Faltan: modal Nuevo
-proyecto, guardar/importar proyecto (.json), **exportar PDF** (la pieza más importante que falta,
-y la que habilita conectar las fuentes web vía `@pdf-lib/fontkit`), y rendimiento.
+Ver [ROADMAP.md](ROADMAP.md). Resumen: **fase 1 (MVP) casi terminada**. Están el espacio de
+trabajo, todas las herramientas de dibujo, los campos AcroForm completos (repetibles incluidos),
+deshacer/rehacer, guardar/importar proyecto, exportar PDF verificado contra el lienzo, fondo de
+hoja, ayuda y rendimiento medido. **Falta solo el multiidioma ES/EN/PT**, que conviene hacer
+último porque toca cada texto de la interfaz.
 
 Fases 2 y 3 (editar texto y formas de PDFs preexistentes) tienen una prueba de concepto ya
 validada — ver la sección Fase 0 del roadmap.

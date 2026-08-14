@@ -4,6 +4,7 @@ dist/
 # Arneses de verificación: se regeneran con `npm run verificar-export`
 pruebas/dist/
 pruebas/dist-fabric/
+pruebas/dist-rend/
 pruebas/salida/
 
 .env

@@ -36,30 +36,38 @@ dos apariencias. Quedan dos pendientes reales que esa corrida dejó a la vista:
   lienzo (7 pt con cuerpo 40). La medición usa fuentes sustituidas, así que **hay que confirmarlo
   en el navegador con una fuente real antes de tocar la fórmula** de `exportarPdf.ts`.
 
+## Estado al 14/08, tercera tanda
+
+De la Fase 1 **falta solo el multiidioma**. En esta tanda entraron, además de los cuatro bugs de
+arriba: rotación en todos los elementos (con control en el panel y en la selección múltiple),
+texto vertical con separación regulable, texto y campos de varias líneas, campo repetible con
+comodín, modo "Completar campos", modales de Ayuda, fondo de hoja con imagen, los atajos que
+faltaban (copiar/cortar/pegar, seleccionar todo, borrar, mover con flechas) y el peso del PDF
+recalculándose solo.
+
+El rendimiento ya está medido y **no hace falta optimizar nada**: `npm run medir-rendimiento` da
+1000 elementos armando en 86 ms y redibujando en ~21 ms (unos 48 cuadros por segundo), contra los
+~200 elementos que tiene una hoja A4 bien llena.
+
+Dos cosas que conviene tener presentes al probar:
+
+- **Los campos de formulario solo rotan en múltiplos de 90°.** Es del formato PDF, no nuestro. Con
+  otro ángulo, al exportar con campos editables se redondea y el preflight avisa; aplanado sale
+  con el ángulo exacto.
+- **Cambiar tamaño, orientación, márgenes o fondo no se deshace con Ctrl+Z**: el historial guarda
+  los elementos del diseño, no la configuración de la página.
+
 ## Lo que falta de la Fase 1
 
-En orden sugerido, de menor a mayor esfuerzo. El detalle completo está en [ROADMAP.md](ROADMAP.md).
+**Multiidioma ES/EN/PT**, y nada más. Es el más grande porque toca cada texto de la interfaz, y
+por eso se dejó último: recién ahora dejaron de agregarse strings nuevos. El selector de idioma ya
+está en el encabezado pero no hace nada. El original tiene su diccionario en `i18n.js`, que puede
+servir de base para no traducir todo de cero. Los textos largos (guía, atajos, preguntas
+frecuentes, acerca de) están juntos en `ui/ayuda.ts`, así que esa parte es un archivo solo.
 
-1. **Modo "Completar campos"** — el checkbox existe en el menú Campos (`#ed-completar`) pero no
-   está cableado. En el editor público, al activarlo cada campo del lienzo se vuelve un input
-   donde se puede escribir un valor de ejemplo. Sirve para previsualizar cómo va a quedar.
-2. **Modales de Ayuda** — los seis ítems del menú Ayuda no hacen nada. Ya existe el helper
-   `mostrarAyuda(titulo, html)` en `ui/modales.ts` con su CSS (`.ed-ayuda`), listo para usar:
-   solo falta escribir los contenidos y cablear los clics. Los textos del original están en
-   `index.html` del editor público (buscar `ed-modal-ayuda-*`).
-3. **Campo repetible (comodín `#`)** — es la única función de campos AcroForm que falta. En el
-   original, un campo cuyo ID contiene `#` se expande en N filas (`concepto_1`, `concepto_2`, …)
-   separadas por un paso configurable, y se dibujan "fantasmas" en el lienzo para verlas. Ver
-   `repFilas` / `repSep` en el `editor.js` original.
-4. **Fondo de página (imagen)** — el menú Página del original tiene "Fondo: hoja en blanco /
-   imagen / PDF". La parte de **imagen** entra en fase 1; la de **PDF** es en realidad la puerta
-   de entrada de la fase 2, así que no mezclar.
-5. **Rendimiento con documentos grandes** — todavía sin medir. Probar con un diseño de 200+
-   elementos antes de decidir si hace falta optimizar algo.
-6. **Multiidioma ES/EN/PT** — el más grande: toca cada texto de la interfaz. Conviene hacerlo
-   **último**, cuando ya no se agreguen strings nuevos. El selector de idioma ya está en el
-   encabezado pero no hace nada. El original tiene su diccionario en `i18n.js`, que puede servir
-   de base para no traducir todo de cero.
+Después de eso, la Fase 1 queda cerrada y sigue la **fase 2**: abrir un PDF hecho en otra
+herramienta y editar su texto. El ítem "Abrir PDF…" ya existe en el menú Archivo pero todavía no
+hace nada, y el fondo de hoja de tipo PDF es su otra puerta de entrada.
 
 ## Deudas técnicas conocidas
 

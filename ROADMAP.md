@@ -38,8 +38,8 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
 - [x] Deshacer / rehacer (Ctrl+Z / Ctrl+Y)
 - [x] Modal Nuevo proyecto (tamaño, orientación, márgenes)
 - [x] Cambiar tamaño/orientación de página desde el menú Página, y márgenes visibles en la hoja
-- [ ] Fondo de página (imagen / PDF) — el menú Página del original lo tiene; el caso "PDF" es
-      en realidad la puerta de entrada de la fase 2
+- [x] Fondo de página con **imagen**. El caso "PDF" queda para la fase 2: es en realidad su puerta
+      de entrada.
 - [x] Guardar proyecto (.json) / Importar proyecto (.json)
 - [x] **Exportar PDF** con AcroForm real, vía `pdf-lib`. Opción de exportar aplanado. Verificado
       contra el lienzo con `npm run verificar-export`: texto, líneas (incluidas las rotadas),
@@ -57,12 +57,17 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
 - [x] Autoguardado en localStorage, con opción de retomar al abrir
 - [x] Importar/exportar catálogo de campos en CSV
 - [x] Verificar diseño (preflight) y peso real del PDF
-- [ ] Modo "Completar campos" — el checkbox `#ed-completar` existe pero no está cableado
-- [ ] Modales de Ayuda (guía rápida, atajos, FAQ, acerca de) — el helper `mostrarAyuda()` y su CSS
-      ya están listos en `ui/modales.ts`; falta escribir los contenidos y cablear los clics
-- [ ] Campo repetible con comodín `#` (expansión en filas) — lo único que falta de AcroForm
+- [x] Modo "Completar campos": cada campo se vuelve una caja editable sobre la hoja para escribirle
+      un valor y ver cómo queda
+- [x] Modales de Ayuda (guía rápida, atajos, FAQ, acerca de), en `ui/ayuda.ts`
+- [x] Campo repetible con comodín `#` (expansión en filas) — completa AcroForm
+- [x] Rotación en todos los elementos, con control en el panel y en la selección múltiple
+- [x] Texto vertical (una letra por renglón), separación entre renglones y texto de varias líneas
+- [x] Atajos que faltaban: copiar/cortar/pegar, seleccionar todo, borrar, mover con las flechas
+- [x] Rendimiento con documentos grandes — **medido, no hace falta optimizar**. Con
+      `npm run medir-rendimiento`: 1000 elementos (5 hojas A4 llenas) arman en 86 ms y redibujan
+      en ~21 ms, o sea unos 48 cuadros por segundo. Una hoja llena de verdad ronda los 200.
 - [ ] Multiidioma ES/EN/PT — el más grande, conviene dejarlo último (ver TRASPASO.md)
-- [ ] Rendimiento con documentos grandes — sin medir todavía
 
 ## Fase 2 — Edición real de texto preexistente
 
