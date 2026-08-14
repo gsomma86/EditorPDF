@@ -13,6 +13,7 @@ import { montarPanelCampos } from './ui/panelCampos';
 import { cablearAyuda } from './ui/ayuda';
 import { montarColumnas } from './ui/columnas';
 import { deshacer, inicializarHistorial, puedeDeshacer, puedeRehacer, registrarSnapshot, rehacer } from './editor/historial';
+import { t, type ClaveI18n } from './ui/i18n';
 import { aplicarConfigPagina, configActual } from './editor/documento';
 import { activarVista, configurarVista, establecerZoom, vistaActual } from './editor/vista';
 import { configPorDefecto, tamanoParecido, type Orientacion, type TamanoPagina } from './editor/pagina';
@@ -66,15 +67,18 @@ let generacionPeso = 0;
 function programarPeso(): void {
   const boton = document.getElementById('ed-peso-btn');
   if (!boton) return;
+  // Se saca data-i18n: el texto pasa a tener un valor calculado (o un error) que ese atributo no
+  // puede representar, así que de acá en más lo mantiene este código y no el barrido de idioma.
+  boton.removeAttribute('data-i18n');
   clearTimeout(temporizadorPeso);
-  boton.textContent = 'Peso: …';
+  boton.textContent = t('shell.status.pesoCalculando');
   temporizadorPeso = window.setTimeout(async () => {
     const generacion = ++generacionPeso;
     try {
       const peso = formatearPeso(await pesoDelPdf(lienzo));
-      if (generacion === generacionPeso) boton.textContent = `Peso: ${peso}`;
+      if (generacion === generacionPeso) boton.textContent = t('shell.status.pesoValor', { peso });
     } catch {
-      if (generacion === generacionPeso) boton.textContent = 'Peso: no se pudo calcular';
+      if (generacion === generacionPeso) boton.textContent = t('shell.status.pesoError');
     }
   }, 800);
 }
@@ -415,8 +419,12 @@ function reflejarPagina(): void {
   selTamano.value = config.tamano;
   selOrient.value = config.orientacion;
   selFondo.value = config.fondo ? 'imagen' : 'blanco';
-  estadoTam.textContent = config.tamano;
-  estadoOrient.textContent = config.orientacion === 'horizontal' ? 'Horizontal' : 'Vertical';
+  // Se guarda la clave en data-i18n (no solo el texto ya traducido): así, si más tarde se cambia
+  // de idioma sin volver a tocar la página, el barrido de aplicarIdioma() sabe qué re-traducir.
+  estadoTam.dataset.i18n = `pagina.tamano.${config.tamano}`;
+  estadoTam.textContent = t(estadoTam.dataset.i18n as ClaveI18n);
+  estadoOrient.dataset.i18n = config.orientacion === 'horizontal' ? 'pagina.orientacion.horizontal' : 'pagina.orientacion.vertical';
+  estadoOrient.textContent = t(estadoOrient.dataset.i18n as ClaveI18n);
 }
 
 function cambiarPagina(cambio: Partial<ReturnType<typeof configActual>>): void {
@@ -456,7 +464,10 @@ inputPdf.style.display = 'none';
 document.body.appendChild(inputPdf);
 
 document.getElementById('ed-abrir-pdf')!.addEventListener('click', async () => {
-  if (lienzo.getObjects().length && !(await confirmar('Abrir PDF', 'El PDF va a quedar de fondo y la hoja va a tomar su tamaño. El diseño actual se conserva encima. ¿Continuar?', 'Abrir'))) {
+  if (
+    lienzo.getObjects().length &&
+    !(await confirmar(t('confirmar.abrirPdf.titulo'), t('confirmar.abrirPdf.mensaje'), t('confirmar.abrirPdf.aceptar')))
+  ) {
     return;
   }
   inputPdf.value = '';
@@ -476,17 +487,17 @@ inputPdf.addEventListener('change', async () => {
 
     const cuantos = textosDelPdf().length;
     await mostrarAyuda(
-      'PDF abierto',
-      `<p>La hoja tomó el tamaño del PDF (${pdf.ancho} × ${pdf.alto} pt) y su contenido quedó de base.</p>
+      t('ayuda.pdfAbierto.titulo'),
+      `<p>${t('ayuda.pdfAbierto.tamano', { ancho: pdf.ancho, alto: pdf.alto })}</p>
        ${
          cuantos
-           ? `<p>Se ${cuantos === 1 ? 'reconoció <b>1 texto editable</b>' : `reconocieron <b>${cuantos} textos editables</b>`}: <b>doble clic</b> sobre cualquiera para reemplazarlo. El original se borra del PDF —no se tapa— y en su lugar queda un texto que se edita como cualquier otro.</p>`
-           : '<p>No se reconoció texto editable: puede ser un PDF escaneado, o sea una imagen.</p>'
+           ? `<p>${cuantos === 1 ? t('ayuda.pdfAbierto.textoUno') : t('ayuda.pdfAbierto.textoVarios', { n: cuantos })}${t('ayuda.pdfAbierto.textoResto')}</p>`
+           : `<p>${t('ayuda.pdfAbierto.sinTexto')}</p>`
        }
-       ${pdf.paginas > 1 ? `<p>El archivo tiene <b>${pdf.paginas} páginas</b> y por ahora se abre solo la primera.</p>` : ''}`
+       ${pdf.paginas > 1 ? `<p>${t('ayuda.pdfAbierto.paginas', { n: pdf.paginas })}</p>` : ''}`
     );
   } catch (error) {
-    await mostrarAyuda('No se pudo abrir el PDF', `<p>${(error as Error).message}</p><p>Puede estar dañado o protegido con contraseña.</p>`);
+    await mostrarAyuda(t('ayuda.pdfError.titulo'), `<p>${(error as Error).message}</p><p>${t('ayuda.pdfError.cuerpo')}</p>`);
   }
 });
 
@@ -563,7 +574,7 @@ inputCsv.addEventListener('change', async () => {
   if (!archivo) return;
   const nombres = camposDesdeCsv(await archivo.text());
   if (!nombres.length) {
-    await confirmar('CSV sin campos', 'No se encontró ningún nombre de campo en el archivo.', 'Entendido');
+    await confirmar(t('confirmar.csvSinCampos.titulo'), t('confirmar.csvSinCampos.mensaje'), t('modal.btn.entendido'));
     return;
   }
   // Se suman a los que ya estaban, sin repetir.
@@ -574,7 +585,7 @@ inputCsv.addEventListener('change', async () => {
 document.getElementById('ed-csv-exportar')!.addEventListener('click', async () => {
   const campos = panelCampos.obtenerCatalogo();
   if (!campos.length) {
-    await confirmar('Catálogo vacío', 'Todavía no hay campos en el catálogo para exportar.', 'Entendido');
+    await confirmar(t('confirmar.catalogoVacio.titulo'), t('confirmar.catalogoVacio.mensaje'), t('modal.btn.entendido'));
     return;
   }
   descargarCsv(csvDesdeCampos(campos), 'campos');
@@ -631,11 +642,7 @@ document.getElementById('ed-nuevo')!.addEventListener('click', async () => {
 });
 
 document.getElementById('ed-guardar-proyecto')!.addEventListener('click', async () => {
-  const nombre = await pedirNombreArchivo(
-    'Guardar proyecto',
-    'Se descarga un archivo .json con el diseño completo, para seguir editándolo después o en otra PC.',
-    'proyecto'
-  );
+  const nombre = await pedirNombreArchivo(t('confirmar.guardarProyecto.titulo'), t('confirmar.guardarProyecto.mensaje'), 'proyecto');
   if (nombre === null) return;
   // Con el PDF de base adentro: así el archivo se basta a sí mismo para seguir en otra máquina.
   descargarProyecto(serializarProyecto(lienzo, panelCampos.obtenerCatalogo(), true), nombre);
@@ -649,7 +656,11 @@ document.body.appendChild(inputProyecto);
 
 document.getElementById('ed-importar-proyecto')!.addEventListener('click', async () => {
   const hayTrabajo = lienzo.getObjects().length > 0;
-  if (hayTrabajo && !(await confirmar('Importar proyecto', 'Se va a reemplazar el diseño actual. ¿Continuar?', 'Importar'))) return;
+  if (
+    hayTrabajo &&
+    !(await confirmar(t('confirmar.importarProyecto.titulo'), t('confirmar.importarProyecto.mensaje'), t('confirmar.importarProyecto.aceptar')))
+  )
+    return;
   inputProyecto.value = '';
   inputProyecto.click();
 });
@@ -675,7 +686,11 @@ async function exportarConDialogo(): Promise<void> {
     const bytes = await exportarPdf(lienzo, { conFormulario: opciones.conFormulario, sinApariencias: opciones.sinApariencias });
     descargarPdf(bytes, opciones.nombre);
   } catch (error) {
-    await confirmar('No se pudo exportar', error instanceof Error ? error.message : 'Ocurrió un error al generar el PDF.', 'Entendido');
+    await confirmar(
+      t('confirmar.noSePudoExportar.titulo'),
+      error instanceof Error ? error.message : t('confirmar.noSePudoExportar.generico'),
+      t('modal.btn.entendido')
+    );
   }
 }
 
@@ -694,7 +709,11 @@ inputProyecto.addEventListener('change', async () => {
     reflejarPagina();
     inicializarHistorial(lienzo);
   } catch (error) {
-    await confirmar('No se pudo importar', error instanceof Error ? error.message : 'El archivo no se pudo leer.', 'Entendido');
+    await confirmar(
+      t('confirmar.noSePudoImportar.titulo'),
+      error instanceof Error ? error.message : t('confirmar.noSePudoImportar.generico'),
+      t('modal.btn.entendido')
+    );
   }
 });
 
@@ -710,9 +729,9 @@ document.getElementById('ed-nuevo')!.addEventListener('click', async () => {
 // pisar sin aviso a quien esperaba empezar en blanco.
 if (hayAutoguardado()) {
   const seguir = await confirmar(
-    'Continuar donde dejaste',
-    'Encontramos un diseño guardado automáticamente en este navegador. ¿Querés retomarlo?',
-    'Retomar'
+    t('confirmar.continuarDondeDejaste.titulo'),
+    t('confirmar.continuarDondeDejaste.mensaje'),
+    t('confirmar.continuarDondeDejaste.aceptar')
   );
   const { recuperarPdfGuardado, cerrarPdf, textosDelPdf } = await import('./editor/pdfExistente');
 
@@ -728,8 +747,11 @@ if (hayAutoguardado()) {
     // pero no el PDF, y al exportar salía una foto en vez del original vectorial.
     if (await recuperarPdfGuardado()) {
       const cuantos = textosDelPdf().length;
-      espacio.raiz.querySelector('.ed-status-izq')!.textContent =
-        `PDF de base recuperado${cuantos ? ` — ${cuantos} textos editables con doble clic` : ''}`;
+      // Se saca data-i18n: de otro modo un cambio de idioma posterior pisaría este texto con el
+      // de "Guardado automático...", que es lo que ese atributo apunta a traducir por defecto.
+      const estadoIzq = espacio.raiz.querySelector<HTMLElement>('.ed-status-izq')!;
+      estadoIzq.removeAttribute('data-i18n');
+      estadoIzq.textContent = t('shell.status.pdfRecuperado') + (cuantos ? t('shell.status.pdfRecuperadoTextos', { n: cuantos }) : '');
     }
   } else {
     borrarAutoguardado();
