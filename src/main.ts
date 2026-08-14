@@ -227,6 +227,13 @@ async function accionRehacer(): Promise<void> {
 document.getElementById('ed-undo')?.addEventListener('click', accionDeshacer);
 document.getElementById('ed-redo')?.addEventListener('click', accionRehacer);
 
+// Los ítems del menú Editar hacen exactamente lo mismo que sus atajos: llaman a las mismas
+// funciones. Antes solo existía el atajo, así que el menú parecía roto.
+document.getElementById('ed-seleccionar-todo')!.addEventListener('click', seleccionarTodo);
+document.getElementById('ed-copiar')!.addEventListener('click', () => copiarSeleccion(false));
+document.getElementById('ed-cortar')!.addEventListener('click', () => copiarSeleccion(true));
+document.getElementById('ed-pegar')!.addEventListener('click', () => void pegar());
+
 const FLECHAS: Record<string, [number, number]> = {
   ArrowLeft: [-1, 0],
   ArrowRight: [1, 0],
@@ -285,12 +292,9 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     ayuda.verAtajos();
   } else if (tecla === 'a') {
-    const objetos = lienzo.getObjects();
-    if (!objetos.length) return;
+    if (!lienzo.getObjects().length) return;
     e.preventDefault(); // si no, el navegador selecciona el texto de toda la página
-    lienzo.discardActiveObject();
-    lienzo.setActiveObject(objetos.length === 1 ? objetos[0] : new ActiveSelection([...objetos], { canvas: lienzo }));
-    lienzo.requestRenderAll();
+    seleccionarTodo();
   }
 });
 
@@ -337,6 +341,14 @@ lienzo.on('text:changed', (e) => {
  * tienen forma de viajar por el portapapeles del navegador sin inventar un formato.
  */
 let portapapeles: Elemento[] = [];
+
+function seleccionarTodo(): void {
+  const objetos = lienzo.getObjects();
+  if (!objetos.length) return;
+  lienzo.discardActiveObject();
+  lienzo.setActiveObject(objetos.length === 1 ? objetos[0] : new ActiveSelection([...objetos], { canvas: lienzo }));
+  lienzo.requestRenderAll();
+}
 
 function seleccionados(): FabricObject[] {
   const activo = lienzo.getActiveObject();

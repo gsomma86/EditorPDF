@@ -11,9 +11,11 @@ const MENU_ARCHIVO = `
 const MENU_EDITAR = `
   <div class="ed-dd-item" id="ed-undo">Deshacer <span class="ed-dd-tecla">Ctrl+Z</span></div>
   <div class="ed-dd-item" id="ed-redo">Rehacer <span class="ed-dd-tecla">Ctrl+Y</span></div>
-  <div class="ed-dd-item">Seleccionar todo <span class="ed-dd-tecla">Ctrl+A</span></div>
-  <div class="ed-dd-item">Copiar <span class="ed-dd-tecla">Ctrl+C</span></div>
-  <div class="ed-dd-item">Pegar <span class="ed-dd-tecla">Ctrl+V</span></div>
+  <div class="ed-dd-sep"></div>
+  <div class="ed-dd-item" id="ed-seleccionar-todo">Seleccionar todo <span class="ed-dd-tecla">Ctrl+A</span></div>
+  <div class="ed-dd-item" id="ed-cortar">Cortar <span class="ed-dd-tecla">Ctrl+X</span></div>
+  <div class="ed-dd-item" id="ed-copiar">Copiar <span class="ed-dd-tecla">Ctrl+C</span></div>
+  <div class="ed-dd-item" id="ed-pegar">Pegar <span class="ed-dd-tecla">Ctrl+V</span></div>
 `;
 
 const MENU_VER = `
