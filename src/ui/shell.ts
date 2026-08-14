@@ -1,0 +1,162 @@
+const MENU_ARCHIVO = `
+  <div class="ed-dd-item">Nuevo proyecto</div>
+  <div class="ed-dd-item">Abrir PDF…</div>
+  <div class="ed-dd-item">Importar proyecto (.json)…</div>
+  <div class="ed-dd-sep"></div>
+  <div class="ed-dd-item">Guardar proyecto…</div>
+  <div class="ed-dd-item">Verificar diseño</div>
+  <div class="ed-dd-item">Exportar PDF…</div>
+`;
+
+const MENU_EDITAR = `
+  <div class="ed-dd-item" id="ed-undo">Deshacer <span class="ed-dd-tecla">Ctrl+Z</span></div>
+  <div class="ed-dd-item" id="ed-redo">Rehacer <span class="ed-dd-tecla">Ctrl+Y</span></div>
+  <div class="ed-dd-item">Seleccionar todo <span class="ed-dd-tecla">Ctrl+A</span></div>
+  <div class="ed-dd-item">Copiar <span class="ed-dd-tecla">Ctrl+C</span></div>
+  <div class="ed-dd-item">Pegar <span class="ed-dd-tecla">Ctrl+V</span></div>
+`;
+
+const MENU_VER = `
+  <label class="ed-dd-check"><input type="checkbox" /> Cuadrícula</label>
+  <label class="ed-dd-check"><input type="checkbox" /> Reglas</label>
+  <label class="ed-dd-check"><input type="checkbox" checked /> Alineación</label>
+`;
+
+const MENU_PAGINA = `
+  <div class="ed-dd-item">Tamaño</div>
+  <div class="ed-dd-item">Orientación</div>
+  <div class="ed-dd-item">Fondo</div>
+  <div class="ed-dd-item">Configurar márgenes…</div>
+`;
+
+const MENU_CAMPOS = `
+  <div class="ed-dd-nota">Dibujo</div>
+  <div class="ed-dd-item" data-dib="texto">✏ Texto</div>
+  <div class="ed-dd-item" data-dib="linea">➖ Línea</div>
+  <div class="ed-dd-item" data-dib="rect">▭ Recuadro</div>
+  <div class="ed-dd-item" data-dib="grilla">▦ Tabla</div>
+  <div class="ed-dd-item" data-dib="imagen">🖼 Imagen</div>
+  <div class="ed-dd-item" data-dib="qr">▪ QR</div>
+  <div class="ed-dd-sep"></div>
+  <div class="ed-dd-item">⬆ Importar campos (CSV)</div>
+  <div class="ed-dd-item">⬇ Exportar campos (CSV)</div>
+  <div class="ed-dd-sep"></div>
+  <label class="ed-dd-check"><input type="checkbox" /> Completar campos</label>
+`;
+
+const MENU_AYUDA = `
+  <div class="ed-dd-item">🚀 Guía rápida</div>
+  <div class="ed-dd-item">⌨️ Atajos de teclado</div>
+  <div class="ed-dd-item">❓ Preguntas frecuentes</div>
+  <div class="ed-dd-sep"></div>
+  <div class="ed-dd-item">ℹ️ Acerca de...</div>
+`;
+
+const MENUS: { id: string; etiqueta: string; contenido: string }[] = [
+  { id: 'archivo', etiqueta: 'Archivo', contenido: MENU_ARCHIVO },
+  { id: 'editar', etiqueta: 'Editar', contenido: MENU_EDITAR },
+  { id: 'ver', etiqueta: 'Ver', contenido: MENU_VER },
+  { id: 'pagina', etiqueta: 'Página', contenido: MENU_PAGINA },
+  { id: 'campos', etiqueta: 'Campos', contenido: MENU_CAMPOS },
+  { id: 'ayuda', etiqueta: 'Ayuda', contenido: MENU_AYUDA },
+];
+
+export interface EspacioTrabajo {
+  raiz: HTMLElement;
+  menubar: HTMLElement;
+  lienzoCont: HTMLElement;
+  panelCampos: HTMLElement;
+  panelPropiedades: HTMLElement;
+}
+
+export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
+  raiz.innerHTML = `
+    <div class="ed-header">
+      <span class="ed-marca">EditorPDF</span>
+      <span class="relleno"></span>
+      <button class="ed-idioma-btn" type="button">ES ▾</button>
+    </div>
+
+    <div class="ed-toolbar" id="ed-menubar">
+      ${MENUS.map(
+        (m) => `
+        <div class="ed-menu-item">
+          <button type="button" class="ed-menu-btn" data-menu="${m.id}">${m.etiqueta} <span class="ed-menu-car">▾</span></button>
+          <div class="ed-dropdown" data-dd="${m.id}">${m.contenido}</div>
+        </div>`
+      ).join('')}
+    </div>
+
+    <div class="ed-layout">
+      <aside class="ed-panel izq">
+        <div class="ed-panel-head"><button type="button" class="ed-panel-toggle">‹</button></div>
+        <div class="ed-panel-cont" id="ed-panel-campos">
+          <div class="ed-col"><span class="ed-col-ic">−</span><span class="ed-col-t">Campos AcroForm</span><span class="ed-col-n">0</span></div>
+          <div class="ed-campos-add"><input type="text" placeholder="ID del campo" /><button type="button">+</button></div>
+          <p class="nota">Clic en un campo para colocarlo en la hoja (podés repetirlo).</p>
+        </div>
+      </aside>
+
+      <div class="ed-lienzo-cont">
+        <div class="ed-lienzo-scroll" id="ed-lienzo-scroll"></div>
+      </div>
+
+      <aside class="ed-panel der">
+        <div class="ed-panel-head"><button type="button" class="ed-panel-toggle">›</button></div>
+        <div class="ed-panel-cont" id="ed-panel-propiedades">
+          <div class="ed-props-tit"><strong>Propiedades</strong></div>
+          <div class="ed-sinsel">Seleccioná un elemento del lienzo. Con Ctrl o Shift agregás varios; también podés arrastrar un recuadro sobre el lienzo.</div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="ed-status">
+      <div class="ed-status-izq">Guardado automático en este navegador</div>
+      <div class="ed-status-der">
+        <span class="ed-status-vista"><b id="ed-status-tam">A4</b> · <span id="ed-status-orient">Vertical</span></span>
+        <div class="ed-status-divisor"></div>
+        <button type="button" class="ed-status-peso">Peso: calcular</button>
+        <div class="ed-status-divisor"></div>
+        <button type="button" class="ed-status-peso">Verificar</button>
+        <div class="ed-status-divisor"></div>
+        <div class="ed-zoom-slider"><button type="button">−</button><input type="range" min="50" max="300" value="100" /><button type="button">+</button><span>100%</span></div>
+      </div>
+    </div>
+  `;
+
+  const menubar = raiz.querySelector<HTMLElement>('#ed-menubar')!;
+  wireMenuDesplegable(menubar);
+
+  return {
+    raiz,
+    menubar,
+    lienzoCont: raiz.querySelector<HTMLElement>('#ed-lienzo-scroll')!,
+    panelCampos: raiz.querySelector<HTMLElement>('#ed-panel-campos')!,
+    panelPropiedades: raiz.querySelector<HTMLElement>('#ed-panel-propiedades')!,
+  };
+}
+
+function wireMenuDesplegable(menubar: HTMLElement): void {
+  const botones = Array.from(menubar.querySelectorAll<HTMLButtonElement>('.ed-menu-btn'));
+
+  function cerrarTodos(): void {
+    menubar.querySelectorAll('.ed-dropdown.abierto').forEach((d) => d.classList.remove('abierto'));
+    botones.forEach((b) => b.classList.remove('abierto'));
+  }
+
+  botones.forEach((boton) => {
+    boton.addEventListener('click', (evento) => {
+      evento.stopPropagation();
+      const id = boton.dataset.menu;
+      const dropdown = menubar.querySelector<HTMLElement>(`[data-dd="${id}"]`)!;
+      const yaAbierto = dropdown.classList.contains('abierto');
+      cerrarTodos();
+      if (!yaAbierto) {
+        dropdown.classList.add('abierto');
+        boton.classList.add('abierto');
+      }
+    });
+  });
+
+  document.addEventListener('click', cerrarTodos);
+}
