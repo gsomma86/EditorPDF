@@ -348,6 +348,31 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
         de una sola vez.
       Efecto secundario bueno: los campos de una plantilla real tapan el 47% de la hoja, y con
       ellos apagados el doble clic para editar textos y formas del PDF llega a todos lados.
+- [ ] **Paneles laterales flotantes y reubicables** — decidido el 15/08/2026, sin empezar. Botón
+      para desacoplar un panel: pasa a ser una ventana suelta por encima del lienzo, se arrastra de
+      su cabecera, se redimensiona, y al acercarla a un borde se acopla de ese lado. **Es el más
+      grande de los pendientes anotados hoy.**
+      Hoy el layout es una grilla de cinco columnas (panel · separador · lienzo · separador ·
+      panel) y `columnas.ts` maneja ancho y colapso escribiendo variables CSS. Un panel flotando
+      deja de ser una columna: la suya se va a cero y el lienzo se agranda.
+      **El estado de cada panel pasa a ser `acoplado: 'izq' | 'der' | null` más su posición y
+      medida cuando flota**, guardado junto a lo que ya guarda `columnas.ts`. Modelarlo así desde el
+      principio es lo que hace que el resto salga solo.
+      Lo caro **no es arrastrar la ventana** —eso es lo mismo que ya hace el separador—, es:
+      - **La sombra de acople**: mientras se arrastra cerca de un borde hay que mostrar dónde va a
+        caer. Sin eso soltar es a ciegas y la función se siente rota. Es cerca de la mitad del
+        trabajo.
+      - **Que la ventana no se pierda**: con un panel flotando pegado a un borde, achicar la
+        ventana del navegador lo deja fuera de la pantalla para siempre. Hay que reajustarlo al
+        redimensionar.
+      - **El botón de colapsar no aplica flotando**: ahí pasa a ser "volver a acoplar".
+      **Soltar en el borde ocupado por el otro panel los intercambia**: el que estaba se va al lado
+      que quedó libre, así nunca hay dos del mismo lado ni un costado vacío, y de paso es la forma
+      natural de cambiarlos de lado. Descartado apilarlos en pestañas al estilo VS Code (con dos
+      paneles no aporta) y apilarlos verticalmente en el mismo costado.
+      Se evaluó hacer primero un botón "mover al otro lado" —una tarde de trabajo, resuelve cambiar
+      de lado sin ventanas ni arrastre— y se decidió ir directo a lo flotante completo.
+      Al implementarlo, mockup antes de codear, como el resto de la interfaz.
 - [ ] Capas
 - [x] **Multi-página real (insertar, reordenar, eliminar páginas)** (15/08/2026). Un documento es
       varias hojas y el lienzo muestra una por vez; el tamaño, la orientación, los márgenes y el
