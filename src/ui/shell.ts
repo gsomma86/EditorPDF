@@ -114,9 +114,10 @@ const MENUS: { id: string; etiqueta: import('./i18n').ClaveI18n; contenido: stri
  */
 const PIEZAS: Record<string, { titulo: string; cuerpo: string }> = {
   campos: {
-    titulo: 'shell.campos.titulo',
+    titulo: 'shell.herramientas.titulo',
     cuerpo: `
       <div class="ed-panel-cont" id="ed-panel-campos">
+        <div class="ed-props-tit"><strong data-i18n="shell.herramientas.titulo"></strong></div>
         <div class="ed-col" data-seccion="dibujo"><span class="ed-col-ic">−</span><span class="ed-col-t" data-i18n="shell.dibujo.titulo"></span></div>
         <div class="ed-seccion ed-herramientas" data-cuerpo="dibujo">
           ${['texto', 'linea', 'rect', 'tabla', 'imagen', 'qr']
