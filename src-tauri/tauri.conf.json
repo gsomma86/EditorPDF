@@ -1,0 +1,50 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "EditorPDF",
+  "version": "0.1.0",
+  "identifier": "ar.net.recibomail.editorpdf",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "EditorPDF",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis", "msi"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "publisher": "ReciboMail",
+    "copyright": "EditorPDF — AGPL-3.0",
+    "shortDescription": "Editor de PDF que corre en tu computadora",
+    "longDescription": "Editor de PDF de escritorio: abre PDFs existentes, edita su texto y sus formas, arma formularios AcroForm y exporta sin que el archivo salga de tu computadora.",
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["Spanish", "English", "PortugueseBR"]
+      }
+    }
+  }
+}

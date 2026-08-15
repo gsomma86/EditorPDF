@@ -18,3 +18,6 @@ pruebas/salida/
 src-tauri/target/
 src-tauri/gen/
 pruebas/dist-pdf/
+
+# Tauri: lo que compila Rust. La configuración y el Cargo.toml sí van al repo.
+src-tauri/target/

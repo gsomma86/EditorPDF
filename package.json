@@ -12,9 +12,13 @@
     "medir-rendimiento": "vite build --config pruebas/vite.fabric.config.ts --ssr pruebas/rendimiento.ts --outDir pruebas/dist-rend && node pruebas/dist-rend/rendimiento.js",
     "verificar-campos": "vite build --config pruebas/vite.campos.config.ts && node pruebas/dist-campos/arnesCampos.js",
     "verificar-hojas": "vite build --config pruebas/vite.hojas.config.ts && node pruebas/dist-hojas/arnesHojas.js",
-    "verificar-formas": "vite build --config pruebas/vite.formas.config.ts && node pruebas/dist-formas/arnesFormas.js"
+    "verificar-formas": "vite build --config pruebas/vite.formas.config.ts && node pruebas/dist-formas/arnesFormas.js",
+    "tauri": "tauri",
+    "escritorio": "tauri dev",
+    "escritorio-build": "tauri build"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4",
     "@types/qrcode": "^1.5.6",
     "typescript": "^7.0.2",
     "vite": "^8.2.1"
