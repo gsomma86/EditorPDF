@@ -300,6 +300,20 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
     un valor en tiempo de ejecución (peso, PDF recuperado), o actualizar el atributo junto con el
     texto si el valor sigue siendo una de las claves del diccionario (tamaño/orientación de página,
     en `reflejarPagina()` de `main.ts`). Ver `src/ui/i18n.ts` y los usos en `main.ts`.
+28. **Una función compartida entre "importar" y "autoguardado" no puede asumir la misma regla para
+    los dos.** `cargarProyecto` soltaba el PDF vigente si el `.json` no traía uno adentro —correcto
+    al importar, donde "sin PDF" significa que no tiene—, pero `restaurarAutoguardado` pasa por la
+    misma función y el autoguardado NUNCA lleva el PDF adentro (vive aparte, en IndexedDB, porque
+    localStorage no lo aguanta). Resultado: cada recarga de página borraba el PDF de base un
+    instante antes de que `recuperarPdfGuardado()` pudiera leerlo, y el síntoma parecía estar en la
+    recuperación, no en la carga. La función ahora recibe explícitamente si hay que conservar el
+    PDF vigente, en vez de inferirlo de si el proyecto trae uno.
+29. **Al probar IndexedDB a mano, `indexedDB.deleteDatabase()` con la página todavía abierta no
+    borra al toque: queda pendiente y se ejecuta recién al recargar**, llevándose de paso cualquier
+    cosa que se haya guardado en el medio. Dio un falso negativo verificando la persistencia del PDF
+    de base: parecía que el arreglo no servía, cuando el borrado tardío de una prueba anterior era
+    la causa. Para limpiar el estado antes de una prueba, cerrar la conexión o recargar antes de
+    seguir, no encadenar un `deleteDatabase()` y continuar en la misma página.
 
 ## Cómo verificar cambios
 

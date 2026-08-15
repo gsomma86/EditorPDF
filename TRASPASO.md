@@ -14,13 +14,14 @@ repetibles, rotación, texto vertical y de varias líneas, completar campos, des
 guardar/importar proyecto, exportar PDF, fondo de hoja (imagen y PDF), ayuda, atajos, y paneles
 colapsables de ancho ajustable.
 
-**Fase 2 (editar PDFs ajenos): completa salvo un detalle chico (ver el punto 2).** Archivo → Abrir
-PDF trae el PDF de fondo con sus campos AcroForm ya importados y colocados; doble clic sobre
-cualquier texto lo borra del contenido real con una redacción de mupdf y lo reemplaza por un texto
-del diseño, con la misma tipografía y en el mismo renglón que el original. Funciona sobre
-cualquier página, no solo la primera (selector en la barra de estado). Al exportar, el PDF abierto
-es la base, así que lo que ya traía sigue siendo vectorial. Todo verificado de punta a punta en el
-navegador, más los arneses `verificar-pdf` y `verificar-campos` (ver más abajo).
+**Fase 2 (editar PDFs ajenos): completa.** Archivo → Abrir PDF trae el PDF de fondo con sus campos
+AcroForm ya importados y colocados; doble clic sobre cualquier texto lo borra del contenido real
+con una redacción de mupdf y lo reemplaza por un texto del diseño, con la misma tipografía y en el
+mismo renglón que el original. Funciona sobre cualquier página, no solo la primera (selector en la
+barra de estado), y retomar una sesión (o abrirla en otra computadora) vuelve al PDF y a la página
+donde se estaba, no solo al fondo. Al exportar, el PDF abierto es la base, así que lo que ya traía
+sigue siendo vectorial. Todo verificado de punta a punta en el navegador, más los arneses
+`verificar-pdf` y `verificar-campos` (ver más abajo).
 
 **Fase 3 (formas preexistentes): en pausa**, sin caso de uso en los PDF reales disponibles — ver
 el punto 3.
@@ -34,13 +35,15 @@ el punto 3.
    atajos, CSV, repetibles, apariencias, FAQ, acerca de). **Falta probarlo en el navegador** — no se
    verificó todavía que el selector cambie todo correctamente ni que un PDF con texto en otro
    idioma se vea bien.
-2. **Único pendiente real de fase 2**: `recuperarPdfGuardado()` no persiste sobre qué página se
-   estaba trabajando (`paginaElegida`), así que al recargar la sesión vuelve a la página 0 del PDF
-   aunque el diseño (ya restaurado bien, con su fondo correcto) haya quedado sobre otra. No afecta
-   lo que se ve al retomar, sí a doble clic sobre texto de esa sesión (usaría los textos de la
-   página 0). Todo lo demás de fase 2 está resuelto: posición y tipografía del reemplazo de texto,
-   fuentes subseteadas (ver ROADMAP.md — se avisa por Verificar, no hay fallback de sustitución),
-   PDF de base persistente, importar campos AcroForm, multipágina, y fondo de hoja tipo PDF.
+2. ~~Persistir la página elegida al retomar una sesión~~ — **hecho (14/08/2026)**. De paso, buscando
+   esto apareció un bug más serio y ya corregido: **retomar una sesión borraba el PDF de base
+   entero, justo antes de recuperarlo**. `restaurarAutoguardado` pasa por `cargarProyecto`, que
+   soltaba el PDF vigente si el proyecto no traía uno adentro — correcto al *importar* un `.json`
+   (ahí, si no trae PDF, es porque no tiene), pero el autoguardado nunca trae el PDF —vive aparte
+   en IndexedDB, porque localStorage no lo aguanta— así que lo borraba en cada recarga antes de que
+   `recuperarPdfGuardado()` pudiera leerlo. `cargarProyecto` ahora recibe si hay que conservar el
+   PDF vigente. La página elegida se guarda junto al PDF (IndexedDB) y dentro del `.json`, así que
+   también se retoma en otra computadora. Con esto, fase 2 queda completa de punta a punta.
 3. **Fase 3 (formas preexistentes) — en pausa.** Bosquejada y validada dos veces contra PDFs
    reales (14/08/2026, ver ROADMAP.md para la historia completa): primero se corrigió de rellenos a
    trazos, y al medir bien esos trazos —separando contenido real de anotaciones— resultaron ser

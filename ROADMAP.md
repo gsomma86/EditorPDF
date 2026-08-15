@@ -91,9 +91,18 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
       propósito (quedó puesto sobre la página anterior). Verificado con un PDF de 33 páginas: abre
       en la 1, elegir la 3 cambia fondo y textos, y al exportar la salida conserva las 33, con la
       marca solo en la 3. **Ojo con la numeración**: pdf.js cuenta desde 1; mupdf, pdf-lib y el
-      módulo, desde 0. **Falta**: recuperar la página elegida al retomar una sesión —
-      `recuperarPdfGuardado()` no persiste `paginaElegida`, así que después de recargar vuelve a la
-      página 0 aunque el diseño (ya restaurado) haya quedado sobre otra.
+      módulo, desde 0. La página elegida se persiste junto al PDF (IndexedDB) y dentro del `.json`
+      del proyecto, así que retomar una sesión o abrirlo en otra computadora vuelve a la misma
+      página (lo guardado antes de esto se sigue leyendo, como página 0).
+- [x] **Bug encontrado al cerrar el punto anterior: retomar una sesión borraba el PDF de base
+      entero, justo antes de recuperarlo.** `restaurarAutoguardado` pasa por `cargarProyecto`,
+      que soltaba el PDF abierto si el proyecto no traía uno adentro — correcto al *importar* un
+      `.json` (ahí si no trae PDF es porque no tiene), pero el autoguardado nunca trae el PDF
+      —vive aparte, en IndexedDB, porque localStorage no lo aguanta— así que en cada recarga lo
+      borraba antes de que `recuperarPdfGuardado()` pudiera leerlo. `cargarProyecto` ahora recibe
+      si hay que conservar el PDF vigente, y el autoguardado lo pide. Verificado con un PDF de 33
+      páginas, en la página 3: antes de esto, recargar perdía el PDF, volvía a la página 1 y no
+      quedaba ningún texto editable; ahora recupera el PDF, sigue en la página 3, y sus 63 textos.
 - [x] **Detectar y editar texto existente in-place.** Doble clic sobre un texto del PDF: se borra
       del contenido real con una redacción de mupdf —no se tapa, `npm run verificar-pdf` lo
       comprueba— y en su lugar queda un texto del diseño, editable como cualquier otro. Al
