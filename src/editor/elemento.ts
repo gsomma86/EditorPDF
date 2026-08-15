@@ -178,7 +178,35 @@ export interface Marcas {
   nombre?: string;
 }
 
-export type Elemento = (ElementoTexto | ElementoLinea | ElementoRect | ElementoQr | ElementoTabla | ElementoImagen | ElementoCampo) &
+/**
+ * Un recuadro donde alguien va a firmar **después**, con Acrobat o el lector que use. El editor no
+ * firma: deja el campo preparado y vacío en el PDF.
+ *
+ * Es un campo aparte y no un `ElementoCampo` con otro tipo porque casi nada de aquel le sirve: no
+ * se escribe adentro, así que no tiene tipografía, alineación ni valor por defecto, y no puede ser
+ * repetible —dos recuadros con el mismo nombre serían la misma firma en dos lugares—.
+ */
+export interface ElementoFirma {
+  clase: 'firma';
+  id: number;
+  name: string;
+  x: number;
+  y: number;
+  angulo: number;
+  w: number;
+  h: number;
+  /** Lo que se lee dentro del recuadro vacío, tipo "Firma del empleador". */
+  leyenda: string;
+  color: string;
+  bordeGrosor: number;
+  bordeColor: string;
+  conFondo: boolean;
+  fondoColor: string;
+  /** El PDF no deja exportar sin completarlo. */
+  obligatorio: boolean;
+}
+
+export type Elemento = (ElementoTexto | ElementoLinea | ElementoRect | ElementoQr | ElementoTabla | ElementoImagen | ElementoCampo | ElementoFirma) &
   Marcas;
 export type ClaseDibujo = Elemento['clase'];
 export type ClaseSimple = 'texto' | 'linea' | 'rect' | 'qr';
@@ -281,6 +309,28 @@ export function crearElementoImagen(src: string, anchoNatural: number, altoNatur
     src,
     opacidad: 100,
     proporcion: true,
+  };
+}
+
+/** Un recuadro de firma nuevo, con la medida típica de una firma manuscrita. */
+export function crearElementoFirma(nombre: string, leyenda: string): ElementoFirma {
+  const { x, y } = nuevaPosicion(150, 55);
+  return {
+    clase: 'firma',
+    id: secuencia++,
+    name: nombre,
+    x,
+    y,
+    angulo: 0,
+    w: 150,
+    h: 55,
+    leyenda,
+    color: '#4a7cae',
+    bordeGrosor: 1,
+    bordeColor: '#6f9fd0',
+    conFondo: false,
+    fondoColor: '#ffffff',
+    obligatorio: false,
   };
 }
 

@@ -19,6 +19,7 @@ const ETIQUETA_TIPO: Record<Elemento['clase'], Parameters<typeof t>[0]> = {
   tabla: 'tipo.tabla',
   imagen: 'tipo.imagen',
   campo: 'tipo.campo',
+  firma: 'tipo.firma',
 };
 
 /**
@@ -326,6 +327,31 @@ function campoTexto(elemento: Elemento & { clase: 'texto' }): string {
   );
 }
 
+/**
+ * El panel de un campo de firma. Es corto a propósito: adentro no se escribe, así que no lleva
+ * tipografía, alineación ni valor por defecto.
+ */
+function campoFirma(elemento: Elemento & { clase: 'firma' }): string {
+  return (
+    seccion(
+      'comun.contenido',
+      `<div><label class="ed-lbl" data-i18n="props.firma.nombre"></label><input type="text" id="ed-p-nombre" value="${escapeHtml(elemento.name)}"></div>
+      <div><label class="ed-lbl" data-i18n="props.firma.leyenda"></label><input type="text" id="ed-p-leyenda" value="${escapeHtml(elemento.leyenda)}" data-i18n-placeholder="props.firma.leyendaPlaceholder"></div>
+      <label class="ed-check"><input type="checkbox" id="ed-p-obligatorio" ${elemento.obligatorio ? 'checked' : ''}> <span data-i18n="props.firma.obligatorio"></span></label>
+      <p class="nota" data-i18n="props.firma.nota"></p>`
+    ) +
+    seccion(
+      'comun.formato',
+      `<div class="ed-grid2">
+        <div><label class="ed-lbl" data-i18n="props.campo.bordeGrosor"></label><input type="number" id="ed-p-bordegrosor" min="0" max="6" step="0.5" value="${elemento.bordeGrosor}"></div>
+        <div><label class="ed-lbl" data-i18n="props.campo.bordeColor"></label><input type="color" id="ed-p-bordecolor" value="${elemento.bordeColor}"></div>
+      </div>
+      <label class="ed-check"><input type="checkbox" id="ed-p-confondo" ${elemento.conFondo ? 'checked' : ''}> <span data-i18n="props.campo.conFondo"></span></label>
+      <div><label class="ed-lbl" data-i18n="props.campo.fondoColor"></label><input type="color" id="ed-p-fondocolor" value="${elemento.fondoColor}"></div>`
+    )
+  );
+}
+
 function campoCampo(elemento: Elemento & { clase: 'campo' }): string {
   return (
     seccion(
@@ -461,6 +487,8 @@ function camposPara(elemento: Elemento): string {
       return campoImagen(elemento);
     case 'campo':
       return campoCampo(elemento);
+    case 'firma':
+      return campoFirma(elemento);
   }
 }
 

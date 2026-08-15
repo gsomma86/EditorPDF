@@ -213,6 +213,35 @@ async function construirObjeto(elemento: Elemento): Promise<FabricObject> {
     }
     case 'tabla':
       return new TablaObjeto(elemento);
+    case 'firma': {
+      // El recuadro con el símbolo y la leyenda adentro, para reconocerlo sin seleccionarlo. Va
+      // punteado como los campos: es un lugar que alguien completa después, no algo dibujado.
+      const caja = new Rect({
+        left: 0,
+        top: 0,
+        width: elemento.w,
+        height: elemento.h,
+        fill: elemento.conFondo ? elemento.fondoColor : 'rgba(55,138,221,0.05)',
+        stroke: elemento.bordeColor,
+        strokeWidth: Math.max(1, elemento.bordeGrosor),
+        strokeDashArray: [5, 3],
+        rx: 3,
+        ry: 3,
+      });
+
+      const leyenda = new FabricText(`✍  ${elemento.leyenda || elemento.name}`, {
+        fontSize: Math.min(11, elemento.h / 4),
+        fontFamily: 'Helvetica',
+        fill: elemento.color,
+        originX: 'center',
+        originY: 'center',
+        left: elemento.w / 2,
+        top: elemento.h / 2,
+      });
+
+      return new Group([caja, leyenda], { left: elemento.x, top: elemento.y, angle: elemento.angulo });
+    }
+
     case 'campo': {
       await prepararFuente(elemento.familia);
 

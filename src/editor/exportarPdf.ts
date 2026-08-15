@@ -1,4 +1,4 @@
-import { PDFDocument, PDFName, StandardFonts, TextAlignment, degrees, rgb, type PDFFont, type PDFPage, type PDFTextField, type RGB } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFName, PDFString, StandardFonts, TextAlignment, degrees, rgb, type PDFFont, type PDFPage, type PDFRef, type PDFTextField, type RGB } from '@cantoo/pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import type { Canvas } from 'fabric';
 import {
@@ -215,6 +215,7 @@ async function dibujarHoja(
   obtenerFuente: (familia: string, negrita: boolean, cursiva: boolean) => Promise<PDFFont>,
   formulario: ReturnType<PDFDocument["getForm"]>,
   camposCreados: Map<string, PDFTextField>,
+  camposDeFirma: PDFRef[],
   opciones: OpcionesExportar
 ): Promise<void> {
   const altoPagina = pagina.getHeight();
@@ -286,6 +287,61 @@ async function dibujarHoja(
       case 'imagen':
         await dibujarImagen(doc, pagina, el.src, ubi, el.w, el.h, el.opacidad / 100);
         break;
+
+      case 'firma': {
+        // pdf-lib sabe crear campos de texto pero no de firma, así que el diccionario se arma a
+        // mano: un widget con `/FT /Sig` anotado en la página y en el formulario. Sin `/V`, que es
+        // justamente lo que lo deja vacío y esperando a que alguien lo firme.
+        // El recuadro va primero: si tiene fondo y se dibujara después, taparía la leyenda.
+        if (el.bordeGrosor > 0 || el.conFondo) {
+          dibujarRectangulo(pagina, ubi, 0, 0, el.w, el.h, {
+            color: el.bordeColor,
+            estilo: 'solido',
+            grosor: el.bordeGrosor,
+            conRelleno: el.conFondo,
+            rellenoColor: el.fondoColor,
+          });
+        }
+
+        // La leyenda no es parte del campo: se dibuja en la página, como un texto más, para que
+        // se vea también en un visor que no resalte los campos vacíos.
+        if (el.leyenda) {
+          const fuente = await obtenerFuente('Helvetica', false, false);
+          const cuerpo = Math.min(9, el.h / 4);
+          const ancho = fuente.widthOfTextAtSize(el.leyenda, cuerpo);
+          const centro = ubi.punto((el.w - ancho) / 2, el.h / 2 + cuerpo / 2);
+          pagina.drawText(el.leyenda, { x: centro.x, y: centro.y, size: cuerpo, font: fuente, color: color(el.color), rotate: ubi.grados });
+        }
+
+        // Aplanado: queda el recuadro dibujado y nada más. Un campo de firma sin formulario no
+        // tendría sentido —no habría dónde firmar— y encima el PDF diría que espera firmas.
+        if (!opciones.conFormulario) break;
+
+        // pdf-lib sabe crear campos de texto pero no de firma, así que el diccionario se arma a
+        // mano: un widget con `/FT /Sig` anotado en la página y en el formulario. Sin `/V`, que es
+        // justamente lo que lo deja vacío y esperando a que alguien lo firme.
+        // El `/Rect` de una anotación siempre va derecho, así que se toma la caja que envuelve al
+        // recuadro: con la firma sin rotar es exactamente su contorno, y rotada queda la más
+        // chica que la contiene (el preflight ya avisa que va a enderezarse).
+        const esquinas = [ubi.punto(0, 0), ubi.punto(el.w, 0), ubi.punto(el.w, el.h), ubi.punto(0, el.h)];
+        const xs = esquinas.map((p) => p.x);
+        const ys = esquinas.map((p) => p.y);
+        const widget = doc.context.obj({
+          Type: 'Annot',
+          Subtype: 'Widget',
+          FT: 'Sig',
+          Rect: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)],
+          T: PDFString.of(el.name),
+          F: 4, // se imprime, como cualquier campo visible
+          Ff: el.obligatorio ? 2 : 0, // el bit 2 es "obligatorio" en un campo de formulario
+          P: pagina.ref,
+        });
+
+        const referencia = doc.context.register(widget);
+        pagina.node.addAnnot(referencia);
+        camposDeFirma.push(referencia);
+        break;
+      }
 
       case 'campo': {
         const fuente = await obtenerFuente(el.familia, el.negrita, el.cursiva);
@@ -387,6 +443,8 @@ export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): P
   const obtenerFuente = creadorDeFuentes(doc);
   const formulario = doc.getForm();
   const camposCreados = new Map<string, PDFTextField>();
+  /** Los campos de firma creados: se anotan en el formulario recién al final. */
+  const camposDeFirma: PDFRef[] = [];
 
   /** Qué hoja se apoya en una página del base, y cuál va en blanco porque se agregó a mano. */
   const conPagina = (hoja: (typeof hojas)[number]) =>
@@ -415,7 +473,16 @@ export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): P
       pagina.drawImage(imagen, { x: 0, y: 0, width, height });
     }
 
-    await dibujarHoja(doc, pagina, hoja.elementos, obtenerFuente, formulario, camposCreados, opciones);
+    await dibujarHoja(doc, pagina, hoja.elementos, obtenerFuente, formulario, camposCreados, camposDeFirma, opciones);
+  }
+
+  // Los campos de firma se anotan al final, cuando ya están todos: van al formulario del documento
+  // —si no, ningún lector los encuentra— y `/SigFlags 3` le avisa que el archivo tiene firmas y que
+  // hay que guardarlo como corresponde al firmarlo.
+  if (camposDeFirma.length) {
+    const acro = doc.catalog.getOrCreateAcroForm();
+    for (const referencia of camposDeFirma) acro.addField(referencia);
+    acro.dict.set(PDFName.of('SigFlags'), doc.context.obj(3));
   }
 
   if (opciones.sinApariencias) {

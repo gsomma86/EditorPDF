@@ -135,6 +135,8 @@ const PIEZAS: Record<string, { titulo: string; cuerpo: string }> = {
           <div class="ed-campos-add"><input type="text" id="ed-campo-nuevo" data-i18n-placeholder="shell.campos.placeholder" /><button type="button" id="ed-campo-agregar">+</button></div>
           <div id="ed-lista-campos"></div>
           <p class="nota" data-i18n="shell.campos.nota"></p>
+          <button type="button" class="ed-boton-firma" id="ed-campo-firma" data-i18n="campos.agregarFirma"></button>
+          <p class="nota" data-i18n="campos.notaFirma"></p>
         </div>
       </div>`,
   },

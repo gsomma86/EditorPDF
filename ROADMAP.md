@@ -423,7 +423,24 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
       Verificado con `npm run verificar-hojas` (arma tres hojas, confirma que ir y volver no
       mezcla nada, que reordenar mantiene la hoja a la vista, que deshacer recupera una borrada,
       que la última no se puede borrar, y que el PDF sale con una página por hoja).
-- [ ] Firma digital
+- [x] **Campo de firma** (15/08/2026). El editor prepara el recuadro donde después alguien firma;
+      firmar es otra cosa —necesita un certificado— y no la hace el editor. Es un elemento propio,
+      `ElementoFirma`: recuadro con borde punteado, una leyenda adentro ("Firma del empleador") y
+      la marca de obligatorio. Vive en la sección **Campos AcroForm** de Herramientas, fija como el
+      resto —no se puede sacar de la barra—.
+      Al exportar sale como campo de firma de verdad: pdf-lib no sabe crear ninguno, así que el
+      diccionario se arma a mano (`/FT /Sig`, widget anotado en la página y agregado al AcroForm,
+      `/SigFlags 3` en el catálogo) y **sin `/V`**, que es lo que lo deja vacío esperando la firma.
+      La leyenda no es parte del campo: se dibuja como texto de la página, para que se vea también
+      en un visor que no resalte los campos vacíos. Exportando aplanado queda solo el recuadro
+      dibujado: un campo de firma sin formulario no tendría dónde firmarse.
+      Al abrir un PDF, los campos de firma vacíos vuelven como elementos —antes se descartaban con
+      un aviso—; los que ya están firmados se siguen omitiendo, porque exportar rearma el archivo e
+      invalidaría la firma. El preflight bloquea dos firmas con el mismo nombre y una firma que
+      comparta nombre con un campo de texto: para el visor serían el mismo campo.
+      Verificado con `npm run verificar-hojas`: el PDF exportado tiene el campo, lo ve el
+      formulario, es de tipo firma, el documento se declara con `/SigFlags 3` y el campo sale vacío;
+      y la vuelta completa —exportar y reabrir— lo devuelve como firma en las mismas coordenadas.
 - [ ] Más formas geométricas
 
 ## Fase 5 — Empaquetado y distribución

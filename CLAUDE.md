@@ -101,8 +101,8 @@ src/
   style.css               Todos los estilos. Copia fiel de la paleta del editor público.
   editor/
     elemento.ts           EL MODELO. Tipos de cada elemento (texto/linea/rect/qr/tabla/imagen/
-                          campo), sus constructores con valores por defecto, y el área útil que
-                          acota dónde caen los elementos nuevos.
+                          campo/firma), sus constructores con valores por defecto, y el área útil
+                          que acota dónde caen los elementos nuevos.
     objetosFabric.ts      Traduce modelo -> objeto de Fabric. Mantiene el WeakMap objeto->modelo
                           (`elementoDe`), reconstruye el lienzo y sincroniza geometría. También
                           genera el QR (`generarQr`), compartido con el exportador.
@@ -487,3 +487,9 @@ validada — ver la sección Fase 0 del roadmap.
     el `.ico` sea más nuevo. Se arregla tocando `build.rs` antes de `tauri build`. Para comprobar
     que quedó, extraer el ícono **del ejecutable**, no mirar el explorador de archivos, que además
     cachea íconos: `[System.Drawing.Icon]::ExtractAssociatedIcon($exe)`.
+52. **Buscar texto suelto dentro de un PDF da negativo aunque el dato esté.** Al verificar el campo
+    de firma, `/SigFlags 3` no aparecía en los bytes del archivo: pdf-lib guarda con *object
+    streams*, así que la mayoría de los diccionarios viajan comprimidos y no hay nada que grepear.
+    El campo estaba bien puesto —se veía cargando el documento y mirando el diccionario—. **Las
+    comprobaciones sobre un PDF se hacen sobre los objetos, nunca sobre los bytes**; si un arnés
+    busca una cadena en el archivo, el resultado no significa lo que parece.

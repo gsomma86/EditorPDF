@@ -95,8 +95,15 @@ quedan sin empezar Capas, Firma digital y Más formas geométricas.
    a punta. Interfaz: tira de pestañas entre el lienzo y la barra de estado, con agregar, duplicar,
    borrar y reordenar arrastrando. Verificado con `npm run verificar-hojas`. Ver ROADMAP.md fase 4
    para el detalle completo.
-5. **Fase 4 restante y fase 5**: capas, firma digital, más formas geométricas, y empaquetado con
-   Tauri.
+5. ~~Capas~~ — **hecho (15/08/2026)**, con su propia barra (`ui/panelCapas.ts`) y el ojo/candado por
+   objeto y por capa; lo oculto no se exporta.
+6. ~~Tauri~~ — **hecho (15/08/2026)**, los dos instaladores salen. **Falta probar en la aplicación
+   instalada que las descargas lleguen a disco**: Exportar PDF y Guardar proyecto usan un enlace
+   `blob:`, que en un WebView puede no funcionar.
+7. ~~Campo de firma~~ — **hecho (15/08/2026)**. El editor prepara el recuadro; firmar necesita un
+   certificado y no lo hace el editor. Detalle en ROADMAP.md fase 4.
+8. **Lo que queda**: más formas geométricas, arrastrar en el panel de capas para reordenar o cambiar
+   de capa, la alternativa a SmartScreen y la documentación de contribución.
 
 ## Cómo verificar
 
@@ -129,6 +136,11 @@ dar ningún error, como si fuera un bug de la app.
 - **El PDF de base vive en tres lugares**: memoria mientras se trabaja, IndexedDB para sobrevivir a
   una recarga, y dentro del `.json` al guardar el proyecto. En el autoguardado no, porque
   localStorage no aguanta un PDF.
+- **El campo de firma se arma a mano**: pdf-lib no sabe crear campos `/Sig`, así que en
+  `exportarPdf.ts` se construye el diccionario del widget, se lo anota en la página, se lo agrega al
+  AcroForm y se pone `/SigFlags 3` en el catálogo. Queda **sin `/V`** a propósito: eso es lo que lo
+  deja vacío esperando la firma. El editor no firma —hace falta un certificado—, solo prepara el
+  recuadro. Exportando aplanado no se crea ningún campo, solo el dibujo.
 - **La numeración de páginas no es uniforme entre librerías**: pdf.js cuenta desde 1; mupdf,
   pdf-lib y `pdfExistente.ts` (`paginaDelPdf()`, `elegirPagina()`) cuentan desde 0. La UI (selector
   de página) muestra 1..N al usuario y convierte al llamar al módulo.

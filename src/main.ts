@@ -1,7 +1,7 @@
 import './style.css';
 import { montarEspacioTrabajo } from './ui/shell';
 import { crearLienzo } from './editor/lienzo';
-import { crearElemento, crearElementoCampo, crearElementoImagen, crearElementoTabla, duplicarElemento, type ClaseSimple, type Elemento } from './editor/elemento';
+import { crearElemento, crearElementoCampo, crearElementoFirma, crearElementoImagen, crearElementoTabla, duplicarElemento, type ClaseSimple, type Elemento } from './editor/elemento';
 import { activarModoCompletar, agregarAlLienzo, camposEstanOcultos, elementoDe, enModoCompletar, ocultarCampos, reconstruirLienzo, sincronizarGeometria } from './editor/objetosFabric';
 import { escapeHtml, mostrarMultiSeleccion, mostrarPropiedades, mostrarSinSeleccion } from './ui/panelPropiedades';
 import { ActiveSelection, type FabricObject } from 'fabric';
@@ -19,7 +19,7 @@ import { agregarHoja, aplicarConfigPagina, cantidadDeHojas, configActual, elimin
 import { activarVista, configurarVista, establecerZoom, vistaActual } from './editor/vista';
 import { configPorDefecto, type Orientacion, type TamanoPagina } from './editor/pagina';
 import { cargarProyecto, descargarProyecto, leerProyecto, serializarProyecto } from './editor/proyecto';
-import type { CampoDelPdf } from './editor/pdfExistente';
+import type { CampoDelPdf, FirmaDelPdf } from './editor/pdfExistente';
 
 const raiz = document.querySelector<HTMLDivElement>('#app')!;
 const espacio = montarEspacioTrabajo(raiz);
@@ -31,6 +31,15 @@ const panelCampos = montarPanelCampos(espacio.panelCampos, async (nombre) => {
   guardar();
 });
 const panelCapas = montarPanelCapas(document.getElementById('ed-panel-capas')!, lienzo, () => guardar());
+// El campo de firma se coloca directo en la hoja: no pasa por el catálogo, porque cada uno lleva
+// su propio nombre y se coloca una sola vez.
+document.getElementById('ed-campo-firma')!.addEventListener('click', async () => {
+  const cuantas = elementosDelLienzo().filter((el) => el.clase === 'firma').length;
+  await agregarAlLienzo(lienzo, crearElementoFirma(t('campos.nombreFirma', { n: cuantas + 1 }), ''));
+  registrarSnapshot(lienzo);
+  guardar();
+});
+
 const ayuda = cablearAyuda();
 montarPaneles(espacio.raiz);
 activarVista(lienzo);
@@ -822,8 +831,8 @@ inputFondo.addEventListener('change', async () => {
  * Coloca los campos importados de un PDF, cada uno en la hoja que muestra su página. Al terminar
  * vuelve a la hoja en la que se estaba: importar no debería mover a nadie de lugar.
  */
-async function colocarCamposImportados(campos: CampoDelPdf[]): Promise<void> {
-  if (!campos.length) return;
+async function colocarCamposImportados(campos: CampoDelPdf[], firmas: FirmaDelPdf[] = []): Promise<void> {
+  if (!campos.length && !firmas.length) return;
   const volverA = hojaActual();
 
   // De página del PDF a hoja: después de borrar o reordenar no coinciden, y una página puede no
@@ -857,6 +866,26 @@ async function colocarCamposImportados(campos: CampoDelPdf[]): Promise<void> {
       bordeColor: campo.bordeColor,
       conFondo: campo.conFondo,
       fondoColor: campo.fondoColor,
+    });
+  }
+
+  // Los de firma llegan sin leyenda: el recuadro del PDF no la guarda, y lo que se lea al lado es
+  // texto de la página, que ya está en el fondo.
+  for (const firma of firmas) {
+    const destino = hojaDePagina.get(firma.pagina);
+    if (destino === undefined) continue;
+    await irAHoja(lienzo, destino);
+    await agregarAlLienzo(lienzo, {
+      ...crearElementoFirma(firma.name, ''),
+      x: firma.x,
+      y: firma.y,
+      w: firma.w,
+      h: firma.h,
+      obligatorio: firma.obligatorio,
+      bordeGrosor: firma.bordeGrosor,
+      bordeColor: firma.bordeColor,
+      conFondo: firma.conFondo,
+      fondoColor: firma.fondoColor,
     });
   }
 
@@ -896,9 +925,9 @@ inputInsertar.addEventListener('change', async () => {
     // colocados no se tocan y los que entran caen en sus hojas nuevas.
     const primera = paginaDeLaHoja(insertarDespuesDe + 1) ?? 0;
     const paginasNuevas = new Set(medidas.map((_, i) => primera + i));
-    const { campos } = await camposDelPdf();
+    const { campos, firmas } = await camposDelPdf();
     const nuevos = campos.filter((c) => paginasNuevas.has(c.pagina));
-    await colocarCamposImportados(nuevos);
+    await colocarCamposImportados(nuevos, firmas.filter((f) => paginasNuevas.has(f.pagina)));
 
     // Cuántos textos se pueden editar con doble clic en lo que entró. Hay que recorrer página por
     // página porque el módulo lee los textos de la que esté vigente.
@@ -971,14 +1000,14 @@ inputPdf.addEventListener('change', async () => {
     // y color: quedan listos para editar en un paso, en vez de que haya que rearmar la plantilla
     // a mano campo por campo. **Cada uno va a la hoja de su página**: en un formulario de varias
     // páginas, meterlos todos en la primera los amontonaba encima del contenido equivocado.
-    const { campos, omitidos } = await camposDelPdf();
-    await colocarCamposImportados(campos);
+    const { campos, firmas, omitidos } = await camposDelPdf();
+    await colocarCamposImportados(campos, firmas);
     // Un mismo ID puede repetirse en varias posiciones (como en el editor): el catálogo lo lista
     // una sola vez. Se suma al catálogo existente, sin repetir, igual que al importar un CSV.
     if (campos.length) {
       panelCampos.establecerCatalogo([...new Set([...panelCampos.obtenerCatalogo(), ...campos.map((c) => c.name)])]);
     }
-    if (campos.length || omitidos.length) {
+    if (campos.length || firmas.length || omitidos.length) {
       registrarSnapshot(lienzo);
       guardar();
     }
@@ -997,6 +1026,7 @@ inputPdf.addEventListener('change', async () => {
            ? `<p>${campos.length === 1 ? t('ayuda.pdfAbierto.campoUno') : t('ayuda.pdfAbierto.camposVarios', { n: campos.length })}</p>`
            : ''
        }
+       ${firmas.length ? `<p>${t(firmas.length === 1 ? 'ayuda.pdfAbierto.firmaUna' : 'ayuda.pdfAbierto.firmasVarias', { n: firmas.length })}</p>` : ''}
        ${
          omitidos.length
            ? `<p>${t('ayuda.pdfAbierto.omitidosTitulo')}</p><ul>${omitidos.map((o) => `<li><b>${escapeHtml(o.name)}</b>: ${escapeHtml(o.motivo)}</li>`).join('')}</ul>`

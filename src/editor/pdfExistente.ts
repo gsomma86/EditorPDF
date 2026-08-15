@@ -223,9 +223,29 @@ export interface CampoDelPdf {
   pagina: number;
 }
 
+/**
+ * Un campo de firma del PDF. Solo tiene caja y nombre: la leyenda de adentro no es parte del campo
+ * —el PDF la guarda, si acaso, como texto suelto de la página— y el editor la deja vacía.
+ */
+export interface FirmaDelPdf {
+  name: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  obligatorio: boolean;
+  bordeGrosor: number;
+  bordeColor: string;
+  conFondo: boolean;
+  fondoColor: string;
+  pagina: number;
+}
+
 export interface CamposImportados {
   campos: CampoDelPdf[];
-  /** Los que no se pueden representar (casillas, listas, firmas), para poder avisar por qué. */
+  /** Los de firma, que son elementos aparte del editor. */
+  firmas: FirmaDelPdf[];
+  /** Los que no se pueden representar (casillas, listas), para poder avisar por qué. */
   omitidos: { name: string; motivo: string }[];
 }
 
@@ -291,9 +311,9 @@ export async function camposDelPdf(): Promise<CamposImportados> {
   // Copia local: entre acá y el `await` de abajo el módulo puede quedarse sin PDF —si mientras
   // tanto se cierra o se abre otro— y la comprobación de arriba ya no valdría.
   const bytes = bytesActuales;
-  if (!bytes) return { campos: [], omitidos: [] };
+  if (!bytes) return { campos: [], firmas: [], omitidos: [] };
 
-  const { PDFDocument, PDFDict, PDFName, PDFTextField } = await import('@cantoo/pdf-lib');
+  const { PDFDocument, PDFDict, PDFName, PDFSignature, PDFTextField } = await import('@cantoo/pdf-lib');
   const doc = await PDFDocument.load(bytes.slice(), { updateMetadata: false });
 
   // En qué página está cada widget. Un campo puede estar colocado en varias, y en un formulario de
@@ -314,52 +334,81 @@ export async function camposDelPdf(): Promise<CamposImportados> {
   });
 
   const campos: CampoDelPdf[] = [];
+  const firmas: FirmaDelPdf[] = [];
   const omitidos: { name: string; motivo: string }[] = [];
 
+  /** Dónde cae el widget y con qué caja, ya en coordenadas del lienzo. */
+  const ubicar = (widget: any) => {
+    // Manda dónde está listado el widget; `/P` queda de respaldo para cuando no aparece en
+    // ninguna página. Sin PDF que lo respalde, la primera, como antes de mirar la página.
+    const pagina =
+      paginaPorWidget.get(widget.dict) ?? paginaPorRef.get(widget.dict.get(PDFName.of('P'))?.toString() ?? '') ?? 0;
+    const alturaPagina = paginas[pagina].getHeight();
+
+    const r = widget.getRectangle();
+    // Un widget puede venir con las esquinas al revés; el rectángulo se normaliza.
+    const x = Math.min(r.x, r.x + r.width);
+    const w = Math.abs(r.width);
+    const h = Math.abs(r.height);
+    const yPdf = Math.min(r.y, r.y + r.height);
+
+    const apariencia = widget.getAppearanceCharacteristics();
+    const fondo = apariencia?.getBackgroundColor();
+    const borde = apariencia?.getBorderColor();
+    const grosorBorde = borde?.length ? (widget.getBorderStyle()?.getWidth() ?? 1) : 0;
+
+    // El rectángulo del PDF incluye el borde, pero al exportar pdf-lib lo agrega por fuera de la
+    // caja que se le pide (medio grosor por lado). Sin descontarlo acá, cada vuelta de importar
+    // y exportar agrandaría el campo un grosor, y el error se iría acumulando.
+    const redondear = (v: number) => Math.round(v * 100) / 100;
+    return {
+      pagina,
+      alturaPagina,
+      // La Y ya viene dada vuelta: el PDF mide desde abajo y el lienzo desde arriba.
+      x: redondear(x + grosorBorde / 2),
+      y: redondear(alturaPagina - yPdf - h + grosorBorde / 2),
+      w: redondear(Math.max(1, w - grosorBorde)),
+      h: redondear(Math.max(1, h - grosorBorde)),
+      bordeGrosor: grosorBorde,
+      bordeColor: borde?.length ? hex(borde) : '#000000',
+      conFondo: !!fondo?.length,
+      fondoColor: fondo?.length ? hex(fondo) : '#ffffff',
+    };
+  };
+
   for (const campo of doc.getForm().getFields()) {
+    if (campo instanceof PDFSignature) {
+      // Un campo ya firmado no se puede traer: al exportar se rearma el PDF entero y la firma
+      // quedaría rota, así que es más honesto avisar que arrastrar algo que no vale.
+      if (campo.acroField.dict.has(PDFName.of('V'))) {
+        omitidos.push({ name: campo.getName(), motivo: 'ya está firmado, y volver a exportarlo invalidaría la firma' });
+        continue;
+      }
+      for (const widget of campo.acroField.getWidgets()) {
+        const caja = ubicar(widget);
+        // El bit 2 de `/Ff` es el de obligatorio, igual que en cualquier otro campo.
+        const banderas = Number(campo.acroField.dict.get(PDFName.of('Ff'))?.toString() ?? 0);
+        firmas.push({ name: campo.getName(), obligatorio: (banderas & 2) !== 0, ...caja });
+      }
+      continue;
+    }
+
     if (!(campo instanceof PDFTextField)) {
       omitidos.push({ name: campo.getName(), motivo: `es ${campo.constructor.name.replace('PDF', '').replace('Field', '').toLowerCase()}, y el editor solo maneja campos de texto` });
       continue;
     }
 
     for (const widget of campo.acroField.getWidgets()) {
-      // Manda dónde está listado el widget; `/P` queda de respaldo para cuando no aparece en
-      // ninguna página. Sin PDF que lo respalde, la primera, como antes de mirar la página.
-      const pagina =
-        paginaPorWidget.get(widget.dict) ?? paginaPorRef.get(widget.dict.get(PDFName.of('P'))?.toString() ?? '') ?? 0;
-      const alturaPagina = paginas[pagina].getHeight();
-
-      const r = widget.getRectangle();
-      // Un widget puede venir con las esquinas al revés; el rectángulo se normaliza.
-      const x = Math.min(r.x, r.x + r.width);
-      const w = Math.abs(r.width);
-      const h = Math.abs(r.height);
-      const yPdf = Math.min(r.y, r.y + r.height);
-
-      const apariencia = widget.getAppearanceCharacteristics();
-      const fondo = apariencia?.getBackgroundColor();
-      const borde = apariencia?.getBorderColor();
-      const grosorBorde = borde?.length ? (widget.getBorderStyle()?.getWidth() ?? 1) : 0;
+      const caja = ubicar(widget);
       const da = widget.getDefaultAppearance() ?? campo.acroField.getDefaultAppearance() ?? '';
-      const estilo = leerDA(da, h);
-
-      // El rectángulo del PDF incluye el borde, pero al exportar pdf-lib lo agrega por fuera de la
-      // caja que se le pide (medio grosor por lado). Sin descontarlo acá, cada vuelta de importar
-      // y exportar agrandaría el campo un grosor, y el error se iría acumulando.
-      const caja = {
-        x: x + grosorBorde / 2,
-        y: alturaPagina - yPdf - h + grosorBorde / 2,
-        w: Math.max(1, w - grosorBorde),
-        h: Math.max(1, h - grosorBorde),
-      };
+      const estilo = leerDA(da, caja.h);
 
       campos.push({
         name: campo.getName(),
-        // La Y ya viene dada vuelta: el PDF mide desde abajo y el lienzo desde arriba.
-        x: Math.round(caja.x * 100) / 100,
-        y: Math.round(caja.y * 100) / 100,
-        w: Math.round(caja.w * 100) / 100,
-        h: Math.round(caja.h * 100) / 100,
+        x: caja.x,
+        y: caja.y,
+        w: caja.w,
+        h: caja.h,
         size: estilo.size,
         familia: estilo.familia,
         negrita: estilo.negrita,
@@ -369,16 +418,16 @@ export async function camposDelPdf(): Promise<CamposImportados> {
         readonly: campo.isReadOnly(),
         multilinea: campo.isMultiline(),
         defaultValue: campo.getText() ?? '',
-        bordeGrosor: grosorBorde,
-        bordeColor: borde?.length ? hex(borde) : '#000000',
-        conFondo: !!fondo?.length,
-        fondoColor: fondo?.length ? hex(fondo) : '#ffffff',
-        pagina,
+        bordeGrosor: caja.bordeGrosor,
+        bordeColor: caja.bordeColor,
+        conFondo: caja.conFondo,
+        fondoColor: caja.fondoColor,
+        pagina: caja.pagina,
       });
     }
   }
 
-  return { campos, omitidos };
+  return { campos, firmas, omitidos };
 }
 
 /** El texto del PDF que cae bajo un punto de la hoja, si hay alguno. */

@@ -8,12 +8,12 @@
 import { writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { StaticCanvas } from 'fabric';
-import { PDFDocument } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFName } from '@cantoo/pdf-lib';
 import { agregarHoja, cantidadDeHojas, eliminarHoja, establecerHojas, hojaActual, establecerCapas, hojaEnBlanco, hojasDelDocumento, insertarPdf, irAHoja, moverHoja } from '../src/editor/documento';
 import { inicializarHistorial, deshacer, registrarSnapshot, rehacer } from '../src/editor/historial';
 import { agregarAlLienzo } from '../src/editor/objetosFabric';
 import { exportarPdf } from '../src/editor/exportarPdf';
-import { crearElemento, type Elemento } from '../src/editor/elemento';
+import { crearElemento, crearElementoFirma, type Elemento } from '../src/editor/elemento';
 
 // fabric/node arma su propio DOM, pero el catalogo de fuentes pide las web al navegador: en Node
 // no hacen falta y alcanza con que no reviente.
@@ -306,6 +306,41 @@ const textoConCapas = JSON.parse((leidoCapas.loadPage(0) as any).toStructuredTex
   .trim();
 comparar('capas', 'solo sale lo que se ve', 'SE VE', textoConCapas);
 comparar('capas', 'los tres siguen en el modelo', 3, hojasDelDocumento(lienzo)[0].elementos.length);
+
+// ---------- Campo de firma ----------
+
+// Tiene que llegar al PDF como campo de firma de verdad —`/FT /Sig`, anotado en el formulario y
+// con `/SigFlags`— y **vacío**: si trajera valor ya estaría firmado, que no es lo que hace el editor.
+await establecerHojas(lienzo, [hojaEnBlanco()], 0);
+const firma = crearElementoFirma('firma_empleador', 'Firma del empleador');
+firma.x = 60;
+firma.y = 700;
+await agregarAlLienzo(lienzo, firma);
+
+const conFirma = await exportarPdf(lienzo, { conFormulario: true });
+await writeFile(`${SALIDA}con-firma.pdf`, conFirma);
+
+const docFirma = await PDFDocument.load(conFirma);
+const campos = docFirma.getForm().getFields();
+comparar('campo de firma', 'lo ve el formulario', ['firma_empleador'], campos.map((c) => c.getName()));
+comparar('campo de firma', 'es de tipo firma', 'PDFSignature', campos[0]?.constructor.name);
+
+// Sobre los diccionarios y no sobre los bytes: pdf-lib guarda comprimido y buscar texto suelto
+// dentro del PDF daría siempre negativo.
+const acroFirma = docFirma.catalog.lookup(PDFName.of('AcroForm')) as any;
+comparar('campo de firma', 'el documento se declara con firmas', '3', String(acroFirma?.get(PDFName.of('SigFlags'))));
+const dictFirma = (campos[0] as any).acroField.dict;
+comparar('campo de firma', 'queda vacío, sin firmar', undefined, dictFirma.get(PDFName.of('V')));
+comparar('campo de firma', 'lo apunta la página', true, Boolean(dictFirma.get(PDFName.of('P'))));
+
+// Ida y vuelta: al reabrir ese PDF la firma tiene que volver como firma y en el mismo lugar, no
+// perderse ni convertirse en un campo de texto.
+await asentarPdf(conFirma);
+const reabierto = await camposDelPdf();
+comparar('reabrir la firma', 'vuelve como firma', ['firma_empleador'], reabierto.firmas.map((f) => f.name));
+comparar('reabrir la firma', 'en el mismo lugar', [60, 700, 150, 55], reabierto.firmas.map((f) => [f.x, f.y, f.w, f.h])[0]);
+comparar('reabrir la firma', 'no se cuela entre los de texto', [], reabierto.campos.map((c) => c.name));
+cerrarPdf();
 
 console.log(filas.join('\n'));
 console.log(`\nPDF en ${SALIDA}multipagina.pdf`);

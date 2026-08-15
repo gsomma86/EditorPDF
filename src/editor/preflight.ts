@@ -21,6 +21,7 @@ function medidas(el: Elemento): { ancho: number; alto: number } {
 
 function nombreDe(el: Elemento): string {
   if (el.clase === 'campo') return `el campo "${el.name}"`;
+  if (el.clase === 'firma') return `la firma "${el.name}"`;
   if (el.clase === 'texto') return `el texto "${el.text.slice(0, 20)}"`;
   const etiquetas: Record<string, string> = { linea: 'una línea', rect: 'un recuadro', tabla: 'una tabla', qr: 'un QR', imagen: 'una imagen' };
   return etiquetas[el.clase] ?? 'un elemento';
@@ -113,6 +114,42 @@ export function verificarDiseno(lienzo: Canvas): Hallazgo[] {
       hallazgos.push({
         gravedad: 'advertencia',
         mensaje: `El campo "${nombre}" está colocado ${veces} veces. En el PDF será un único campo: al completarlo, todas las copias muestran el mismo valor.`,
+      });
+    }
+  }
+
+  // Las firmas se revisan aparte de los campos de texto: acá el nombre repetido no es una molestia
+  // sino un PDF mal armado. Dos campos con el mismo `/T` son el mismo campo para el visor, y uno de
+  // firma no se puede colocar dos veces —cada recuadro tiene que poder firmarse por separado—, así
+  // que el archivo saldría inconsistente. Compartir nombre con un campo de texto es peor todavía:
+  // el mismo campo sería de dos tipos a la vez.
+  const firmas = elementos.filter((e): e is Elemento & { clase: 'firma' } => e.clase === 'firma');
+  const firmasVistas = new Map<string, number>();
+
+  for (const firma of firmas) {
+    if (!firma.name.trim()) {
+      hallazgos.push({ gravedad: 'error', mensaje: 'Hay un campo de firma sin nombre: no se puede exportar como formulario.' });
+    }
+    firmasVistas.set(firma.name, (firmasVistas.get(firma.name) ?? 0) + 1);
+    if (firma.angulo % 90 !== 0) {
+      hallazgos.push({
+        gravedad: 'advertencia',
+        mensaje: `${enHoja(firma)} está rotada ${firma.angulo}°. El recuadro de firma del PDF siempre queda derecho: al exportar va a quedar sin rotación.`,
+      });
+    }
+  }
+
+  for (const [nombre, veces] of firmasVistas) {
+    if (veces > 1) {
+      hallazgos.push({
+        gravedad: 'error',
+        mensaje: `El campo de firma "${nombre}" está colocado ${veces} veces. Cada firma tiene que tener un nombre propio: poné uno distinto en cada recuadro.`,
+      });
+    }
+    if (vistos.has(nombre)) {
+      hallazgos.push({
+        gravedad: 'error',
+        mensaje: `"${nombre}" es a la vez un campo de texto y uno de firma. En el PDF serían el mismo campo: cambiale el nombre a uno de los dos.`,
       });
     }
   }
