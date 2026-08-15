@@ -27,8 +27,6 @@ const MENU_VER = `
   </div>
   <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-reglas" /> <span data-i18n="menu.ver.reglas"></span></label>
   <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-guias" checked /> <span data-i18n="menu.ver.alineacion"></span></label>
-  <div class="ed-dd-sep"></div>
-  <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-ocultar-campos" /> <span data-i18n="menu.ver.ocultarCampos"></span></label>
 `;
 
 const MENU_PAGINA = `
@@ -74,6 +72,7 @@ const MENU_CAMPOS = `
   <div class="ed-dd-item" id="ed-csv-exportar" data-i18n="menu.campos.csvExportar"></div>
   <div class="ed-dd-sep"></div>
   <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-completar" /> <span data-i18n="menu.campos.completar"></span></label>
+  <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-ocultar-campos" /> <span data-i18n="menu.campos.ocultar"></span></label>
 `;
 
 const MENU_AYUDA = `

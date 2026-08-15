@@ -92,6 +92,7 @@ const ES = {
   'menu.campos.csvImportar': '⬆ Importar campos (CSV)',
   'menu.campos.csvExportar': '⬇ Exportar campos (CSV)',
   'menu.campos.completar': 'Completar campos',
+  'menu.campos.ocultar': 'Ocultar campos en el lienzo',
 
   'menu.ayuda': 'Ayuda',
   'ayuda.menu.guia': '🚀 Guía rápida',
@@ -371,6 +372,7 @@ const EN: Record<ClaveI18n, string> = {
   'menu.campos.csvImportar': '⬆ Import fields (CSV)',
   'menu.campos.csvExportar': '⬇ Export fields (CSV)',
   'menu.campos.completar': 'Fill in fields',
+  'menu.campos.ocultar': 'Hide fields on the canvas',
 
   'menu.ayuda': 'Help',
   'ayuda.menu.guia': '🚀 Quick guide',
@@ -648,6 +650,7 @@ const PT: Record<ClaveI18n, string> = {
   'menu.campos.csvImportar': '⬆ Importar campos (CSV)',
   'menu.campos.csvExportar': '⬇ Exportar campos (CSV)',
   'menu.campos.completar': 'Preencher campos',
+  'menu.campos.ocultar': 'Ocultar campos na tela',
 
   'menu.ayuda': 'Ajuda',
   'ayuda.menu.guia': '🚀 Guia rápido',
