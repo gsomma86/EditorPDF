@@ -254,8 +254,9 @@ export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
 
   // Las piezas nacen en su ranura por defecto; `paneles.ts` las reubica según lo que esté guardado.
   raiz.querySelector('#ed-ranura-izq-1')!.innerHTML = htmlDePieza('campos');
+  raiz.querySelector('#ed-ranura-izq-2')!.innerHTML = htmlDePieza('capas');
   raiz.querySelector('#ed-ranura-der-1')!.innerHTML = htmlDePieza('props');
-  raiz.querySelector('#ed-ranura-der-2')!.innerHTML = htmlDePieza('capas');
+
   raiz.querySelector('#ed-ranura-abajo')!.innerHTML = htmlDePieza('hojas');
 
   const menubar = raiz.querySelector<HTMLElement>('#ed-menubar')!;

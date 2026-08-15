@@ -58,7 +58,7 @@ const RANURAS: { lugar: Lugar; mitad: 1 | 2 }[] = [
 const LUGAR_ORIGINAL: Record<Nombre, { lugar: Lugar; mitad: 1 | 2 }> = {
   campos: { lugar: 'izq', mitad: 1 },
   props: { lugar: 'der', mitad: 1 },
-  capas: { lugar: 'der', mitad: 2 },
+  capas: { lugar: 'izq', mitad: 2 },
   hojas: { lugar: 'abajo', mitad: 1 },
 };
 
@@ -70,7 +70,7 @@ function leerEstado(): Estado {
   const base: Estado = {
     campos: piezaPorDefecto('izq'),
     props: { ...piezaPorDefecto('der'), ancho: 230 },
-    capas: { ...piezaPorDefecto('der'), ancho: 230, mitad: 2 },
+    capas: { ...piezaPorDefecto('izq'), ancho: 210, mitad: 2 },
     hojas: piezaPorDefecto('abajo'),
   };
   try {
