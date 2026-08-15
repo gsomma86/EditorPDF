@@ -495,6 +495,7 @@ function reflejarPagina(): void {
   estadoOrient.textContent = t(estadoOrient.dataset.i18n as ClaveI18n);
 }
 
+
 function cambiarPagina(cambio: Partial<ReturnType<typeof configActual>>): void {
   aplicarConfigPagina(lienzo, { ...configActual(), ...cambio });
   reflejarPagina();

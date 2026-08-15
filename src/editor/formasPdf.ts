@@ -3,11 +3,9 @@
  * como cualquier elemento del diseño. Es el corazón de la fase 3, el equivalente para formas de lo
  * que `pdfExistente.ts` hace con el texto.
  *
- * **Cómo se ubica una forma.** El recorrido de mupdf entrega los rellenos y trazos en el mismo
- * orden en que aparecen sus operadores en el content stream, así que la enésima forma que se ve es
- * la enésima que se pinta: se las empareja **por posición**. Comparar coordenadas no serviría,
- * porque los números del stream están en el sistema que impone la matriz vigente (`cm`), que casi
- * nunca es la identidad.
+ * **Cómo se saca una forma.** Con una redacción de mupdf sobre su rectángulo, pidiéndole que se
+ * lleve el dibujo vectorial y no toque el texto. No se emparejan formas con operadores del content
+ * stream: ver el detalle en `borrarFormasDelPdf`, donde está por qué eso no funciona.
  *
  * **Qué entra.** Rectángulos de ejes rectos y líneas rectas, que sobre 60 PDF reales son el 84% de
  * lo que hay dibujado. Las líneas suelen venir como rectángulos degenerados —alto o ancho 0— así
@@ -17,7 +15,7 @@
 
 /** Una forma del contenido, en coordenadas de la hoja (Y desde arriba, como el lienzo). */
 export interface FormaDelPdf {
-  /** Posición entre las formas pintadas de la página, contando desde 0 en el orden del dibujo. */
+  /** Orden en que la dibuja el PDF, desde 0. Sirve para identificarla mientras está a la vista. */
   indice: number;
   clase: 'rect' | 'linea';
   x: number;
@@ -79,8 +77,7 @@ async function motor() {
 }
 
 /**
- * Las formas editables de una página. El índice que llevan es el que hay que pasarle a
- * `borrarFormaDelPdf` para sacarla del contenido.
+ * Las formas editables de una página, en el orden en que las dibuja el PDF.
  */
 export async function formasDelPdf(bytes: Uint8Array, pagina: number): Promise<FormaDelPdf[]> {
   const mupdf = await motor();
@@ -132,120 +129,47 @@ export async function formasDelPdf(bytes: Uint8Array, pagina: number): Promise<F
   return formas;
 }
 
-// ---------- Sacar una forma del contenido ----------
-
-/** Qué pinta cada operador, en el orden en que el recorrido de mupdf los va a informar. */
-const PINTA: Record<string, ('relleno' | 'trazo')[]> = {
-  f: ['relleno'],
-  F: ['relleno'],
-  'f*': ['relleno'],
-  S: ['trazo'],
-  s: ['trazo'],
-  B: ['relleno', 'trazo'],
-  'B*': ['relleno', 'trazo'],
-  b: ['relleno', 'trazo'],
-  'b*': ['relleno', 'trazo'],
-  n: [],
-};
-
-const CONSTRUYE = new Set(['m', 'l', 'c', 'v', 'y', 'h', 're']);
+// ---------- Sacar formas del contenido ----------
 
 /**
- * Recorre un content stream y devuelve, por cada operador que pinta, desde qué byte empieza su
- * camino y hasta cuál llega. Es un lector chico a propósito: no interpreta el PDF, solo necesita
- * saber dónde está cada operador, salteando lo que puede confundirlo (cadenas, comentarios y las
- * imágenes incrustadas, cuyos bytes crudos pueden contener cualquier cosa).
- */
-function operadoresQuePintan(texto: string): { desde: number; hasta: number; eventos: ('relleno' | 'trazo')[] }[] {
-  const salida: { desde: number; hasta: number; eventos: ('relleno' | 'trazo')[] }[] = [];
-  let inicioCamino = -1;
-  let i = 0;
-
-  const esDelimitador = (c: string) => c === undefined || /[\s()<>[\]{}/%]/.test(c);
-
-  while (i < texto.length) {
-    const c = texto[i];
-
-    if (c === '%') {
-      while (i < texto.length && texto[i] !== '\n') i++;
-      continue;
-    }
-    if (c === '(') {
-      let nivel = 1;
-      i++;
-      while (i < texto.length && nivel > 0) {
-        if (texto[i] === '\\') i++;
-        else if (texto[i] === '(') nivel++;
-        else if (texto[i] === ')') nivel--;
-        i++;
-      }
-      continue;
-    }
-    if (esDelimitador(c)) {
-      i++;
-      continue;
-    }
-
-    let fin = i;
-    while (fin < texto.length && !esDelimitador(texto[fin])) fin++;
-    const palabra = texto.slice(i, fin);
-
-    // Imagen incrustada: entre `ID` y `EI` hay bytes crudos que no se pueden leer como operadores.
-    if (palabra === 'BI') {
-      const id = texto.indexOf('ID', fin);
-      const ei = id < 0 ? -1 : texto.indexOf('EI', id);
-      i = ei < 0 ? texto.length : ei + 2;
-      continue;
-    }
-
-    if (CONSTRUYE.has(palabra)) {
-      if (inicioCamino < 0) inicioCamino = i;
-    } else if (palabra in PINTA) {
-      salida.push({ desde: inicioCamino < 0 ? i : inicioCamino, hasta: fin, eventos: PINTA[palabra] });
-      inicioCamino = -1;
-    }
-
-    i = fin;
-  }
-  return salida;
-}
-
-/**
- * Borra del contenido la forma número `indice` —el mismo que trae `formasDelPdf`— y devuelve los
- * bytes del PDF ya modificado.
+ * Saca del contenido de la página las formas indicadas y devuelve el PDF ya modificado.
  *
- * El camino y su operador se reemplazan por espacios en vez de recortarse: un content stream
- * tolera espacios en cualquier lado, y así no hay que recalcular longitudes ni offsets. Si el
- * operador pintaba relleno y contorno a la vez (`B`), se van los dos: son el mismo dibujo.
+ * Lo hace con una **redacción** de mupdf por cada forma, el mismo mecanismo que borra el texto,
+ * pero pidiéndole que se lleve el dibujo vectorial y deje el texto quieto. Es importante que sea
+ * mupdf y no una cirugía a mano sobre el content stream: el recorrido informa menos formas que
+ * operadores hay —saltea los que no dibujan nada visible: en una plantilla real, 556 contra 672—
+ * así que emparejarlos por posición borra el operador equivocado y se lleva puesto texto y líneas
+ * que nadie pidió sacar. Con redacciones se identifica por rectángulo y ese problema no existe.
+ *
+ * Ojo: la redacción se lleva **todo el dibujo que quede completamente adentro** del rectángulo, así
+ * que sacar un recuadro grande puede llevarse una línea que estuviera adentro. Por eso quien llama
+ * conviene que compare cuántas formas quedaron.
  */
-export async function borrarFormaDelPdf(bytes: Uint8Array, pagina: number, indice: number): Promise<Uint8Array> {
+export async function borrarFormasDelPdf(bytes: Uint8Array, pagina: number, objetivos: { x: number; y: number; w: number; h: number }[]): Promise<Uint8Array> {
+  if (!objetivos.length) return bytes;
+
   const mupdf = await motor();
   const documento = mupdf.PDFDocument.openDocument(bytes.slice(), 'application/pdf') as InstanceType<typeof mupdf.PDFDocument>;
-  const hoja = (documento.loadPage(pagina) as any).getObject().resolve();
+  const hoja = documento.loadPage(pagina) as any;
 
-  const contenido = hoja.get('Contents');
-  const partes: any[] = contenido.isArray() ? Array.from({ length: contenido.length }, (_, i) => contenido.get(i)) : [contenido];
-
-  // Las partes de `Contents` son un solo stream cortado en pedazos, así que la cuenta de formas
-  // sigue de una a la siguiente.
-  let vistas = 0;
-  for (const parte of partes) {
-    const crudo = parte.readStream().asUint8Array();
-    const texto = new TextDecoder('latin1').decode(crudo);
-    const pintados = operadoresQuePintan(texto);
-
-    for (const op of pintados) {
-      const propias = op.eventos.length;
-      if (indice < vistas + propias) {
-        const limpio = texto.slice(0, op.desde) + ' '.repeat(op.hasta - op.desde) + texto.slice(op.hasta);
-        parte.writeStream(new TextEncoder().encode(limpio));
-        return documento.saveToBuffer('').asUint8Array();
-      }
-      vistas += propias;
-    }
+  for (const o of objetivos) {
+    const anotacion = hoja.createAnnotation('Redact');
+    // Medio punto de aire: una línea de grosor 0,5 tiene que quedar cubierta por su rectángulo.
+    anotacion.setRect([o.x - 0.5, o.y - 0.5, o.x + o.w + 0.5, o.y + o.h + 0.5]);
+    anotacion.update();
   }
 
-  throw new Error(`No se encontró la forma ${indice} en el contenido de la página.`);
+  // Sin recuadros negros; imágenes intactas (0); el dibujo vectorial se quita si queda cubierto
+  // (1); el texto no se toca (1) — es justo al revés que al borrar un texto, que usa (0, 0).
+  hoja.applyRedactions(false, 0, 1, 1);
+  // Copia propia: lo que devuelve mupdf es una vista sobre su memoria y se invalida en cuanto se
+  // vuelve a usar el motor (ver la lección 22 de CLAUDE.md).
+  return new Uint8Array(documento.saveToBuffer('').asUint8Array());
+}
+
+/** Saca una sola forma. Es el caso del doble clic. */
+export async function borrarFormaDelPdf(bytes: Uint8Array, pagina: number, forma: { x: number; y: number; w: number; h: number }): Promise<Uint8Array> {
+  return borrarFormasDelPdf(bytes, pagina, [forma]);
 }
 
 /** La forma que cae bajo un punto de la hoja. Se prueba de adelante hacia atrás: gana la de arriba. */

@@ -12,7 +12,7 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
-import { borrarFormaDelPdf, formaEn, formasDelPdf } from '../src/editor/formasPdf';
+import { borrarFormaDelPdf, borrarFormasDelPdf, formaEn, formasDelPdf } from '../src/editor/formasPdf';
 
 const SALIDA = fileURLToPath(new URL('../salida/', import.meta.url));
 const PLANTILLA_REAL = 'C:/Users/gsomma/Desktop/Template recibo Argentina Napsis.pdf';
@@ -71,7 +71,7 @@ comparar('buscar por punto', 'en un lugar vacio', undefined, formaEn(formas, 280
 // ---------- Borrar ----------
 
 const objetivo = formas[0];
-const editado = await borrarFormaDelPdf(original, 0, objetivo.indice);
+const editado = await borrarFormaDelPdf(original, 0, objetivo);
 await writeFile(`${SALIDA}formas-editado.pdf`, editado);
 
 const quedan = await formasDelPdf(editado, 0);
@@ -98,11 +98,22 @@ if (existsSync(PLANTILLA_REAL)) {
   comparar('plantilla real', 'encuentra formas', true, suyas.length > 100);
 
   const antes = textoDe(real);
-  const sinUna = await borrarFormaDelPdf(real, 0, suyas[10].indice);
+  const sinUna = await borrarFormaDelPdf(real, 0, suyas[10]);
   await writeFile(`${SALIDA}formas-plantilla-editada.pdf`, sinUna);
   const despues = await formasDelPdf(sinUna, 0);
   comparar('plantilla real', 'borra exactamente una', suyas.length - 1, despues.length);
   comparar('plantilla real', 'no toca el texto', antes, textoDe(sinUna));
+  // Todas de una: es el caso que rompio la primera version, que emparejaba formas con operadores
+  // del content stream por posicion y borraba el equivocado.
+  const sinNinguna = await borrarFormasDelPdf(real, 0, suyas);
+  await writeFile(`${SALIDA}formas-plantilla-sin-formas.pdf`, sinNinguna);
+  // No saca todas: la redacción se lleva el dibujo que queda *completamente cubierto*, y un trazo
+  // pinta más ancho que su trayectoria, así que muchos sobreviven. Lo que importa acá es que saque
+  // bastantes y que no rompa nada — convertirlas todas de una no se ofrece por esto mismo.
+  const quedanTodas = (await formasDelPdf(sinNinguna, 0)).length;
+  filas.push(`     sacando las ${suyas.length} de una: sobreviven ${quedanTodas} (por eso no se ofrece convertirlas todas)`);
+  comparar('plantilla real', 'sacar muchas de una saca varias', true, quedanTodas < suyas.length);
+  comparar('plantilla real', 'sacarlas todas no toca el texto', antes, textoDe(sinNinguna));
 } else {
   filas.push('     (la plantilla real no está en el escritorio: se saltea esa parte)');
 }
