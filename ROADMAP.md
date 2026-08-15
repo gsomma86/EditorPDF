@@ -233,11 +233,26 @@ Hallazgos técnicos que siguen valiendo:
 - [x] **Detectar las formas del contenido** (15/08/2026, `editor/formasPdf.ts`): rectángulos de
       ejes rectos y líneas, con su posición, color y grosor. Las líneas suelen venir como
       rectángulos degenerados (alto o ancho 0) y se clasifican como línea, que es lo que son.
-- [x] **Sacar una forma del contenido, de verdad** (15/08/2026). Como `Redact` no sirve para
-      vectores, se opera sobre el content stream: se lo recorre con un lector chico que ubica cada
-      operador que pinta, y se reemplaza por espacios el camino de la forma elegida junto con su
-      operador. Se la ubica **por posición** —el enésimo relleno del recorrido es el enésimo del
-      stream— porque comparar coordenadas no serviría: los CTM no son la identidad.
+- [x] **Sacar una forma del contenido, de verdad** (15/08/2026): con una **redacción de mupdf**
+      sobre su rectángulo, pidiéndole que se lleve el dibujo vectorial y no toque el texto —
+      `applyRedactions(false, 0, 1, 1)`, justo al revés que al borrar un texto.
+      **El primer intento estuvo mal y rompía el documento**: era una cirugía a mano sobre el
+      content stream, emparejando cada forma con su operador *por posición*. El recorrido de mupdf
+      informa menos formas que operadores hay —saltea los que no dibujan nada visible: 556 contra
+      672 en la plantilla real— así que borraba el equivocado: desaparecieron 14 renglones de texto
+      y las líneas internas de las tablas.
+      **Límite conocido**: la redacción solo se lleva el dibujo que queda *completamente cubierto*,
+      y un trazo pinta más ancho que su trayectoria. Sacando las 556 de una sobreviven 392, así que
+      no se ofrece "convertir todas las formas"; de a una, con el doble clic, anda exacto. Por lo
+      mismo, sacar un recuadro grande puede llevarse una línea que estuviera adentro.
+
+      <details><summary>El mecanismo descartado</summary>
+      Se recorría el content stream ubicando cada operador que pinta y se reemplazaba por espacios
+      el camino de la forma junto con su operador, buscándola **por posición** —el enésimo relleno
+      del recorrido sería el enésimo del stream— porque comparar coordenadas parecía inviable: los
+      CTM no son la identidad. La premisa era falsa y no hay forma barata de arreglarla; con
+      redacciones el problema directamente no existe, porque se identifica por rectángulo.
+      </details>
 - [x] **Doble clic sobre una forma la convierte en elemento del diseño** (15/08/2026), igual que
       el texto en la fase 2: se saca del contenido del PDF y queda un recuadro o una línea común,
       con su panel, su deshacer y su exportación. Un relleno macizo se reconstruye como recuadro

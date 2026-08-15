@@ -408,3 +408,13 @@ validada — ver la sección Fase 0 del roadmap.
     `.canvas-container` en el CSS, porque un fondo opaco del lienzo taparía igual), y la forma se
     dibuja con **`globalCompositeOperation: 'destination-over'`**, que la manda debajo de todo lo ya
     dibujado. Si alguna de las tres se rompe, la forma desaparece o vuelve a tapar el texto.
+39. **El recorrido de mupdf informa menos formas que operadores tiene el content stream**: saltea
+    los que no dibujan nada visible, y en una plantilla real son 556 contra 672. Así que emparejar
+    "la enésima forma que veo" con "el enésimo operador que pinta" está mal y borra lo que no es —
+    en la prueba se llevó puesto 14 renglones de texto y las líneas internas de las tablas, y no se
+    notó hasta mirar el resultado. Para sacar dibujo vectorial se usa una **redacción de mupdf**
+    sobre el rectángulo de la forma: `applyRedactions(false, 0, 1, 1)` = sin recuadros negros,
+    imágenes intactas, line art fuera si queda cubierto, y **texto sin tocar** (borrar un texto es
+    al revés: `(false, 0, 0, 0)`). Su límite: solo se lleva lo que queda *completamente* cubierto,
+    así que sacar muchas de una deja bastantes atrás y un recuadro grande puede llevarse una línea
+    de adentro.
