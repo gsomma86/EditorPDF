@@ -428,6 +428,21 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
 
 ## Fase 5 — Empaquetado y distribución
 
-- [ ] Build de escritorio con Tauri
+- [x] **Build de escritorio con Tauri 2** (15/08/2026). El editor se instala como aplicación de
+      Windows sin dejar de ser la misma web: Tauri levanta **el mismo build de Vite** dentro de un
+      WebView2, así que no hay una segunda versión del código que mantener. Identificador
+      `ar.net.recibomail.editorpdf`, derivado del dominio como manda la convención —define la
+      carpeta de datos del usuario y tiene que coincidir el día que se firme el ejecutable—.
+      Se generan los dos instaladores: **NSIS** (`.exe`, modo por usuario, no pide administrador) y
+      **MSI** para despliegue corporativo; los dos pesan 14 MB, con el `mupdf.wasm` de 10 MB
+      adentro, y el ejecutable 20 MB. Scripts: `npm run escritorio` y `npm run escritorio-build`.
+      Ícono propio: el avión de ReciboMail sobre una hoja con renglones, elegido sobre otras tres
+      variantes mirándolas a 16, 32 y 48 px. El original tiene mucha estela y a 16 px el avión
+      quedaba de unos 6 px, así que va recortado y agrandado; se compone con un script que usa solo
+      `zlib` de Node, porque no hay ninguna librería de imágenes instalada.
+      **Falta probar en la aplicación instalada**: que las descargas lleguen a disco. Exportar PDF
+      y Guardar proyecto usan un enlace con `blob:`, y en un WebView eso no funciona igual que en un
+      navegador. Si no baja nada, hay que reemplazarlo por el diálogo nativo de Tauri cuando corre
+      en escritorio, dejando el camino web intacto.
 - [ ] Explorar alternativa gratuita para evitar el cartel de SmartScreen
 - [ ] Pulir README / documentación de contribución

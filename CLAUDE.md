@@ -481,3 +481,9 @@ validada — ver la sección Fase 0 del roadmap.
     Conviven dos "ocultar": el del menú Campos es una vista temporal de todos los campos y **sí**
     salen en el PDF; el de la barra de Capas es una propiedad del objeto y **no** sale. Se sostiene
     porque `elementoVisible()` es el único lugar donde se decide qué se dibuja y qué se exporta.
+51. **Cambiar el ícono no alcanza con regenerarlo: hay que forzar la recompilación.** `tauri icon`
+    reescribe `src-tauri/icons/icon.ico`, pero cargo no vuelve a ejecutar `build.rs` —que es quien
+    lo incrusta— porque no ve cambios propios, así que el `.exe` sale con el ícono anterior aunque
+    el `.ico` sea más nuevo. Se arregla tocando `build.rs` antes de `tauri build`. Para comprobar
+    que quedó, extraer el ícono **del ejecutable**, no mirar el explorador de archivos, que además
+    cachea íconos: `[System.Drawing.Icon]::ExtractAssociatedIcon($exe)`.
