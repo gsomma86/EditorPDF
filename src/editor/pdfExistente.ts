@@ -116,10 +116,34 @@ export function formaEnPunto(x: number, y: number): FormaDelPdf | undefined {
  * Saca una forma del contenido del PDF —de verdad, no la tapa— y devuelve el fondo actualizado.
  * Es el paso equivalente a `borrarTextoDelPdf`, para poder reemplazarla por un elemento del diseño.
  */
-export async function quitarFormaDelPdf(objetivo: FormaDelPdf): Promise<string> {
+/** Cómo se reconoce una forma entre dos lecturas del mismo PDF. */
+function huella(f: FormaDelPdf): string {
+  const n = (v: number) => Math.round(v * 100);
+  return `${f.clase}|${n(f.x)}|${n(f.y)}|${n(f.w)}|${n(f.h)}|${f.color}|${f.relleno}`;
+}
+
+export async function quitarFormaDelPdf(objetivo: FormaDelPdf): Promise<{ fondo: string; quitadas: FormaDelPdf[] }> {
   if (!bytesActuales) throw new Error('No hay ningún PDF abierto.');
+
+  const antes = formas;
   await asentarPdf(await borrarFormaDelPdf(bytesActuales, paginaElegida, objetivo));
-  return (await rasterizar()).fondo;
+
+  // Cuáles se fueron de verdad. Casi siempre es solo la elegida, pero la redacción se lleva todo
+  // el dibujo que quede completamente cubierto por el rectángulo: sacar un recuadro grande arrastra
+  // las líneas que tenía adentro. Quien llama las convierte también en elementos, así no
+  // desaparece nada de la hoja y encima quedan editables.
+  const quedan = new Map<string, number>();
+  for (const f of formas) quedan.set(huella(f), (quedan.get(huella(f)) ?? 0) + 1);
+
+  const quitadas: FormaDelPdf[] = [];
+  for (const f of antes) {
+    const clave = huella(f);
+    const disponibles = quedan.get(clave) ?? 0;
+    if (disponibles > 0) quedan.set(clave, disponibles - 1);
+    else quitadas.push(f);
+  }
+
+  return { fondo: (await rasterizar()).fondo, quitadas };
 }
 
 /**

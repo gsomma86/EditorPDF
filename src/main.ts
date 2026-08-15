@@ -723,31 +723,44 @@ lienzo.on('mouse:dblclick', async (e) => {
     const forma = formaEnPunto(punto.x, punto.y);
     if (!forma) return;
 
-    cambiarPagina({ fondo: await quitarFormaDelPdf(forma) });
+    // Sacarla puede llevarse también las formas que tenía completamente adentro —una banda gris se
+    // lleva las líneas que la bordean—, así que se convierten todas las que se hayan ido: si no,
+    // desaparecerían de la hoja sin que nadie las pidiera.
+    const { fondo, quitadas } = await quitarFormaDelPdf(forma);
+    cambiarPagina({ fondo });
 
-    const elemento = crearElemento(forma.clase) as Elemento & { clase: 'rect' | 'linea' };
-    elemento.x = forma.x;
-    elemento.y = forma.y;
-    elemento.w = forma.w;
-    elemento.h = forma.h;
-    elemento.color = forma.color;
-    if (elemento.clase === 'rect') {
-      // Un relleno macizo se reconstruye como recuadro relleno sin borde; uno de contorno, al revés.
-      elemento.conRelleno = forma.relleno;
-      elemento.rellenoColor = forma.color;
-      elemento.grosor = forma.relleno ? 0 : Math.max(0.5, forma.grosor);
+    let elegido: FabricObject | undefined;
+    // De atrás para adelante: cada una se manda al fondo, así al final quedan en el orden en que
+    // las dibujaba el PDF.
+    for (const salida of [...quitadas].reverse()) {
+      const elemento = crearElemento(salida.clase) as Elemento & { clase: 'rect' | 'linea' };
+      elemento.x = salida.x;
+      elemento.y = salida.y;
+      elemento.w = salida.w;
+      elemento.h = salida.h;
+      elemento.color = salida.color;
+      if (elemento.clase === 'rect') {
+        // Un relleno macizo se reconstruye como recuadro relleno sin borde; uno de contorno, al revés.
+        elemento.conRelleno = salida.relleno;
+        elemento.rellenoColor = salida.color;
+        elemento.grosor = salida.relleno ? 0 : Math.max(0.5, salida.grosor);
+      }
+
+      const nuevo = await agregarAlLienzo(lienzo, elemento);
+      // Estas formas no son elementos nuevos: ya estaban en el PDF y tienen que quedar donde
+      // estaban, debajo del texto y de las líneas que tenían encima. Se logra con dos cosas: al
+      // fondo de los elementos, y dibujadas *por debajo* de lo ya dibujado —incluida la imagen de
+      // la página— con 'destination-over'. Al frente taparían el texto que el PDF dibujaba encima.
+      lienzo.sendObjectToBack(nuevo);
+      nuevo.set({ globalCompositeOperation: 'destination-over' });
+      if (salida === forma) elegido = nuevo;
     }
 
-    const nuevo = await agregarAlLienzo(lienzo, elemento);
-    // Esta forma no es un elemento nuevo: es algo que ya estaba en el PDF y tiene que quedar donde
-    // estaba, debajo del texto y de las líneas que tenía encima. Se logra con dos cosas: al fondo
-    // de los elementos, y dibujada *por debajo* de lo ya dibujado —incluida la imagen de la
-    // página— con 'destination-over'. Si entrara al frente, como cualquier elemento nuevo, taparía
-    // el texto que el PDF dibujaba sobre ella.
-    lienzo.sendObjectToBack(nuevo);
-    nuevo.set({ globalCompositeOperation: 'destination-over' });
     lienzo.requestRenderAll();
-    mostrarPropiedades(espacio.panelPropiedades, lienzo, nuevo);
+    if (elegido) {
+      lienzo.setActiveObject(elegido);
+      mostrarPropiedades(espacio.panelPropiedades, lienzo, elegido);
+    }
     registrarSnapshot(lienzo);
     guardar();
     return;

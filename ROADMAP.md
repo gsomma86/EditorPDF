@@ -241,10 +241,12 @@ Hallazgos técnicos que siguen valiendo:
       informa menos formas que operadores hay —saltea los que no dibujan nada visible: 556 contra
       672 en la plantilla real— así que borraba el equivocado: desaparecieron 14 renglones de texto
       y las líneas internas de las tablas.
-      **Límite conocido**: la redacción solo se lleva el dibujo que queda *completamente cubierto*,
-      y un trazo pinta más ancho que su trayectoria. Sacando las 556 de una sobreviven 392, así que
-      no se ofrece "convertir todas las formas"; de a una, con el doble clic, anda exacto. Por lo
-      mismo, sacar un recuadro grande puede llevarse una línea que estuviera adentro.
+      **La redacción se lleva todo lo que queda completamente cubierto**, así que sacar una banda
+      grande arrastra las líneas que tenía adentro: en la plantilla real, una banda se lleva 19
+      formas. No se pierden — se convierten en elementos **todas** las que se hayan ido, no solo la
+      apuntada, así en la hoja no desaparece nada y encima quedan editables. Al revés, ese mismo
+      límite es el que impide ofrecer "convertir todas las formas": sacando las 556 de una
+      sobreviven 392, porque un trazo pinta más ancho que su trayectoria y no queda cubierto.
 
       <details><summary>El mecanismo descartado</summary>
       Se recorría el content stream ubicando cada operador que pinta y se reemplazaba por espacios

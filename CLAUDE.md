@@ -418,3 +418,11 @@ validada — ver la sección Fase 0 del roadmap.
     al revés: `(false, 0, 0, 0)`). Su límite: solo se lleva lo que queda *completamente* cubierto,
     así que sacar muchas de una deja bastantes atrás y un recuadro grande puede llevarse una línea
     de adentro.
+40. **Sacar una forma del PDF puede llevarse otras, y hay que convertirlas también.** La redacción
+    de mupdf se lleva todo el dibujo que quede *completamente cubierto* por el rectángulo, así que
+    sacar una banda gris arrastra las líneas que tenía adentro: en la plantilla real, una banda se
+    lleva 19 formas. Si se convierte en elemento solo la apuntada, las otras 18 desaparecen de la
+    hoja sin que nadie las haya pedido — y se nota como "las líneas internas se borraron". Por eso
+    `quitarFormaDelPdf` devuelve **todas** las que se fueron (compara la lista de formas antes y
+    después) y quien llama las convierte a todas. Vale para cualquier operación futura sobre el
+    contenido: **comparar antes y después, y no dar por sentado que se fue solo lo que se pidió**.
