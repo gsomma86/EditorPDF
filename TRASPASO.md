@@ -38,11 +38,12 @@ nuevo como texto extraíble, y el viejo ya no está.
    - Fuentes subseteadas: fallback cuando falta un glifo.
    - Solo se abre la primera página.
 3. **Fondo de hoja de tipo PDF** — la otra puerta de entrada de la fase 2.
-4. **Importar campos AcroForm de un PDF abierto** (nuevo, 14/08/2026) — el reemplazo de valor real
-   de la fase 3 (ver el punto 5). Al abrir un PDF, leer sus campos de formulario (nombre, posición,
-   tamaño, tipo) y entrarlos como elementos 'campo' del editor, listos para editar en un paso.
-   Repartido igual que el resto: lectura en `pdfExistente.ts` de quien toque `editor/**`, cableado
-   de quien toque `ui/**`/`main.ts`.
+4. ~~Importar campos AcroForm de un PDF abierto~~ — **hecho (14/08/2026)**, el reemplazo de valor
+   real de la fase 3 (ver el punto 5). Al abrir un PDF, `camposDelPdf()` (`pdfExistente.ts`) lee sus
+   campos de formulario y `main.ts` los coloca en la hoja como elementos 'campo' —misma posición,
+   tipografía, color, borde y fondo que traía el PDF— y los suma al catálogo del panel izquierdo sin
+   duplicar nombres. Lo que no se puede representar (casillas, listas, firmas) se avisa con el
+   motivo. Probado contra una plantilla real: 59 campos, 0 omitidos.
 5. **Fase 3 (formas preexistentes) — en pausa.** Bosquejada y validada dos veces contra PDFs
    reales (14/08/2026, ver ROADMAP.md para la historia completa): primero se corrigió de rellenos a
    trazos, y al medir bien esos trazos —separando contenido real de anotaciones— resultaron ser

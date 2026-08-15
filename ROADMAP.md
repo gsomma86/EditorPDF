@@ -96,13 +96,13 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
 - [ ] Manejo de fuentes subseteadas (fallback cuando falta un glifo)
 - [x] Que el PDF de base no se pierda: se guarda en IndexedDB para sobrevivir a una recarga y
       viaja dentro del `.json` al guardar el proyecto, para poder seguirlo en otra computadora.
-- [ ] **Importar los campos AcroForm de un PDF abierto** (nuevo, 14/08/2026 — reemplaza a la fase 3
+- [x] **Importar los campos AcroForm de un PDF abierto** (nuevo, 14/08/2026 — reemplaza a la fase 3
       de v1, ver más abajo por qué). Al hacer Archivo → Abrir PDF, además del fondo se leen sus
-      campos de formulario (nombre, posición, tamaño, tipo) y entran como elementos 'campo' del
-      editor, listos para editar en un paso — sin esto, una plantilla real con campos AcroForm hoy
-      se abre solo como fondo, sin ellos. Repartido igual que el resto: la lectura en
-      `pdfExistente.ts` es de `editor/**`, el cableado (colocarlos en el lienzo y en el catálogo del
-      panel izquierdo) es de `ui/**`/`main.ts`.
+      campos de formulario (nombre, posición, tamaño, tipo, color, borde, fondo) y entran ya
+      colocados como elementos 'campo' del editor, listos para editar en un paso, y se suman al
+      catálogo del panel izquierdo sin duplicar nombres. Lo que el editor no representa (casillas,
+      listas, firmas) se avisa con el motivo. Probado contra una plantilla real: 59 campos, 0
+      omitidos, coinciden en posición y tamaño con mupdf. `camposDelPdf()` en `pdfExistente.ts`.
 
 ## Fase 3 — Edición real de formas preexistentes (en pausa)
 
