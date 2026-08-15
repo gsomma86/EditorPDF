@@ -28,13 +28,21 @@ nuevo como texto extraíble, y el viejo ya no está.
    `ui/ayuda.ts` (guía, atajos, CSV, repetibles, apariencias, FAQ, acerca de). **Falta probarlo en
    el navegador** — no se verificó todavía que el selector cambie todo correctamente ni que un
    PDF con texto en otro idioma se vea bien.
-2. **Afinar el reemplazo de texto de la fase 2** — resuelta la posición (14/08/2026): la ascendente
-   ya no se estima en 0,75 × el cuerpo, se mide embebiendo la fuente igual que al exportar, sin
-   redondear. Queda pendiente:
-   - El texto nuevo usa la tipografía elegida en el panel, no la que tenía el PDF.
+2. **Afinar el reemplazo de texto de la fase 2** — resueltas la posición y la tipografía
+   (14/08/2026). La posición: la ascendente ya no se estima en 0,75 × el cuerpo, se mide
+   embebiendo la fuente igual que al exportar, sin redondear. La tipografía: usa la del PDF
+   original en vez de la elegida en el panel — la `family` que reporta mupdf no es confiable (una
+   Open Sans incrustada la clasifica como `serif`), así que se pela el nombre (prefijo de
+   subconjunto, variante, número) y se lo mapea; Arial/Verdana → Helvetica, Times New Roman/Georgia
+   → Times, Courier New/Consolas → Courier. Queda pendiente:
+   - Fuentes subseteadas: fallback cuando falta un glifo.
    - Solo se abre la primera página.
 3. **Fondo de hoja de tipo PDF** — la otra puerta de entrada de la fase 2.
-4. **Fases 3 a 5**: editar formas preexistentes, capas y multipágina real, y empaquetado con Tauri.
+4. **Fase 3 (formas preexistentes)** — bosquejada (14/08/2026, ver ROADMAP.md), sin codear. El
+   borrado del original no puede reusar `Redact`/`applyRedactions` de mupdf (es para texto/imagen,
+   no para un relleno vectorial): hace falta parchar el operador exacto en el content stream, como
+   en el spike de fase 0. Repartido entre los dos agentes por archivo, igual que el resto.
+5. **Fases 4 y 5**: capas y multipágina real, y empaquetado con Tauri.
 
 ## Cómo verificar
 

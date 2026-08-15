@@ -87,7 +87,12 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
       error contra el original; ahora se mide embebiendo la fuente igual que al exportar (misma
       cuenta en los dos lados, no se pueden desincronizar) y sin redondear — la ascendente real
       tiene decimales (28,72 pt para Helvetica 40) y redondear ya metía 1 pt de error solo
-- [ ] Usar la tipografía original del PDF en el reemplazo, en vez de la elegida en el panel
+- [x] Usar la tipografía original del PDF en el reemplazo, en vez de la elegida en el panel. La
+      `family` que reporta mupdf no es confiable (una Open Sans incrustada la clasifica como
+      `serif`), así que se usa el nombre en cambio, pelando antes el prefijo de subconjunto, la
+      variante y el número (`OpenSans-Bold-9742`, `ABCDEF+TimesNewRoman,Bold`). Para las conocidas
+      sin equivalente exacto: Arial/Verdana → Helvetica, Times New Roman/Georgia → Times, Courier
+      New/Consolas → Courier. Verificado con 9 casos de nombre y en el navegador de punta a punta.
 - [ ] Manejo de fuentes subseteadas (fallback cuando falta un glifo)
 - [x] Que el PDF de base no se pierda: se guarda en IndexedDB para sobrevivir a una recarga y
       viaja dentro del `.json` al guardar el proyecto, para poder seguirlo en otra computadora.
