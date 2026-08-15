@@ -226,7 +226,9 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
     subseteo: fontkit no puede subsetear fuentes comprimidas (falla con "Index out of range").
     Para que las fuentes web salgan de verdad hay que **descomprimir a sfnt antes de embeber**
     (los `.woff` v1 de `@fontsource` son zlib, así que se descomprimen sin dependencias nuevas)
-    o sumar `.ttf` al repo.
+    o sumar `.ttf` al repo. **Ya implementado** (`woffASfnt()` en `fuentes.ts`, catálogo en `.woff`
+    v1, cero `.woff2`): si el visor vuelve a sustituir una fuente, revisar antes si algo reintrodujo
+    un `.woff2`, no reabrir esto desde cero.
 13. **Un mismo ID de campo colocado varias veces es UN campo AcroForm con varias apariencias.**
     `form.createTextField(nombre)` tira error si el nombre ya existe: hay que crearlo una vez y
     llamar `addToPage` por cada posición. Repetir un campo es una función del panel, no un caso

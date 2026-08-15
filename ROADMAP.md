@@ -51,13 +51,14 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
 - [x] **Exportar PDF** con AcroForm real, vía `pdf-lib`. Opción de exportar aplanado. Verificado
       contra el lienzo con `npm run verificar-export`: texto, líneas (incluidas las rotadas),
       recuadros, tablas, QR y campos caen en el PDF exactamente donde se ven en pantalla.
-- [ ] **Incrustar de verdad las fuentes web al exportar.** Hoy se incrusta el `.woff2` tal cual y
-      un PDF no admite fuentes comprimidas: el visor las descarta y sustituye por otra. Hay que
-      descomprimir a sfnt antes de embeber (los `.woff` v1 de `@fontsource` son zlib) o sumar
-      `.ttf`. Ver la lección 12 en CLAUDE.md.
-- [ ] Revisar la posición vertical del texto exportado: medido headless queda ~0,17 × el cuerpo
-      más arriba que en el lienzo (7 pt con cuerpo 40), pero la medición usa fuentes sustituidas,
-      así que falta confirmarlo en el navegador con una fuente real antes de tocar nada.
+- [x] **Incrustar de verdad las fuentes web al exportar** — resuelto en `092d181`. `fuentes.ts` usa
+      los `.woff` (v1) de `@fontsource`, no los `.woff2`: son zlib, así que `woffASfnt()` los
+      descomprime a sfnt sin dependencias ni sumar `.ttf` al repo. Ver la lección 12 en CLAUDE.md.
+      **Si esto vuelve a aparecer como roto, no es esto**: revisar antes si alguien reintrodujo un
+      `.woff2` en el catálogo de fuentes.
+- [x] Posición vertical del texto exportado — confirmada en el navegador con una fuente real: cae
+      exactamente donde corresponde. La diferencia de ~0,17 × el cuerpo que medía el arnés headless
+      era de la medición (Node sustituye la fuente por otra), no del código; no tocar por esto.
 - [x] Selección múltiple (Ctrl/Shift y recuadro de arrastre) y sus acciones de grupo
 - [x] Menú Ver: cuadrícula con enganche, reglas, guías de alineación
 - [x] Zoom (25%–300%)
