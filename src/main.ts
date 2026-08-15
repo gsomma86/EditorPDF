@@ -16,7 +16,7 @@ import { deshacer, inicializarHistorial, puedeDeshacer, puedeRehacer, registrarS
 import { alCambiarIdioma, aplicarIdioma, t, type ClaveI18n } from './ui/i18n';
 import { agregarHoja, aplicarConfigPagina, cantidadDeHojas, configActual, eliminarHoja, establecerFondoDeLaHoja, fondoDeLaHoja, establecerHojas, hojaActual, hojaEnBlanco, hojasDesdePdf, irAHoja, medidasDeLaHoja, miniaturaDeHoja, moverHoja, olvidarPaginasDibujadas, paginaDeLaHoja, refrescarPaginaDibujada } from './editor/documento';
 import { activarVista, configurarVista, establecerZoom, vistaActual } from './editor/vista';
-import { configPorDefecto, dimensionesDe, type Orientacion, type TamanoPagina } from './editor/pagina';
+import { configPorDefecto, type Orientacion, type TamanoPagina } from './editor/pagina';
 import { cargarProyecto, descargarProyecto, leerProyecto, serializarProyecto } from './editor/proyecto';
 
 const raiz = document.querySelector<HTMLDivElement>('#app')!;
@@ -477,10 +477,9 @@ function reflejarPagina(): void {
   selTamano.value = config.tamano;
   selOrient.value = config.orientacion;
   selFondo.value = paginaDeLaHoja() !== null ? 'pdf' : fondoDeLaHoja() ? 'imagen' : 'blanco';
-  // Las miniaturas de la tira sacan su ancho de la proporción de la hoja, así que tienen que
-  // enterarse cuando cambia el tamaño o la orientación.
-  const { ancho, alto } = dimensionesDe(config);
-  espacio.raiz.style.setProperty('--relacion-hoja', String(ancho / alto));
+  // La tira muestra la forma de cada hoja, así que hay que rehacerla cuando cambia el tamaño o la
+  // orientación de la que se está editando.
+  reflejarHojas();
   // Se guarda la clave en data-i18n (no solo el texto ya traducido): así, si más tarde se cambia
   // de idioma sin volver a tocar la página, el barrido de aplicarIdioma() sabe qué re-traducir.
   estadoTam.dataset.i18n = `pagina.tamano.${config.tamano}`;
@@ -504,8 +503,11 @@ const hojasLista = document.getElementById('ed-hojas-lista')!;
 async function trasCambiarHojas(conHistorial: boolean): Promise<void> {
   mostrarSinSeleccion(espacio.panelPropiedades);
   if (conHistorial) registrarSnapshot(lienzo);
-  reflejarHojas();
   reflejarCantidadDePaginas();
+  // Cada hoja tiene su tamaño, así que el menú Página y la barra de estado muestran el de la que
+  // se está editando: sin esto seguían mostrando el de la hoja anterior y parecía que el tamaño
+  // se hubiera aplicado a todas. `reflejarPagina` también rehace la tira.
+  reflejarPagina();
   guardar();
 }
 
@@ -905,7 +907,9 @@ selFondo.addEventListener('change', async () => {
   inputFondo.click();
 });
 
-selTamano.addEventListener('change', () => cambiarPagina({ tamano: selTamano.value as TamanoPagina }));
+// Elegir un tamaño del catálogo suelta las medidas propias: las hojas que vienen de un PDF las
+// tienen, y como mandan sobre el tamaño, sin esto elegir "Oficio" no cambiaba nada.
+selTamano.addEventListener('change', () => cambiarPagina({ tamano: selTamano.value as TamanoPagina, medidas: null }));
 selOrient.addEventListener('change', () => cambiarPagina({ orientacion: selOrient.value as Orientacion }));
 
 document.getElementById('ed-margenes')!.addEventListener('click', async () => {
