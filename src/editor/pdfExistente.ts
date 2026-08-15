@@ -83,6 +83,8 @@ export function familiaEquivalente(nombre: string, generica: string): string {
 
 let bytesActuales: Uint8Array | null = null;
 let textos: TextoDelPdf[] = [];
+/** Sobre qué página del PDF se está trabajando. El editor maneja una por vez. */
+let paginaElegida = 0;
 
 export function hayPdfAbierto(): boolean {
   return bytesActuales !== null;
@@ -98,9 +100,15 @@ export function textosDelPdf(): TextoDelPdf[] {
   return textos;
 }
 
+/** En qué página del PDF se está trabajando, contando desde 0. */
+export function paginaDelPdf(): number {
+  return paginaElegida;
+}
+
 export function cerrarPdf(): void {
   bytesActuales = null;
   textos = [];
+  paginaElegida = 0;
   void borrarPdfBase();
 }
 
@@ -109,7 +117,7 @@ export async function asentarPdf(bytes: Uint8Array): Promise<void> {
   bytesActuales = bytes;
   const mupdf = await motor();
   const documento = mupdf.PDFDocument.openDocument(bytes.slice(), 'application/pdf') as InstanceType<typeof mupdf.PDFDocument>;
-  textos = leerTextos(documento.loadPage(0));
+  textos = leerTextos(documento.loadPage(paginaElegida));
   await guardarPdfBase(bytes);
 }
 
@@ -222,7 +230,7 @@ export async function camposDelPdf(): Promise<CamposImportados> {
 
   const { PDFDocument, PDFTextField } = await import('@cantoo/pdf-lib');
   const doc = await PDFDocument.load(bytes.slice(), { updateMetadata: false });
-  const alturaPagina = doc.getPage(0).getHeight();
+  const alturaPagina = doc.getPage(paginaElegida).getHeight();
 
   const campos: CampoDelPdf[] = [];
   const omitidos: { name: string; motivo: string }[] = [];
@@ -339,7 +347,7 @@ export interface PdfAbierto {
 /** Escala de rasterizado: el doble del tamaño real, para que no se vea borroso con zoom. */
 const ESCALA = 2;
 
-/** Dibuja la primera página de los bytes vigentes y la devuelve como imagen. */
+/** Dibuja la página elegida de los bytes vigentes y la devuelve como imagen. */
 async function rasterizar(): Promise<{ fondo: string; ancho: number; alto: number; paginas: number }> {
   const pdfjs = await import('pdfjs-dist');
   const trabajador = await import('pdfjs-dist/build/pdf.worker.mjs?url');
@@ -347,7 +355,8 @@ async function rasterizar(): Promise<{ fondo: string; ancho: number; alto: numbe
 
   // pdf.js se queda con el buffer que recibe, así que se le pasa una copia.
   const documento = await pdfjs.getDocument({ data: bytesActuales!.slice() }).promise;
-  const pagina = await documento.getPage(1);
+  // pdf.js cuenta las páginas desde 1 y el resto del módulo desde 0.
+  const pagina = await documento.getPage(paginaElegida + 1);
   const medidas = pagina.getViewport({ scale: 1 });
   const vista = pagina.getViewport({ scale: ESCALA });
 
@@ -366,8 +375,22 @@ async function rasterizar(): Promise<{ fondo: string; ancho: number; alto: numbe
   };
 }
 
-export async function abrirPdf(archivo: File): Promise<PdfAbierto> {
+export async function abrirPdf(archivo: File, pagina = 0): Promise<PdfAbierto> {
+  paginaElegida = Math.max(0, pagina);
   await asentarPdf(new Uint8Array(await archivo.arrayBuffer()));
+  return rasterizar();
+}
+
+/**
+ * Cambia sobre qué página del PDF se trabaja y devuelve su fondo, medidas y textos editables.
+ * El diseño que ya esté en la hoja no se toca: es responsabilidad de quien llama decidir qué
+ * hacer con él, porque los elementos estaban puestos sobre la página anterior.
+ */
+export async function elegirPagina(indice: number): Promise<PdfAbierto> {
+  if (!bytesActuales) throw new Error('No hay ningún PDF abierto.');
+  paginaElegida = Math.max(0, indice);
+  // Los textos editables son los de la página nueva, así que hay que releerlos.
+  await asentarPdf(bytesActuales);
   return rasterizar();
 }
 
@@ -382,7 +405,7 @@ export async function borrarTextoDelPdf(objetivo: TextoDelPdf): Promise<string> 
   const mupdf = await motor();
   // `openDocument` está tipado como Document genérico; acá siempre es un PDF.
   const documento = mupdf.PDFDocument.openDocument(bytesActuales.slice(), 'application/pdf') as InstanceType<typeof mupdf.PDFDocument>;
-  const pagina = documento.loadPage(0) as any;
+  const pagina = documento.loadPage(paginaElegida) as any;
 
   const anotacion = pagina.createAnnotation('Redact');
   // Un punto de aire: el rectángulo tiene que cubrir los glifos completos.

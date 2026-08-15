@@ -17,7 +17,7 @@ import { elementoDe } from './objetosFabric';
 import { configActual } from './documento';
 import { dimensionesDe } from './pagina';
 import { bytesDeFuente } from './fuentes';
-import { bytesDelPdf } from './pdfExistente';
+import { bytesDelPdf, paginaDelPdf } from './pdfExistente';
 import { generarQr } from './objetosFabric';
 
 export interface OpcionesExportar {
@@ -214,7 +214,8 @@ export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): P
   const doc = base ? await PDFDocument.load(base.slice()) : await PDFDocument.create();
   doc.registerFontkit(fontkit);
 
-  const pagina = base ? doc.getPage(0) : doc.addPage([dimensionesDe(config).ancho, dimensionesDe(config).alto]);
+  // Con un PDF de base se dibuja sobre la página que se está editando; las demás quedan intactas.
+  const pagina = base ? doc.getPage(paginaDelPdf()) : doc.addPage([dimensionesDe(config).ancho, dimensionesDe(config).alto]);
   const { width: anchoPagina, height: altoPagina } = pagina.getSize();
   const obtenerFuente = creadorDeFuentes(doc);
   const formulario = doc.getForm();
