@@ -53,7 +53,10 @@ export function configurarVista(lienzo: Canvas, cambios: Partial<EstadoVista>): 
 // ---------- Reglas ----------
 
 function dibujarReglas(lienzo: Canvas): void {
-  const contenedor = lienzo.upperCanvasEl.parentElement as HTMLElement;
+  // Sin capa de interacción no hay dónde dibujar: pasa en los arneses, que corren sin navegador
+  // sobre un `StaticCanvas`. Las reglas son solo lo que se ve, así que no dibujarlas no cambia nada.
+  const contenedor = lienzo.upperCanvasEl?.parentElement as HTMLElement | undefined;
+  if (!contenedor) return;
   contenedor.querySelectorAll('.ed-regla').forEach((n) => n.remove());
   if (!estado.reglas) return;
 

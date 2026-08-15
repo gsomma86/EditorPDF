@@ -9,7 +9,7 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { StaticCanvas } from 'fabric';
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { agregarHoja, cantidadDeHojas, eliminarHoja, establecerHojas, hojaActual, hojasDelDocumento, irAHoja, moverHoja } from '../src/editor/documento';
+import { agregarHoja, cantidadDeHojas, eliminarHoja, establecerHojas, hojaActual, hojaEnBlanco, hojasDelDocumento, irAHoja, moverHoja } from '../src/editor/documento';
 import { inicializarHistorial, deshacer, registrarSnapshot, rehacer } from '../src/editor/historial';
 import { agregarAlLienzo } from '../src/editor/objetosFabric';
 import { exportarPdf } from '../src/editor/exportarPdf';
@@ -152,7 +152,7 @@ await asentarPdf(bytesPartida);
 
 // Una hoja por página, como al abrir un PDF desde el editor. `hojasDesdePdf` no sirve acá: dibuja
 // el fondo, y en Node no hay con qué rasterizar.
-await establecerHojas(lienzo, [0, 1, 2, 3].map((p) => ({ elementos: [], paginaPdf: p, fondo: null })), 0);
+await establecerHojas(lienzo, [0, 1, 2, 3].map((p) => ({ ...hojaEnBlanco(), paginaPdf: p })), 0);
 comparar('PDF de base', 'una hoja por página', 4, cantidadDeHojas());
 
 // Se borra la segunda y se manda la última al principio.
@@ -177,7 +177,7 @@ comparar('PDF de base', 'la borrada no sale y el orden es el de la tira', ['PAGI
 // Si las dos hojas compartieran página, editar el contenido de una se vería en la otra: la cirugía
 // (borrar un texto, sacar una forma) es sobre el PDF, no sobre la hoja.
 await asentarPdf(bytesPartida);
-await establecerHojas(lienzo, [0, 1, 2, 3].map((p) => ({ elementos: [], paginaPdf: p, fondo: null })), 0);
+await establecerHojas(lienzo, [0, 1, 2, 3].map((p) => ({ ...hojaEnBlanco(), paginaPdf: p })), 0);
 await agregarHoja(lienzo, true);
 
 const { bytesDelPdf } = await import('../src/editor/pdfExistente');
@@ -198,7 +198,28 @@ const textoCopia = (i: number) =>
     .trim();
 comparar('duplicar hoja', 'la copia quedó al lado del original', ['PAGINA A', 'PAGINA A', 'PAGINA B'], [0, 1, 2].map(textoCopia));
 
+// ---------- Cada hoja con su propio tamaño ----------
+
+// El documento tenía un solo tamaño hasta la fase 4; ahora es de cada hoja, que es lo que permite
+// mezclar un anexo A4 con un recibo A5 sin que ninguna de las dos se vea estirada.
 cerrarPdf();
+await establecerHojas(
+  lienzo,
+  [
+    { ...hojaEnBlanco(), tamano: 'A5', orientacion: 'vertical' },
+    { ...hojaEnBlanco(), tamano: 'A4', orientacion: 'vertical' },
+    { ...hojaEnBlanco(), tamano: 'A4', orientacion: 'horizontal' },
+  ],
+  0
+);
+
+const mixto = await PDFDocument.load(await exportarPdf(lienzo, { conFormulario: true }));
+comparar(
+  'tamaño por hoja',
+  'cada página con sus medidas',
+  [[420, 595], [595, 842], [842, 595]],
+  mixto.getPages().map((p) => [Math.round(p.getWidth()), Math.round(p.getHeight())])
+);
 
 console.log(filas.join('\n'));
 console.log(`\nPDF en ${SALIDA}multipagina.pdf`);

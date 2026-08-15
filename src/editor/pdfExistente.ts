@@ -487,6 +487,20 @@ export async function dibujarPagina(indice: number, escala = ESCALA): Promise<Pa
   };
 }
 
+/**
+ * El tamaño de cada página del PDF, en puntos. Sin rasterizar: es lo que necesitan las hojas para
+ * tomar cada una el tamaño de su página, y un PDF puede traerlas de medidas distintas.
+ */
+export async function medidasDePaginas(): Promise<{ ancho: number; alto: number }[]> {
+  if (!bytesActuales) return [];
+  const { PDFDocument } = await import('@cantoo/pdf-lib');
+  const documento = await PDFDocument.load(bytesActuales.slice(), { updateMetadata: false });
+  return documento.getPages().map((pagina) => {
+    const { width, height } = pagina.getSize();
+    return { ancho: Math.round(width), alto: Math.round(height) };
+  });
+}
+
 /** Cuántas páginas tiene el PDF abierto. 0 si no hay ninguno. */
 export async function cantidadDePaginas(): Promise<number> {
   if (!bytesActuales) return 0;

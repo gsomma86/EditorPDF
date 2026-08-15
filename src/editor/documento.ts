@@ -1,5 +1,5 @@
 import { FabricImage, type Canvas } from 'fabric';
-import { configPorDefecto, dimensionesDe, type ConfigPagina } from './pagina';
+import { configPorDefecto, dimensionesDe, tamanoParecido, type ConfigPagina, type Orientacion, type TamanoPagina } from './pagina';
 import { establecerAreaUtil, type Elemento } from './elemento';
 import { refrescarLienzo } from './vista';
 import { elementoDe, reconstruirLienzo } from './objetosFabric';
@@ -17,9 +17,9 @@ export function configActual(): ConfigPagina {
  * el lienzo y las demás, guardadas acá como listas de elementos. Cambiar de hoja es volcar lo que
  * hay en el lienzo a su lugar y reconstruirlo con la otra.
  *
- * El tamaño, la orientación y los márgenes son del documento entero y no de cada hoja: un diseño
- * con hojas de distinto tamaño no tiene sentido para lo que hace este editor, y evitarlo saca de
- * encima un montón de casos raros.
+ * El tamaño y la orientación son **de cada hoja**: nacieron siendo del documento entero, a
+ * propósito, pero abrir un PDF con páginas de medidas distintas —o insertar un anexo A4 en un
+ * recibo A5— dejó esa decisión sin sostén. Los márgenes sí siguen siendo del documento.
  *
  * Ninguna de estas funciones registra un paso en el historial, igual que el resto del editor: eso
  * lo hace quien las llama, con `registrarSnapshot`. Importa sobre todo al borrar una hoja, que es
@@ -40,10 +40,25 @@ export interface Hoja {
    * que un documento de 12 páginas no entrara en el autoguardado.
    */
   fondo: string | null;
+  /**
+   * El tamaño de **esta** hoja. Antes era del documento entero, a propósito, pero insertar otro
+   * PDF lo dejó sin sostén: el caso normal es meter un anexo A4 en un recibo A5. Los márgenes sí
+   * siguen siendo del documento.
+   */
+  tamano: TamanoPagina;
+  orientacion: Orientacion;
+  /** Medidas propias cuando la hoja no es un tamaño del catálogo. Si están, mandan sobre las otras dos. */
+  medidas: { ancho: number; alto: number } | null;
 }
 
 export function hojaEnBlanco(): Hoja {
-  return { elementos: [], paginaPdf: null, fondo: null };
+  const base = configPorDefecto();
+  return { elementos: [], paginaPdf: null, fondo: null, tamano: base.tamano, orientacion: base.orientacion, medidas: null };
+}
+
+/** El tamaño con el que se dibuja y se exporta una hoja. */
+export function dimensionesDeHoja(hoja: Hoja): { ancho: number; alto: number } {
+  return dimensionesDe({ ...config, tamano: hoja.tamano, orientacion: hoja.orientacion, medidas: hoja.medidas });
 }
 
 let hojas: Hoja[] = [hojaEnBlanco()];
@@ -160,7 +175,16 @@ export async function establecerHojas(lienzo: Canvas, listas: Hoja[], indice = 0
  */
 export async function hojasDesdePdf(lienzo: Canvas, paginas: number): Promise<void> {
   paginasDibujadas.clear();
-  hojas = Array.from({ length: Math.max(1, paginas) }, (_, i) => ({ elementos: [], paginaPdf: i, fondo: null }));
+  // Cada hoja toma el tamaño de **su** página: un PDF puede traerlas de medidas distintas, y con
+  // un tamaño único las que no coincidieran se verían estiradas.
+  const { medidasDePaginas } = await import('./pdfExistente');
+  const medidas = await medidasDePaginas();
+
+  hojas = Array.from({ length: Math.max(1, paginas) }, (_, i) => ({
+    ...hojaEnBlanco(),
+    paginaPdf: i,
+    ...(medidas[i] ? { ...tamanoParecido(medidas[i].ancho, medidas[i].alto), medidas: medidas[i] } : {}),
+  }));
   hojaVigente = 0;
   await reconstruirLienzo(lienzo, hojas[0].elementos);
   await mostrarHojaVigente(lienzo);
@@ -188,10 +212,32 @@ export async function establecerFondoDeLaHoja(lienzo: Canvas, fondo: string | nu
  */
 export function aplicarConfigPagina(lienzo: Canvas, nueva: ConfigPagina): void {
   config = nueva;
+  // El tamaño es de la hoja: la configuración vigente es su reflejo, así que cambiarlo desde el
+  // menú Página cambia **la hoja que se está editando**, no las demás.
+  const hoja = hojas[hojaVigente];
+  if (hoja) {
+    hoja.tamano = nueva.tamano;
+    hoja.orientacion = nueva.orientacion;
+    hoja.medidas = nueva.medidas;
+  }
   const { ancho, alto } = dimensionesDe(nueva);
   establecerAreaUtil(ancho, alto, nueva.margenes);
   refrescarLienzo(lienzo);
   void aplicarFondo(lienzo);
+}
+
+/**
+ * Trae al frente el tamaño de la hoja vigente. Es el camino inverso de `aplicarConfigPagina` y hay
+ * que llamarlo cada vez que se cambia de hoja: si no, una hoja A4 se seguiría dibujando con las
+ * medidas A5 de la anterior.
+ */
+function adoptarTamanoDeLaHoja(lienzo: Canvas): void {
+  const hoja = hojas[hojaVigente];
+  if (!hoja) return;
+  config = { ...config, tamano: hoja.tamano, orientacion: hoja.orientacion, medidas: hoja.medidas };
+  const { ancho, alto } = dimensionesDe(config);
+  establecerAreaUtil(ancho, alto, config.margenes);
+  refrescarLienzo(lienzo);
 }
 
 /**
@@ -275,6 +321,7 @@ async function fondoDe(hoja: Hoja): Promise<string | null> {
  * página se estaría viendo la hoja 3 y editando el contenido de la 1.
  */
 async function mostrarHojaVigente(lienzo: Canvas): Promise<void> {
+  adoptarTamanoDeLaHoja(lienzo);
   const pagina = hojas[hojaVigente].paginaPdf;
   if (pagina !== null) {
     const { usarPagina, hayPdfAbierto } = await import('./pdfExistente');

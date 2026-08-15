@@ -16,7 +16,7 @@ import { deshacer, inicializarHistorial, puedeDeshacer, puedeRehacer, registrarS
 import { alCambiarIdioma, aplicarIdioma, t, type ClaveI18n } from './ui/i18n';
 import { agregarHoja, aplicarConfigPagina, cantidadDeHojas, configActual, eliminarHoja, establecerFondoDeLaHoja, fondoDeLaHoja, establecerHojas, hojaActual, hojaEnBlanco, hojasDesdePdf, irAHoja, miniaturaDeHoja, moverHoja, olvidarPaginasDibujadas, paginaDeLaHoja, refrescarPaginaDibujada } from './editor/documento';
 import { activarVista, configurarVista, establecerZoom, vistaActual } from './editor/vista';
-import { configPorDefecto, dimensionesDe, tamanoParecido, type Orientacion, type TamanoPagina } from './editor/pagina';
+import { configPorDefecto, dimensionesDe, type Orientacion, type TamanoPagina } from './editor/pagina';
 import { cargarProyecto, descargarProyecto, leerProyecto, serializarProyecto } from './editor/proyecto';
 
 const raiz = document.querySelector<HTMLDivElement>('#app')!;
@@ -724,14 +724,14 @@ inputPdf.addEventListener('change', async () => {
     const { abrirPdf, textosDelPdf, camposDelPdf } = await import('./editor/pdfExistente');
     const pdf = await abrirPdf(archivo);
 
-    // La hoja toma las medidas del PDF, que puede no ser de ningún tamaño del catálogo.
-    cambiarPagina({ medidas: { ancho: pdf.ancho, alto: pdf.alto }, ...tamanoParecido(pdf.ancho, pdf.alto) });
     // Una hoja por página: el documento *es* el PDF. Lo que se borre o se mueva acá se borra o se
-    // mueve en el archivo exportado.
+    // mueve en el archivo exportado. Cada hoja toma además las medidas de **su** página, que puede
+    // no ser de ningún tamaño del catálogo ni la misma para todas.
     olvidarPaginasDibujadas();
     await hojasDesdePdf(lienzo, pdf.paginas);
     reflejarHojas();
     reflejarCantidadDePaginas();
+    reflejarPagina();
 
     // Los campos AcroForm entran ya colocados en la hoja, con sus mismas coordenadas, tipografía
     // y color: quedan listos para editar en un paso, en vez de que haya que rearmar la plantilla

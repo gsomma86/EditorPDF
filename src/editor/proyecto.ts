@@ -103,10 +103,22 @@ export function leerProyecto(texto: string): Proyecto {
   // El fondo de un proyecto viejo era del documento entero y el diseño estaba puesto sobre una sola
   // página del PDF: esa hoja se queda con las dos cosas y las demás, que no existían, no aplican.
   const fondoViejo = (datos.pagina as { fondo?: string | null } | undefined)?.fondo ?? null;
+  // El tamaño también era del documento: un proyecto viejo se abre con todas sus hojas de ese
+  // tamaño, que es exactamente como se veía cuando se guardó.
+  const base = datos.pagina ?? configPorDefecto();
+  const tamanoViejo = { tamano: base.tamano, orientacion: base.orientacion, medidas: base.medidas ?? null };
+
   const hojas: Hoja[] = crudas.map((hoja, i) =>
     Array.isArray(hoja)
-      ? { elementos: hoja.map(alDia), paginaPdf: datos.pdfBase ? (datos.pdfPagina ?? 0) + i : null, fondo: datos.pdfBase ? null : fondoViejo }
-      : { elementos: (hoja.elementos ?? []).map(alDia), paginaPdf: hoja.paginaPdf ?? null, fondo: hoja.fondo ?? null }
+      ? { elementos: hoja.map(alDia), paginaPdf: datos.pdfBase ? (datos.pdfPagina ?? 0) + i : null, fondo: datos.pdfBase ? null : fondoViejo, ...tamanoViejo }
+      : {
+          elementos: (hoja.elementos ?? []).map(alDia),
+          paginaPdf: hoja.paginaPdf ?? null,
+          fondo: hoja.fondo ?? null,
+          tamano: hoja.tamano ?? tamanoViejo.tamano,
+          orientacion: hoja.orientacion ?? tamanoViejo.orientacion,
+          medidas: hoja.medidas ?? tamanoViejo.medidas,
+        }
   );
 
   return {
@@ -131,10 +143,11 @@ export async function cargarProyecto(lienzo: Canvas, proyecto: Proyecto, conserv
   aplicarConfigPagina(lienzo, proyecto.pagina);
   // `leerProyecto` ya dejó las hojas con su forma nueva; el `?? []` es para quien arme un Proyecto
   // a mano (los arneses de prueba) sin pasar por él.
-  const hojas = (proyecto.hojas ?? []).map((hoja) =>
-    Array.isArray(hoja) ? { elementos: hoja, paginaPdf: null, fondo: null } : hoja
+  const deLaPagina = { tamano: proyecto.pagina.tamano, orientacion: proyecto.pagina.orientacion, medidas: proyecto.pagina.medidas };
+  const hojas: Hoja[] = (proyecto.hojas ?? []).map((hoja) =>
+    Array.isArray(hoja) ? { elementos: hoja, paginaPdf: null, fondo: null, ...deLaPagina } : hoja
   );
-  const conElementos = hojas.length ? hojas : [{ elementos: proyecto.elementos, paginaPdf: null, fondo: null }];
+  const conElementos = hojas.length ? hojas : [{ elementos: proyecto.elementos, paginaPdf: null, fondo: null, ...deLaPagina }];
   reservarIds(conElementos.flatMap((hoja) => hoja.elementos));
 
   // El PDF primero: las hojas se dibujan pidiéndole sus páginas, así que si no está abierto todavía

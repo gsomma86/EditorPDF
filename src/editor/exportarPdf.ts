@@ -13,8 +13,7 @@ import {
   type ElementoTabla,
   type EstiloLinea,
 } from './elemento';
-import { configActual, hojasDelDocumento } from './documento';
-import { dimensionesDe } from './pagina';
+import { dimensionesDeHoja, hojasDelDocumento } from './documento';
 import { bytesDeFuente } from './fuentes';
 import { bytesDelPdf } from './pdfExistente';
 import { generarQr } from './objetosFabric';
@@ -358,11 +357,8 @@ async function dibujarHoja(
 }
 
 export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): Promise<Uint8Array> {
-  const config = configActual();
-
   // Si hay un PDF abierto, es la base: se dibuja el diseño encima de su contenido real, que sigue
   // siendo vectorial. Usar de fondo la imagen que se ve en pantalla lo dejaría como una foto.
-  const medidas = dimensionesDe(config);
   const hojas = hojasDelDocumento(lienzo);
 
   // **El documento final son las hojas, no el PDF de base.** Se arma uno nuevo y se le copian del
@@ -401,6 +397,9 @@ export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): P
 
   let siguienteCopia = 0;
   for (const hoja of hojas) {
+    // Cada hoja lleva su tamaño: las que vienen del PDF se copian con el suyo, y una hoja en
+    // blanco se agrega con el que tenga puesto, que puede no ser el de las demás.
+    const medidas = dimensionesDeHoja(hoja);
     const pagina = conPagina(hoja) ? doc.addPage(copiadas[siguienteCopia++]) : doc.addPage([medidas.ancho, medidas.alto]);
 
     // El fondo va primero, estirado a toda la hoja, para que todo lo demás quede encima. Con una

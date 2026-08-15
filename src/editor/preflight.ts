@@ -1,7 +1,6 @@
 import type { Canvas } from 'fabric';
 import { anchoTotalTabla, altoTotalTabla, nombresDeCampo, pasoRepeticion, type Elemento } from './elemento';
-import { configActual, hojasDelDocumento } from './documento';
-import { dimensionesDe } from './pagina';
+import { configActual, dimensionesDeHoja, hojasDelDocumento } from './documento';
 import { caracteresNoRepresentables } from './fuentes';
 
 /** Un texto largo se corta para que quepa en el aviso. */
@@ -37,14 +36,18 @@ function nombreDe(el: Elemento): string {
 export function verificarDiseno(lienzo: Canvas): Hallazgo[] {
   const hojas = hojasDelDocumento(lienzo);
   const elementos = hojas.flatMap((hoja) => hoja.elementos);
+  // De qué hoja es cada elemento. Hace falta para dos cosas: nombrarla en el aviso y saber contra
+  // qué medidas comprobar que entra, porque cada hoja tiene su propio tamaño.
+  const deQueHoja = new Map<Elemento, number>();
+  hojas.forEach((hoja, i) => hoja.elementos.forEach((el) => deQueHoja.set(el, i)));
+
   // Con una sola hoja no se aclara nada: seria ruido en todos los mensajes.
   const enHoja = (el: Elemento): string =>
-    hojas.length > 1 ? `${nombreDe(el)} (hoja ${hojas.findIndex((h) => h.elementos.includes(el)) + 1})` : nombreDe(el);
+    hojas.length > 1 ? `${nombreDe(el)} (hoja ${(deQueHoja.get(el) ?? 0) + 1})` : nombreDe(el);
+  const tamanoDe = (el: Elemento) => dimensionesDeHoja(hojas[deQueHoja.get(el) ?? 0] ?? hojas[0]);
 
   const hallazgos: Hallazgo[] = [];
-  const config = configActual();
-  const { ancho: anchoPagina, alto: altoPagina } = dimensionesDe(config);
-  const m = config.margenes;
+  const m = configActual().margenes;
 
   // Vacío es no tener elementos **y** no tener páginas de un PDF de base. Con un PDF abierto, un
   // documento sin elementos igual tiene qué exportar: sus páginas, en el orden en que hayan
@@ -92,6 +95,7 @@ export function verificarDiseno(lienzo: Canvas): Hallazgo[] {
         });
       }
       const ultimaFila = campo.y + (campo.repFilas - 1) * pasoRepeticion(campo) + campo.h;
+      const altoPagina = tamanoDe(campo).alto;
       if (ultimaFila > altoPagina) {
         hallazgos.push({
           gravedad: 'error',
@@ -115,6 +119,7 @@ export function verificarDiseno(lienzo: Canvas): Hallazgo[] {
 
   for (const el of elementos) {
     const { ancho, alto } = medidas(el);
+    const { ancho: anchoPagina, alto: altoPagina } = tamanoDe(el);
 
     if (el.x < 0 || el.y < 0 || el.x + ancho > anchoPagina || el.y + alto > altoPagina) {
       hallazgos.push({ gravedad: 'error', mensaje: `${enHoja(el)} se sale de la hoja y va a quedar cortado.` });
