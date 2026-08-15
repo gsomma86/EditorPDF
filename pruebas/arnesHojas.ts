@@ -124,6 +124,18 @@ await writeFile(`${SALIDA}multipagina.pdf`, bytes);
 const exportado = await PDFDocument.load(bytes);
 comparar('exportar', 'páginas en el PDF', 3, exportado.getPageCount());
 
+// Y que cada hoja haya caído en SU página, en orden: contar páginas no alcanza, tres páginas
+// con el contenido cambiado de lugar contarían igual.
+const mupdf = await import('mupdf');
+const leido = mupdf.PDFDocument.openDocument(bytes, 'application/pdf');
+const textoDePagina = (i: number) =>
+  JSON.parse((leido.loadPage(i) as any).toStructuredText('preserve-whitespace').asJSON())
+    .blocks.flatMap((b: any) => (b.lines ?? []).map((l: any) => l.text))
+    .join(' ')
+    .trim();
+
+comparar('exportar', 'texto por página', ['HOJA UNO', 'HOJA DOS', 'HOJA TRES'], [0, 1, 2].map(textoDePagina));
+
 console.log(filas.join('\n'));
 console.log(`\nPDF en ${SALIDA}multipagina.pdf`);
 
