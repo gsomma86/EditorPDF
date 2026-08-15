@@ -296,11 +296,11 @@ button {
   font-family: Consolas, ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
 }
-.ed-panel select,
-.ed-panel textarea,
-.ed-panel input[type='text'],
-.ed-panel input[type='number'],
-.ed-panel input[type='color'] {
+.ed-pieza select,
+.ed-pieza textarea,
+.ed-pieza input[type='text'],
+.ed-pieza input[type='number'],
+.ed-pieza input[type='color'] {
   width: 100%;
   border: 1px solid var(--borde-fuerte);
   border-radius: 6px;
@@ -310,11 +310,11 @@ button {
   color: var(--texto);
   font-family: inherit;
 }
-.ed-panel input[type='color'] {
+.ed-pieza input[type='color'] {
   height: 30px;
   padding: 2px;
 }
-.ed-panel textarea {
+.ed-pieza textarea {
   resize: vertical;
   min-height: 54px;
   line-height: 1.35;
