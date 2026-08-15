@@ -16,6 +16,7 @@ const ES = {
   'shell.panelToggleTt': 'Colapsar panel',
   'shell.separadorTt': 'Arrastrar para cambiar el ancho',
   'shell.campos.titulo': 'Campos AcroForm',
+  'shell.dibujo.titulo': 'Dibujo',
   'shell.campos.placeholder': 'ID del campo',
   'shell.campos.nota': 'Clic en un campo para colocarlo en la hoja (podés repetirlo).',
   'shell.propiedades.titulo': 'Propiedades',
@@ -304,6 +305,7 @@ const EN: Record<ClaveI18n, string> = {
   'shell.panelToggleTt': 'Collapse panel',
   'shell.separadorTt': 'Drag to resize',
   'shell.campos.titulo': 'AcroForm fields',
+  'shell.dibujo.titulo': 'Drawing',
   'shell.campos.placeholder': 'Field ID',
   'shell.campos.nota': 'Click a field to place it on the sheet (it can be repeated).',
   'shell.propiedades.titulo': 'Properties',
@@ -590,6 +592,7 @@ const PT: Record<ClaveI18n, string> = {
   'shell.panelToggleTt': 'Recolher painel',
   'shell.separadorTt': 'Arraste para mudar a largura',
   'shell.campos.titulo': 'Campos AcroForm',
+  'shell.dibujo.titulo': 'Desenho',
   'shell.campos.placeholder': 'ID do campo',
   'shell.campos.nota': 'Clique em um campo para colocá-lo na folha (pode repeti-lo).',
   'shell.propiedades.titulo': 'Propriedades',
@@ -950,7 +953,7 @@ export function aplicarIdioma(raiz: ParentNode = document): void {
  * Se hace acá, después de traducir, porque el texto se rehace en cada cambio de idioma.
  */
 function alinearIconosDeMenu(raiz: ParentNode): void {
-  for (const el of raiz.querySelectorAll<HTMLElement>('.ed-dropdown [data-i18n]')) {
+  for (const el of raiz.querySelectorAll<HTMLElement>('.ed-dropdown [data-i18n], .ed-herramientas [data-i18n]')) {
     const texto = el.textContent ?? '';
     const corte = texto.indexOf(' ');
     // Ícono es lo que va antes del primer espacio, siempre que no sea una palabra: así los

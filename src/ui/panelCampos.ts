@@ -5,8 +5,48 @@ export interface PanelCampos {
   establecerCatalogo(nombres: string[]): void;
 }
 
+const CLAVE_SECCIONES = 'editorpdf.secciones';
+
+/**
+ * Secciones plegables del panel: se hace clic en el encabezado y su cuerpo se esconde.
+ *
+ * Con una plantilla real el catálogo tiene cientos de campos, así que poder plegarlo es lo que
+ * deja las herramientas de dibujo a la vista sin tener que buscarlas con la barra de desplazamiento.
+ * Cuáles quedaron plegadas se recuerda, como el ancho de las barras.
+ */
+function montarSecciones(panel: HTMLElement): void {
+  let plegadas: string[] = [];
+  try {
+    plegadas = JSON.parse(localStorage.getItem(CLAVE_SECCIONES) ?? '[]');
+  } catch {
+    plegadas = [];
+  }
+
+  const aplicar = (): void => {
+    for (const encabezado of panel.querySelectorAll<HTMLElement>('[data-seccion]')) {
+      const nombre = encabezado.dataset.seccion!;
+      const plegada = plegadas.includes(nombre);
+      encabezado.querySelector('.ed-col-ic')!.textContent = plegada ? '+' : '−';
+      const cuerpo = panel.querySelector<HTMLElement>(`[data-cuerpo="${nombre}"]`);
+      if (cuerpo) cuerpo.hidden = plegada;
+    }
+    localStorage.setItem(CLAVE_SECCIONES, JSON.stringify(plegadas));
+  };
+
+  for (const encabezado of panel.querySelectorAll<HTMLElement>('[data-seccion]')) {
+    encabezado.addEventListener('click', () => {
+      const nombre = encabezado.dataset.seccion!;
+      plegadas = plegadas.includes(nombre) ? plegadas.filter((n) => n !== nombre) : [...plegadas, nombre];
+      aplicar();
+    });
+  }
+
+  aplicar();
+}
+
 export function montarPanelCampos(panel: HTMLElement, onColocar: (nombre: string) => void): PanelCampos {
   let catalogo: string[] = [];
+  montarSecciones(panel);
 
   const contador = panel.querySelector<HTMLElement>('.ed-col-n')!;
   const input = panel.querySelector<HTMLInputElement>('#ed-campo-nuevo')!;

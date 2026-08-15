@@ -229,8 +229,11 @@ inputImagen.addEventListener('change', async () => {
   }
 });
 
-espacio.menubar.querySelectorAll<HTMLElement>('[data-dib]').forEach((boton) => {
-  boton.addEventListener('click', async () => {
+// Delegado en el documento y no atado a los botones del menú: las mismas acciones están también en
+// la sección Dibujo del panel de campos, y así hay una sola implementación para las dos.
+document.addEventListener('click', async (evento) => {
+  const boton = (evento.target as HTMLElement | null)?.closest<HTMLElement>('[data-dib]');
+  if (boton) {
     const clase = boton.dataset.dib;
 
     if (clase === 'imagen') {
@@ -255,7 +258,7 @@ espacio.menubar.querySelectorAll<HTMLElement>('[data-dib]').forEach((boton) => {
       registrarSnapshot(lienzo);
       guardar();
     }
-  });
+  }
 });
 
 async function accionDeshacer(): Promise<void> {

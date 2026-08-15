@@ -117,10 +117,23 @@ const PIEZAS: Record<string, { titulo: string; cuerpo: string }> = {
     titulo: 'shell.campos.titulo',
     cuerpo: `
       <div class="ed-panel-cont" id="ed-panel-campos">
-        <div class="ed-col"><span class="ed-col-ic">−</span><span class="ed-col-t" data-i18n="shell.campos.titulo"></span><span class="ed-col-n">0</span></div>
-        <div class="ed-campos-add"><input type="text" id="ed-campo-nuevo" data-i18n-placeholder="shell.campos.placeholder" /><button type="button" id="ed-campo-agregar">+</button></div>
-        <div id="ed-lista-campos"></div>
-        <p class="nota" data-i18n="shell.campos.nota"></p>
+        <div class="ed-col" data-seccion="dibujo"><span class="ed-col-ic">−</span><span class="ed-col-t" data-i18n="shell.dibujo.titulo"></span></div>
+        <div class="ed-seccion ed-herramientas" data-cuerpo="dibujo">
+          ${['texto', 'linea', 'rect', 'tabla', 'imagen', 'qr']
+            .map((clase, i) => {
+              const claves = ['dibTexto', 'dibLinea', 'dibRect', 'dibTabla', 'dibImagen', 'dibQr'];
+              const teclas = ['T', 'L', 'R', 'B', 'I', 'Q'];
+              return `<button type="button" class="ed-herramienta" data-dib="${clase}" title="${teclas[i]}"><span data-i18n="menu.campos.${claves[i]}"></span></button>`;
+            })
+            .join('')}
+        </div>
+
+        <div class="ed-col" data-seccion="acroform"><span class="ed-col-ic">−</span><span class="ed-col-t" data-i18n="shell.campos.titulo"></span><span class="ed-col-n">0</span></div>
+        <div class="ed-seccion" data-cuerpo="acroform">
+          <div class="ed-campos-add"><input type="text" id="ed-campo-nuevo" data-i18n-placeholder="shell.campos.placeholder" /><button type="button" id="ed-campo-agregar">+</button></div>
+          <div id="ed-lista-campos"></div>
+          <p class="nota" data-i18n="shell.campos.nota"></p>
+        </div>
       </div>`,
   },
   props: {

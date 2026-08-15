@@ -1244,3 +1244,43 @@ button {
   flex-shrink: 0;
   opacity: 0.85;
 }
+
+/* ---------- Secciones plegables del panel de campos ---------- */
+
+.ed-col {
+  cursor: pointer;
+  user-select: none;
+}
+.ed-col:hover {
+  background: var(--card-1);
+}
+.ed-seccion[hidden] {
+  display: none;
+}
+
+/* Las mismas acciones del menú Campos, a un clic. Una por renglón: los nombres son de largo
+   distinto y en una grilla de dos columnas quedaban cortados en la barra más angosta. */
+.ed-herramientas {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 4px;
+}
+.ed-herramienta {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 5px 7px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--texto);
+  font-size: 12px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.ed-herramienta:hover {
+  background: var(--card-1);
+  border-color: var(--borde);
+}
