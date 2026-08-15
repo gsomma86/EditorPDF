@@ -174,20 +174,23 @@ document.body.appendChild(inputImagen);
 inputImagen.addEventListener('change', async () => {
   const archivo = inputImagen.files?.[0];
   if (!archivo) return;
-  const src = await new Promise<string>((resolve) => {
-    const lector = new FileReader();
-    lector.onload = () => resolve(lector.result as string);
-    lector.readAsDataURL(archivo);
-  });
-  const dimensiones = await new Promise<{ ancho: number; alto: number }>((resolve) => {
-    const img = new Image();
-    img.onload = () => resolve({ ancho: img.naturalWidth || 1, alto: img.naturalHeight || 1 });
-    img.src = src;
-  });
-  const elemento = crearElementoImagen(src, dimensiones.ancho, dimensiones.alto);
-  await agregarAlLienzo(lienzo, elemento);
-  registrarSnapshot(lienzo);
-  guardar();
+  try {
+    // Comprueba que sea PNG o JPEG de verdad —por sus bytes, no por la extensión— y la achica si
+    // es enorme: si no, viaja entera al PDF y al autoguardado, que no la aguanta.
+    const { prepararImagen } = await import('./editor/imagen');
+    const imagen = await prepararImagen(archivo);
+    const elemento = crearElementoImagen(imagen.src, imagen.ancho, imagen.alto);
+    await agregarAlLienzo(lienzo, elemento);
+    registrarSnapshot(lienzo);
+    guardar();
+  } catch (error) {
+    // El motivo del rechazo viaja en el error; si no lo trae, se avisa en general.
+    await confirmar(
+      t('confirmar.noSePudoImportar.titulo'),
+      error instanceof Error ? error.message : t('confirmar.noSePudoImportar.generico'),
+      t('modal.btn.entendido')
+    );
+  }
 });
 
 espacio.menubar.querySelectorAll<HTMLElement>('[data-dib]').forEach((boton) => {
