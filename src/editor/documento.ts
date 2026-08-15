@@ -196,6 +196,44 @@ export async function hojasDesdePdf(lienzo: Canvas, paginas: number): Promise<vo
 }
 
 /**
+ * Mete las páginas de otro PDF después de la hoja `despuesDe` y crea una hoja para cada una.
+ *
+ * Es el mismo mecanismo que duplicar una hoja —insertar páginas en el PDF de base y correr los
+ * índices de las que venían después—, solo que las páginas vienen de otro archivo. Devuelve las
+ * medidas de lo insertado para que quien llama pueda avisar si no coinciden con el documento.
+ */
+export async function insertarPdf(lienzo: Canvas, otro: Uint8Array, despuesDe: number): Promise<{ ancho: number; alto: number }[]> {
+  asentarHoja(lienzo);
+  const anclaje = hojas[despuesDe]?.paginaPdf;
+  // Si la hoja de referencia no viene de una página (es una hoja en blanco), las páginas nuevas se
+  // agregan al final del PDF; en la tira igual quedan justo después de ella.
+  const trasPagina = anclaje ?? Math.max(-1, ...hojas.map((h) => h.paginaPdf ?? -1));
+
+  const { insertarPaginasDeOtroPdf } = await import('./pdfExistente');
+  const { cuantas, medidas } = await insertarPaginasDeOtroPdf(otro, trasPagina);
+  if (!cuantas) return [];
+
+  for (const hoja of hojas) {
+    if (hoja.paginaPdf !== null && hoja.paginaPdf > trasPagina) hoja.paginaPdf += cuantas;
+  }
+
+  const nuevas: Hoja[] = medidas.map((m, i) => ({
+    ...hojaEnBlanco(),
+    paginaPdf: trasPagina + 1 + i,
+    ...tamanoParecido(m.ancho, m.alto),
+    medidas: m,
+  }));
+  hojas.splice(despuesDe + 1, 0, ...nuevas);
+  hojaVigente = despuesDe + 1;
+
+  // Los números de página se corrieron: lo dibujado hasta ahora quedó guardado con el índice viejo.
+  olvidarPaginasDibujadas();
+  await reconstruirLienzo(lienzo, hojas[hojaVigente].elementos);
+  await mostrarHojaVigente(lienzo);
+  return medidas;
+}
+
+/**
  * Anota de dónde saca su fondo una hoja, sin tocar lo que se ve. Aparte de `establecerFondoDeLaHoja`
  * porque los arneses de prueba corren sin navegador y necesitan armar el documento sin dibujar nada.
  */

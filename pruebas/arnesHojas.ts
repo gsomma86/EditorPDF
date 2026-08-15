@@ -9,7 +9,7 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { StaticCanvas } from 'fabric';
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { agregarHoja, cantidadDeHojas, eliminarHoja, establecerHojas, hojaActual, hojaEnBlanco, hojasDelDocumento, irAHoja, moverHoja } from '../src/editor/documento';
+import { agregarHoja, cantidadDeHojas, eliminarHoja, establecerHojas, hojaActual, hojaEnBlanco, hojasDelDocumento, insertarPdf, irAHoja, moverHoja } from '../src/editor/documento';
 import { inicializarHistorial, deshacer, registrarSnapshot, rehacer } from '../src/editor/historial';
 import { agregarAlLienzo } from '../src/editor/objetosFabric';
 import { exportarPdf } from '../src/editor/exportarPdf';
@@ -197,6 +197,39 @@ const textoCopia = (i: number) =>
     .join(' ')
     .trim();
 comparar('duplicar hoja', 'la copia quedó al lado del original', ['PAGINA A', 'PAGINA A', 'PAGINA B'], [0, 1, 2].map(textoCopia));
+
+// ---------- Insertar otro PDF en una posición ----------
+
+// Sobre el PDF de 4 páginas (A/B/C/D) se mete otro de 2 (X/Y) después de la primera hoja: las
+// páginas nuevas tienen que quedar en el medio y las de más adelante correrse de número.
+await asentarPdf(bytesPartida);
+await establecerHojas(lienzo, [0, 1, 2, 3].map((p) => ({ ...hojaEnBlanco(), paginaPdf: p })), 0);
+
+const anexo = await PDFDocument.create();
+for (const letra of ['X', 'Y']) {
+  anexo.addPage([595, 842]).drawText(`ANEXO ${letra}`, { x: 50, y: 700, size: 20 });
+}
+const medidasInsertadas = await insertarPdf(lienzo, new Uint8Array(await anexo.save()), 0);
+
+comparar('insertar PDF', 'hojas del documento', 6, cantidadDeHojas());
+comparar('insertar PDF', 'medidas de lo insertado', [{ ancho: 595, alto: 842 }, { ancho: 595, alto: 842 }], medidasInsertadas);
+comparar('insertar PDF', 'paginas de cada hoja', [0, 1, 2, 3, 4, 5], hojasDelDocumento(lienzo).map((h) => h.paginaPdf));
+comparar('insertar PDF', 'queda parado en la primera insertada', 1, hojaActual());
+
+const conAnexo = await exportarPdf(lienzo, { conFormulario: true });
+await writeFile(`${SALIDA}hojas-con-anexo.pdf`, conAnexo);
+const leidoAnexo = mupdf.PDFDocument.openDocument(conAnexo, 'application/pdf');
+const textoAnexo = (i: number) =>
+  JSON.parse((leidoAnexo.loadPage(i) as any).toStructuredText('preserve-whitespace').asJSON())
+    .blocks.flatMap((b: any) => (b.lines ?? []).map((l: any) => l.text))
+    .join(' ')
+    .trim();
+comparar(
+  'insertar PDF',
+  'el anexo quedó en el medio',
+  ['PAGINA A', 'ANEXO X', 'ANEXO Y', 'PAGINA B', 'PAGINA C', 'PAGINA D'],
+  [0, 1, 2, 3, 4, 5].map(textoAnexo)
+);
 
 // ---------- Cada hoja con su propio tamaño ----------
 

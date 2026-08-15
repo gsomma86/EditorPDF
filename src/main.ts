@@ -18,6 +18,7 @@ import { agregarHoja, aplicarConfigPagina, cantidadDeHojas, configActual, elimin
 import { activarVista, configurarVista, establecerZoom, vistaActual } from './editor/vista';
 import { configPorDefecto, type Orientacion, type TamanoPagina } from './editor/pagina';
 import { cargarProyecto, descargarProyecto, leerProyecto, serializarProyecto } from './editor/proyecto';
+import type { CampoDelPdf } from './editor/pdfExistente';
 
 const raiz = document.querySelector<HTMLDivElement>('#app')!;
 const espacio = montarEspacioTrabajo(raiz);
@@ -642,6 +643,7 @@ function menuDeHoja(indice: number, x: number, y: number): void {
   const opciones: { clave: ClaveI18n; roja?: boolean; hacer: () => Promise<void> }[] = [
     { clave: 'shell.hojas.duplicarTt', hacer: () => duplicarHoja(indice) },
     { clave: 'shell.hojas.insertar', hacer: () => nuevaHoja(indice) },
+    { clave: 'shell.hojas.insertarPdf', hacer: async () => pedirPdfParaInsertar(indice) },
     { clave: 'shell.hojas.moverIzq', hacer: async () => {
       await moverHoja(lienzo, indice, Math.max(0, indice - 1));
       await trasCambiarHojas(true);
@@ -710,6 +712,106 @@ inputFondo.addEventListener('change', async () => {
   guardar();
 });
 
+/**
+ * Coloca los campos importados de un PDF, cada uno en la hoja que muestra su página. Al terminar
+ * vuelve a la hoja en la que se estaba: importar no debería mover a nadie de lugar.
+ */
+async function colocarCamposImportados(campos: CampoDelPdf[]): Promise<void> {
+  if (!campos.length) return;
+  const volverA = hojaActual();
+
+  // De página del PDF a hoja: después de borrar o reordenar no coinciden, y una página puede no
+  // tener ninguna hoja (si se borró) o tener dos (si se duplicó); vale la primera.
+  const hojaDePagina = new Map<number, number>();
+  for (let i = cantidadDeHojas() - 1; i >= 0; i--) {
+    const pagina = paginaDeLaHoja(i);
+    if (pagina !== null) hojaDePagina.set(pagina, i);
+  }
+
+  for (const campo of campos) {
+    const destino = hojaDePagina.get(campo.pagina);
+    if (destino === undefined) continue;
+    await irAHoja(lienzo, destino);
+    await agregarAlLienzo(lienzo, {
+      ...crearElementoCampo(campo.name),
+      x: campo.x,
+      y: campo.y,
+      w: campo.w,
+      h: campo.h,
+      size: campo.size,
+      familia: campo.familia,
+      negrita: campo.negrita,
+      cursiva: campo.cursiva,
+      color: campo.color,
+      align: campo.align,
+      readonly: campo.readonly,
+      multilinea: campo.multilinea,
+      defaultValue: campo.defaultValue,
+      bordeGrosor: campo.bordeGrosor,
+      bordeColor: campo.bordeColor,
+      conFondo: campo.conFondo,
+      fondoColor: campo.fondoColor,
+    });
+  }
+
+  await irAHoja(lienzo, volverA);
+}
+
+// ---------- Insertar otro PDF ----------
+
+const inputInsertar = document.createElement('input');
+inputInsertar.type = 'file';
+inputInsertar.accept = 'application/pdf';
+inputInsertar.style.display = 'none';
+document.body.appendChild(inputInsertar);
+
+/** Después de qué hoja va a entrar el PDF que se elija. */
+let insertarDespuesDe = 0;
+
+function pedirPdfParaInsertar(despuesDe: number): void {
+  insertarDespuesDe = despuesDe;
+  inputInsertar.value = '';
+  inputInsertar.click();
+}
+
+inputInsertar.addEventListener('change', async () => {
+  const archivo = inputInsertar.files?.[0];
+  if (!archivo) return;
+
+  try {
+    const { insertarPdf } = await import('./editor/documento');
+    const { camposDelPdf } = await import('./editor/pdfExistente');
+
+    const antes = medidasDeLaHoja(insertarDespuesDe);
+    const medidas = await insertarPdf(lienzo, new Uint8Array(await archivo.arrayBuffer()), insertarDespuesDe);
+    if (!medidas.length) return;
+
+    // Los campos se releen del PDF ya fusionado y se reparten por página, así que los que estaban
+    // colocados no se tocan y los que entran caen en sus hojas nuevas.
+    const { campos } = await camposDelPdf();
+    const paginasNuevas = new Set(medidas.map((_, i) => (paginaDeLaHoja(insertarDespuesDe + 1) ?? 0) + i));
+    await colocarCamposImportados(campos.filter((c) => paginasNuevas.has(c.pagina)));
+
+    registrarSnapshot(lienzo);
+    await trasCambiarHojas(false);
+
+    // El aviso de tamaño distinto no bloquea: la inserción ya se hizo y cada hoja se dibuja y se
+    // exporta con sus propias medidas, así que es información, no un problema que haya que resolver.
+    const distintas = medidas.filter((m) => m.ancho !== antes.ancho || m.alto !== antes.alto);
+    await mostrarAyuda(
+      t('ayuda.pdfInsertado.titulo'),
+      `<p>${t('ayuda.pdfInsertado.paginas', { n: medidas.length })}</p>` +
+        (distintas.length
+          ? `<p>${t('ayuda.pdfInsertado.otroTamano', { n: distintas.length, ancho: distintas[0].ancho, alto: distintas[0].alto })}</p>`
+          : '')
+    );
+  } catch (error) {
+    await mostrarAyuda(t('ayuda.pdfInsertado.titulo'), `<p>${escapeHtml(String((error as Error)?.message ?? error))}</p>`);
+  }
+});
+
+document.getElementById('ed-insertar-pdf')!.addEventListener('click', () => pedirPdfParaInsertar(hojaActual()));
+
 // ---------- Abrir un PDF existente ----------
 
 const inputPdf = document.createElement('input');
@@ -748,31 +850,10 @@ inputPdf.addEventListener('change', async () => {
 
     // Los campos AcroForm entran ya colocados en la hoja, con sus mismas coordenadas, tipografía
     // y color: quedan listos para editar en un paso, en vez de que haya que rearmar la plantilla
-    // a mano campo por campo.
+    // a mano campo por campo. **Cada uno va a la hoja de su página**: en un formulario de varias
+    // páginas, meterlos todos en la primera los amontonaba encima del contenido equivocado.
     const { campos, omitidos } = await camposDelPdf();
-    for (const campo of campos) {
-      const elemento = {
-        ...crearElementoCampo(campo.name),
-        x: campo.x,
-        y: campo.y,
-        w: campo.w,
-        h: campo.h,
-        size: campo.size,
-        familia: campo.familia,
-        negrita: campo.negrita,
-        cursiva: campo.cursiva,
-        color: campo.color,
-        align: campo.align,
-        readonly: campo.readonly,
-        multilinea: campo.multilinea,
-        defaultValue: campo.defaultValue,
-        bordeGrosor: campo.bordeGrosor,
-        bordeColor: campo.bordeColor,
-        conFondo: campo.conFondo,
-        fondoColor: campo.fondoColor,
-      };
-      await agregarAlLienzo(lienzo, elemento);
-    }
+    await colocarCamposImportados(campos);
     // Un mismo ID puede repetirse en varias posiciones (como en el editor): el catálogo lo lista
     // una sola vez. Se suma al catálogo existente, sin repetir, igual que al importar un CSV.
     if (campos.length) {

@@ -55,6 +55,7 @@ const MENU_PAGINA = `
     </select>
   </div>
   <div class="ed-dd-sep"></div>
+  <div class="ed-dd-item" id="ed-insertar-pdf" data-i18n="menu.pagina.insertarPdf"></div>
   <div class="ed-dd-item" id="ed-margenes" data-i18n="menu.pagina.margenes"></div>
 `;
 

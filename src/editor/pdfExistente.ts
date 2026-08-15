@@ -215,6 +215,12 @@ export interface CampoDelPdf {
   bordeColor: string;
   conFondo: boolean;
   fondoColor: string;
+  /**
+   * En qué página del PDF está colocado, contando desde 0. Un formulario de varias páginas tiene
+   * campos en cada una, y cada uno va a la hoja que le corresponde: sin esto, todos caían en la
+   * primera y con las coordenadas medidas contra la altura equivocada.
+   */
+  pagina: number;
 }
 
 export interface CamposImportados {
@@ -287,9 +293,13 @@ export async function camposDelPdf(): Promise<CamposImportados> {
   const bytes = bytesActuales;
   if (!bytes) return { campos: [], omitidos: [] };
 
-  const { PDFDocument, PDFTextField } = await import('@cantoo/pdf-lib');
+  const { PDFDocument, PDFName, PDFTextField } = await import('@cantoo/pdf-lib');
   const doc = await PDFDocument.load(bytes.slice(), { updateMetadata: false });
-  const alturaPagina = doc.getPage(paginaElegida).getHeight();
+
+  // En qué página está cada widget. Un campo puede estar colocado en varias, y en un formulario de
+  // varias páginas cada uno tiene que caer en su hoja, medido contra la altura de *su* página.
+  const paginas = doc.getPages();
+  const paginaPorRef = new Map(paginas.map((p, i) => [p.ref.toString(), i]));
 
   const campos: CampoDelPdf[] = [];
   const omitidos: { name: string; motivo: string }[] = [];
@@ -301,6 +311,11 @@ export async function camposDelPdf(): Promise<CamposImportados> {
     }
 
     for (const widget of campo.acroField.getWidgets()) {
+      // `/P` es la página donde vive el widget. Algunos PDF no la escriben; ahí se asume la
+      // primera, que es lo mismo que hacía el editor antes de mirar la página.
+      const pagina = paginaPorRef.get(widget.dict.get(PDFName.of('P'))?.toString() ?? '') ?? 0;
+      const alturaPagina = paginas[pagina].getHeight();
+
       const r = widget.getRectangle();
       // Un widget puede venir con las esquinas al revés; el rectángulo se normaliza.
       const x = Math.min(r.x, r.x + r.width);
@@ -345,6 +360,7 @@ export async function camposDelPdf(): Promise<CamposImportados> {
         bordeColor: borde?.length ? hex(borde) : '#000000',
         conFondo: !!fondo?.length,
         fondoColor: fondo?.length ? hex(fondo) : '#ffffff',
+        pagina,
       });
     }
   }
@@ -544,6 +560,36 @@ export async function duplicarPaginaDelPdf(indice: number): Promise<void> {
   const [copia] = await documento.copyPages(documento, [indice]);
   documento.insertPage(indice + 1, copia);
   await asentarPdf(new Uint8Array(await documento.save()), indice + 1);
+}
+
+/**
+ * Mete las páginas de **otro** PDF dentro del que está abierto, después de `despuesDe`, y deja el
+ * documento asentado. Devuelve cuántas entraron y con qué medidas, para que quien llama arme sus
+ * hojas y pueda avisar si el tamaño no coincide.
+ *
+ * Los dos PDF se funden en uno solo, en vez de mantener dos abiertos a la vez: el resto del editor
+ * está construido sobre la idea de un único PDF de base con sus páginas numeradas, y respetarla
+ * hace que insertar sea casi lo mismo que duplicar una página.
+ */
+export async function insertarPaginasDeOtroPdf(
+  otro: Uint8Array,
+  despuesDe: number
+): Promise<{ cuantas: number; medidas: { ancho: number; alto: number }[] }> {
+  const { PDFDocument } = await import('@cantoo/pdf-lib');
+  const entrante = await PDFDocument.load(otro.slice(), { updateMetadata: false });
+  const cuantas = entrante.getPageCount();
+  if (!cuantas) return { cuantas: 0, medidas: [] };
+
+  // Sin PDF abierto, el que se inserta pasa a ser la base y no hay nada que fusionar.
+  const base = bytesActuales ? await PDFDocument.load(bytesActuales.slice()) : await PDFDocument.create();
+  const copiadas = await base.copyPages(entrante, entrante.getPageIndices());
+  copiadas.forEach((pagina, i) => base.insertPage(Math.min(despuesDe + 1 + i, base.getPageCount()), pagina));
+
+  await asentarPdf(new Uint8Array(await base.save()), despuesDe + 1);
+  return {
+    cuantas,
+    medidas: entrante.getPages().map((p) => ({ ancho: Math.round(p.getWidth()), alto: Math.round(p.getHeight()) })),
+  };
 }
 
 export async function usarPagina(indice: number): Promise<void> {
