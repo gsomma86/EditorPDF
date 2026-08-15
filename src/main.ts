@@ -56,6 +56,19 @@ for (const evento of ['input', 'change', 'click']) {
   espacio.panelPropiedades.addEventListener(evento, () => guardar());
 }
 
+/**
+ * El menú del navegador —Atrás, Actualizar, Ver código fuente— no tiene nada que ver con un editor
+ * y le saca sensación de aplicación. Se bloquea en todo el editor menos donde se escribe: adentro
+ * de un campo, copiar y pegar sí sirven.
+ *
+ * Los menús propios no se ven afectados: el de la tira de hojas escucha el mismo evento sobre su
+ * elemento, que se atiende antes que este, y ya hace `preventDefault` por su cuenta.
+ */
+document.addEventListener('contextmenu', (e) => {
+  if ((e.target as HTMLElement | null)?.closest('input, textarea, [contenteditable="true"]')) return;
+  e.preventDefault();
+});
+
 let temporizadorPeso: number | undefined;
 let generacionPeso = 0;
 
