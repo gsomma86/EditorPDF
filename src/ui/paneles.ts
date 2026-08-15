@@ -13,8 +13,11 @@
 
 const CLAVE = 'editorpdf.columnas';
 
-/** Lo que queda a la vista de una pieza colapsada: apenas su botón para volver a abrirla. */
-const RIEL = 32;
+/**
+ * Lo que queda a la vista de un costado colapsado: una franja fina que muestra que ahí hay algo
+ * plegado. No hace falta más, porque el botón para volver a abrirlo vive sobre la línea.
+ */
+const RIEL = 10;
 const RIEL_ABAJO = 26;
 const MINIMO = 150;
 const MAXIMO = 460;
@@ -179,7 +182,13 @@ export function montarPaneles(raiz: HTMLElement): void {
       lengueta.hidden = !arriba && !abajoDelLado;
       lengueta.textContent = lado === 'izq' ? (colapsado ? '›' : '‹') : colapsado ? '‹' : '›';
       for (const quien of [arriba, abajoDelLado]) {
-        if (quien) piezaDe(quien).querySelector<HTMLElement>('[data-accion="colapsar"]')!.hidden = true;
+        if (!quien) continue;
+        const nodo = piezaDe(quien);
+        nodo.querySelector<HTMLElement>('[data-accion="colapsar"]')!.hidden = true;
+        // Colapsado quedan 32 px: desacoplar y cerrar se esconden para que el riel sea lo más
+        // angosto posible. Se llega a ellos desplegando, que es un solo clic en la lengüeta.
+        nodo.querySelector<HTMLElement>('[data-accion="desacoplar"]')!.hidden = colapsado;
+        nodo.querySelector<HTMLElement>('[data-accion="cerrar"]')!.hidden = colapsado;
       }
     }
 
