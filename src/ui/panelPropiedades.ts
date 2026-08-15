@@ -1,6 +1,6 @@
 import type { Canvas, FabricObject } from 'fabric';
 import { FabricImage } from 'fabric';
-import { elementoDe, reemplazarObjeto, agregarAlLienzo, generarQr, prepararFuente, sincronizarGeometria, textoParaDibujar } from '../editor/objetosFabric';
+import { elementoDe, moverEnLaPila, reemplazarObjeto, agregarAlLienzo, generarQr, prepararFuente, sincronizarGeometria, textoParaDibujar } from '../editor/objetosFabric';
 import { alturaRenglonFabric, duplicarElemento, type Elemento } from '../editor/elemento';
 import { FAMILIAS_BASE, FAMILIAS_WEB } from '../editor/fuentes';
 import { registrarSnapshot } from '../editor/historial';
@@ -245,13 +245,13 @@ export function mostrarMultiSeleccion(
 
   panel.querySelector<HTMLButtonElement>('#ed-multi-frente')!.addEventListener('click', () => {
     const lista = soltar();
-    lista.forEach((o) => lienzo.bringObjectToFront(o));
+    lista.forEach((o) => moverEnLaPila(lienzo, o, 'frente'));
     alTerminar(lista);
   });
 
   panel.querySelector<HTMLButtonElement>('#ed-multi-atras')!.addEventListener('click', () => {
     const lista = soltar();
-    [...lista].reverse().forEach((o) => lienzo.sendObjectToBack(o));
+    [...lista].reverse().forEach((o) => moverEnLaPila(lienzo, o, 'fondo'));
     alTerminar(lista);
   });
 }
@@ -496,13 +496,13 @@ function wireAcciones(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, 
   });
 
   panel.querySelector<HTMLButtonElement>('#ed-p-frente')!.addEventListener('click', () => {
-    lienzo.bringObjectToFront(objeto);
+    moverEnLaPila(lienzo, objeto, 'frente');
     lienzo.requestRenderAll();
     registrarSnapshot(lienzo);
   });
 
   panel.querySelector<HTMLButtonElement>('#ed-p-atras')!.addEventListener('click', () => {
-    lienzo.sendObjectToBack(objeto);
+    moverEnLaPila(lienzo, objeto, 'fondo');
     lienzo.requestRenderAll();
     registrarSnapshot(lienzo);
   });

@@ -432,3 +432,7 @@ validada — ver la sección Fase 0 del roadmap.
     que las pintaba el PDF** mandando cada una al fondo: así la última pintada queda primera en el
     arreglo y, por lo tanto, arriba — como estaba. Haciéndolo al revés (que es lo intuitivo) una
     banda gris termina tapando las líneas que tenía adentro, y parece que se hubieran borrado.
+    **Lo mismo vale para los botones "Al frente" y "Enviar atrás"**: sobre una forma de esas hacen
+    justo lo contrario de lo que dicen si se los deja llamar directo a `bringObjectToFront` y
+    `sendObjectToBack`. Por eso existe `moverEnLaPila()` en `objetosFabric.ts`, que invierte cuando
+    hace falta; usarla siempre en vez de las de Fabric.

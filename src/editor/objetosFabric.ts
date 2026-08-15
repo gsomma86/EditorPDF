@@ -99,6 +99,22 @@ function recortarAlAncho(texto: string, campo: { w: number; size: number; famili
   return `${corto}…`;
 }
 
+/**
+ * Mover un objeto al frente o al fondo de la pila **de lo que se ve**.
+ *
+ * No alcanza con `bringObjectToFront`/`sendObjectToBack` porque las formas sacadas de un PDF se
+ * dibujan con `globalCompositeOperation: 'destination-over'` —cada una detrás de lo ya dibujado,
+ * para quedar debajo de la página como estaban— y en esas el apilado que se ve es **el inverso**
+ * del orden interno: la primera de la lista termina arriba. Sin esta corrección, sus botones "Al
+ * frente" y "Enviar atrás" hacen justo lo contrario de lo que dicen.
+ */
+export function moverEnLaPila(lienzo: import('fabric').Canvas, objeto: FabricObject, hacia: 'frente' | 'fondo'): void {
+  const alReves = objeto.globalCompositeOperation === 'destination-over';
+  const alFrente = hacia === 'frente' ? !alReves : alReves;
+  if (alFrente) lienzo.bringObjectToFront(objeto);
+  else lienzo.sendObjectToBack(objeto);
+}
+
 export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObject> {
   switch (elemento.clase) {
     case 'texto': {
