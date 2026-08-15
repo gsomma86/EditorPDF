@@ -34,8 +34,9 @@ la del panel habían encontrado (campos duplicados por el fondo, etiquetas desbo
 diagnóstico de aviso equivocado), los tres ya resueltos. **Lección**: las auditorías comparan
 contra una referencia y encuentran lo que falta; usar la app de verdad encuentra lo que molesta.
 
-**Fase 3 (formas preexistentes): en pausa**, sin caso de uso en los PDF reales disponibles — ver
-el punto 3.
+**Fase 3 (formas preexistentes): retomada** (15/08/2026) — la pausa se había decidido midiendo solo
+PDFs de ReciboMail, que son todos plantillas de formulario. Sobre 60 PDF de otras fuentes, 45
+tienen formas editables en su contenido. Ver el punto 3.
 
 **Fase 4 — Multipágina real: hecha** (15/08/2026, ver el punto 4). Un documento del editor ahora
 puede tener varias hojas, con su propia tira de pestañas para agregar, duplicar, borrar y
@@ -62,13 +63,15 @@ además tener un PDF de varias páginas de fondo.
    `recuperarPdfGuardado()` pudiera leerlo. `cargarProyecto` ahora recibe si hay que conservar el
    PDF vigente. La página elegida se guarda junto al PDF (IndexedDB) y dentro del `.json`, así que
    también se retoma en otra computadora. Con esto, fase 2 queda completa de punta a punta.
-3. **Fase 3 (formas preexistentes) — en pausa.** Bosquejada y validada dos veces contra PDFs
-   reales (14/08/2026, ver ROADMAP.md para la historia completa): primero se corrigió de rellenos a
-   trazos, y al medir bien esos trazos —separando contenido real de anotaciones— resultaron ser
-   bordes de campos de formulario, no formas de página. Ningún PDF real disponible tiene formas
-   editables en su contenido, así que se pausa hasta que aparezca uno; mientras tanto, importar
-   campos AcroForm (arriba) cubre el mismo caso de uso (una plantilla con "recuadros" que en
-   realidad son campos).
+3. **Fase 3 (formas preexistentes) — retomada (15/08/2026): la pausa era por una muestra sesgada.**
+   Se había decidido midiendo 8 PDF, todos de ReciboMail y todos plantillas de formulario, donde lo
+   que se ve son campos AcroForm y no contenido. Midiendo **60 PDF de otras fuentes** (banco,
+   ARCA/AFIP, manuales, facturas), **45 tienen formas editables en su contenido**: 6132 rectángulos
+   y líneas rectas contra 1173 formas complejas, o sea 84% al alcance. El caso concreto es una
+   plantilla de la propia empresa (`Template recibo Argentina Napsis.pdf`): **556 rectángulos, 0
+   formas complejas**, que por sus medidas (`566x0`, `0x13`) son las líneas del recibo dibujadas
+   como barras finas. Hoy ese PDF se abre, se le edita el texto y se le importan los campos, pero
+   sus líneas no se pueden mover ni borrar. El alcance de la v1 está en ROADMAP.md.
 4. ~~Multipágina real (fase 4)~~ — **hecho (15/08/2026)**. Un documento son varias hojas; tamaño,
    orientación, márgenes y fondo son del documento entero, no de cada hoja (decisión a propósito).
    Motor en `editor/documento.ts` (`irAHoja`/`agregarHoja`/`eliminarHoja`/`moverHoja`, ninguna

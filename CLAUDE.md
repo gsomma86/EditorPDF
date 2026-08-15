@@ -384,3 +384,10 @@ validada — ver la sección Fase 0 del roadmap.
     que aparecía vacío en la barra de estado sin ningún PDF abierto. En `style.css` hay un
     `[hidden] { display: none !important }` que lo cubre para todos los casos — pero conviene
     saberlo igual, porque es un bug que no deja rastro en la consola.
+36. **Una decisión de producto vale lo que vale su muestra.** La fase 3 (editar formas de un PDF)
+    se pausó porque, midiendo 8 PDF, ninguno tenía formas en su contenido. Los 8 eran de
+    ReciboMail y todos plantillas de formulario: lo que se ve en ellas son campos AcroForm, no
+    contenido de página. Midiendo 60 PDF de otras fuentes, 45 sí tienen formas — y una plantilla de
+    la propia empresa tiene 556 rectángulos y ninguna forma compleja. La medición anterior no
+    estaba mal hecha; estaba hecha sobre una muestra que no representaba el problema. **Antes de
+    descartar una función por falta de casos de uso, revisar de dónde salieron los casos.**

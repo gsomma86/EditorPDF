@@ -26,7 +26,7 @@ editar el contenido de PDFs preexistentes** (texto y, más adelante, dibujo vect
   o sea que se puede recorrer una página objeto por objeto. Lo que **no** existe listo para usar es
   volver a serializar una forma editada dentro del content stream: eso hay que construirlo.
 
-## Fase 1 — MVP (en curso)
+## Fase 1 — MVP (completa)
 
 Paridad con el editor público actual, mejorando sus limitaciones conocidas (rendimiento, undo/redo).
 
@@ -166,9 +166,38 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
         comparan contra una referencia y encuentran lo que falta. Usar la app de verdad, con un
         archivo real, encontró lo que *molesta*: un tipo de bug distinto, y complementario.
 
-## Fase 3 — Edición real de formas preexistentes (en pausa)
+## Fase 3 — Edición real de formas preexistentes (retomada)
 
-**En pausa (14/08/2026): validada contra 8 PDF reales y no tiene caso de uso hoy.** El bosquejo se
+**Retomada (15/08/2026): la pausa se había decidido con una muestra sesgada.** Los 8 PDF medidos
+entonces eran todos de ReciboMail y todos plantillas de formulario, donde lo que se ve son campos
+AcroForm y no contenido. Al medir **60 PDF reales de otras fuentes** (banco, ARCA/AFIP, manuales,
+facturas de proveedores) el panorama es el opuesto:
+
+| Medición sobre 60 PDF | Resultado |
+| --- | --- |
+| Con al menos una forma editable en el contenido | **45** (75%) |
+| Con 5 o más | 32 |
+| Formas editables (rectángulos y líneas rectas) | **6132** |
+| Formas fuera de alcance (curvas, rotadas) | 1173 |
+| Proporción editable | **84%** |
+
+O sea que el caso existe y es común: rectángulos de ejes rectos, mayormente. Lo que no aparece en
+ningún lado es el operador `re` —las formas se arman con `m`/`l`/`h`— y hay un tercer grupo, el de
+los PDF **escaneados**, donde no hay ni texto ni formas sino una sola imagen (ejemplo real: un VEP
+de ARCA). Para esos no hay nada que editar y el editor ya lo diagnostica (`contenido: 'escaneada'`).
+
+**El caso de uso concreto**, y es una plantilla de recibo de la propia empresa
+(`Template recibo Argentina Napsis.pdf`): **556 rectángulos, 0 formas complejas**, más 119 líneas
+de texto y 179 campos AcroForm. Sus medidas delatan qué son —`566x0`, `0x13`— **rectángulos
+degenerados: las líneas y los recuadros del recibo dibujados como barras finas**. Es exactamente lo
+que había encontrado el spike de fase 0, y confirma que el caso vale la pena: un PDF así se abre
+hoy, se le edita el texto y se le importan los campos, pero sus líneas no se pueden ni mover ni
+borrar.
+
+<details>
+<summary>Por qué había quedado en pausa (14/08/2026)</summary>
+
+El bosquejo se
 corrigió una vez (rellenos → trazos, ver historia abajo) y al medir bien —separando el contenido
 real de la página de las anotaciones con `page.run()` vs. `runPageContents`— los 59 trazos que
 parecían recuadros de plantilla resultaron ser **bordes de campos de formulario (AcroForm)**, no
@@ -189,7 +218,7 @@ Corregido tras medir 8 PDF reales: ninguno usa `re` — arman las formas con `m`
 resultó estar contaminada por incluir las anotaciones (`page.run()` sin separar contenido de
 widgets); al corregirla, los trazos también resultaron ser campos, no formas de página.
 
-Dos hallazgos técnicos que siguen valiendo si se retoma:
+Hallazgos técnicos que siguen valiendo:
 - El recorrido de mupdf entrega rellenos/trazos en el mismo orden que los operadores del stream, así
   que el enésimo clic se mapea al enésimo operador **por posición**, no comparando coordenadas (los
   CTM no son la identidad).
@@ -198,6 +227,17 @@ Dos hallazgos técnicos que siguen valiendo si se retoma:
   el borrado del original no puede reusar `Redact`/`applyRedactions` de mupdf —pensado para texto e
   imágenes, no formas vectoriales— así que esa parte se construye de cero.
 </details>
+
+**Alcance de la v1**, sacado de lo medido y no de lo imaginado:
+
+- [ ] Detectar las formas del contenido de la página: rectángulos de ejes rectos y líneas rectas,
+      que son el 84% de lo que hay. Las líneas suelen venir como rectángulos degenerados (alto o
+      ancho 0), así que cuentan como el mismo caso.
+- [ ] Mapear cada forma a su operador del content stream **por posición** (el enésimo relleno del
+      recorrido es el enésimo del stream), no comparando coordenadas: los CTM no son la identidad.
+- [ ] Doble clic sobre una forma la convierte en un `RectObjeto`/`LineaObjeto` del diseño, como ya
+      hace el texto en la fase 2, y se borra la original del contenido.
+- [ ] Curvas, paths compuestos y formas rotadas quedan afuera: no se detectan y no se tocan.
 
 ## Fase 4 — Avanzado
 
