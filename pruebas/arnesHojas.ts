@@ -231,6 +231,32 @@ comparar(
   [0, 1, 2, 3, 4, 5].map(textoAnexo)
 );
 
+// ---------- Los campos del PDF insertado no se pierden ----------
+
+// `copyPages` trae los widgets como anotaciones de la página pero no los anota en el formulario
+// del documento: sin registrarlos, los campos del PDF que entra quedan huérfanos y nadie los ve.
+const conCampos = await PDFDocument.create();
+const hojaConCampos = conCampos.addPage([595, 842]);
+const formEntrante = conCampos.getForm();
+for (const nombre of ['anexo_uno', 'anexo_dos']) {
+  const campo = formEntrante.createTextField(nombre);
+  campo.addToPage(hojaConCampos, { x: 50, y: nombre === 'anexo_uno' ? 700 : 650, width: 200, height: 20 });
+}
+
+await asentarPdf(bytesPartida);
+await establecerHojas(lienzo, [0, 1, 2, 3].map((p) => ({ ...hojaEnBlanco(), paginaPdf: p })), 0);
+await insertarPdf(lienzo, new Uint8Array(await conCampos.save()), 1);
+
+const { camposDelPdf } = await import('../src/editor/pdfExistente');
+const leidosTrasInsertar = await camposDelPdf();
+comparar(
+  'insertar con campos',
+  'los campos del PDF insertado se conservan',
+  ['anexo_dos', 'anexo_uno'],
+  leidosTrasInsertar.campos.map((c) => c.name).sort()
+);
+comparar('insertar con campos', 'y saben en qué página están', [2, 2], leidosTrasInsertar.campos.map((c) => c.pagina));
+
 // ---------- Cada hoja con su propio tamaño ----------
 
 // El documento tenía un solo tamaño hasta la fase 4; ahora es de cada hoja, que es lo que permite

@@ -293,13 +293,25 @@ export async function camposDelPdf(): Promise<CamposImportados> {
   const bytes = bytesActuales;
   if (!bytes) return { campos: [], omitidos: [] };
 
-  const { PDFDocument, PDFName, PDFTextField } = await import('@cantoo/pdf-lib');
+  const { PDFDocument, PDFDict, PDFName, PDFTextField } = await import('@cantoo/pdf-lib');
   const doc = await PDFDocument.load(bytes.slice(), { updateMetadata: false });
 
   // En qué página está cada widget. Un campo puede estar colocado en varias, y en un formulario de
   // varias páginas cada uno tiene que caer en su hoja, medido contra la altura de *su* página.
+  //
+  // Se resuelve mirando **en qué página está listado** el widget y no su `/P`: al fusionar dos PDF
+  // esa referencia puede quedar apuntando a la página del archivo original, y todos los campos
+  // insertados terminaban en la primera hoja.
   const paginas = doc.getPages();
   const paginaPorRef = new Map(paginas.map((p, i) => [p.ref.toString(), i]));
+  const paginaPorWidget = new Map<object, number>();
+  paginas.forEach((pagina, indice) => {
+    const anotaciones = pagina.node.Annots();
+    for (let i = 0; i < (anotaciones?.size() ?? 0); i++) {
+      const dict = doc.context.lookupMaybe(anotaciones!.get(i), PDFDict);
+      if (dict) paginaPorWidget.set(dict, indice);
+    }
+  });
 
   const campos: CampoDelPdf[] = [];
   const omitidos: { name: string; motivo: string }[] = [];
@@ -311,9 +323,10 @@ export async function camposDelPdf(): Promise<CamposImportados> {
     }
 
     for (const widget of campo.acroField.getWidgets()) {
-      // `/P` es la página donde vive el widget. Algunos PDF no la escriben; ahí se asume la
-      // primera, que es lo mismo que hacía el editor antes de mirar la página.
-      const pagina = paginaPorRef.get(widget.dict.get(PDFName.of('P'))?.toString() ?? '') ?? 0;
+      // Manda dónde está listado el widget; `/P` queda de respaldo para cuando no aparece en
+      // ninguna página. Sin PDF que lo respalde, la primera, como antes de mirar la página.
+      const pagina =
+        paginaPorWidget.get(widget.dict) ?? paginaPorRef.get(widget.dict.get(PDFName.of('P'))?.toString() ?? '') ?? 0;
       const alturaPagina = paginas[pagina].getHeight();
 
       const r = widget.getRectangle();
@@ -575,7 +588,7 @@ export async function insertarPaginasDeOtroPdf(
   otro: Uint8Array,
   despuesDe: number
 ): Promise<{ cuantas: number; medidas: { ancho: number; alto: number }[] }> {
-  const { PDFDocument } = await import('@cantoo/pdf-lib');
+  const { PDFDocument, PDFDict, PDFName, PDFRef } = await import('@cantoo/pdf-lib');
   const entrante = await PDFDocument.load(otro.slice(), { updateMetadata: false });
   const cuantas = entrante.getPageCount();
   if (!cuantas) return { cuantas: 0, medidas: [] };
@@ -584,6 +597,31 @@ export async function insertarPaginasDeOtroPdf(
   const base = bytesActuales ? await PDFDocument.load(bytesActuales.slice()) : await PDFDocument.create();
   const copiadas = await base.copyPages(entrante, entrante.getPageIndices());
   copiadas.forEach((pagina, i) => base.insertPage(Math.min(despuesDe + 1 + i, base.getPageCount()), pagina));
+
+  // `copyPages` trae los widgets de los campos como anotaciones de la página, pero **no los anota
+  // en el formulario del documento**: sin esto los campos del PDF insertado quedan huérfanos, no
+  // los ve `getForm().getFields()` y para el editor es como si el archivo no tuviera ninguno.
+  const formulario = base.catalog.getOrCreateAcroForm();
+  const yaAnotados = new Set<string>();
+  for (const pagina of copiadas) {
+    const anotaciones = pagina.node.Annots();
+    if (!anotaciones) continue;
+    for (let i = 0; i < anotaciones.size(); i++) {
+      const referencia = anotaciones.get(i);
+      // Solo los widgets: una página también puede traer enlaces o notas, que no son campos.
+      const anotacion = base.context.lookupMaybe(referencia, PDFDict);
+      if (anotacion?.get(PDFName.of('Subtype')) !== PDFName.of('Widget') || !(referencia instanceof PDFRef)) continue;
+
+      // Al formulario va el **campo**, no el widget: cuando el campo tiene varios widgets, estos
+      // cuelgan de él por `/Parent` y anotar el hijo daría un campo con el nombre partido
+      // ("apellido.undefined"). Si no hay padre, campo y widget son el mismo objeto.
+      const padre = anotacion.get(PDFName.of('Parent'));
+      const campo = padre instanceof PDFRef ? padre : referencia;
+      if (yaAnotados.has(campo.toString())) continue;
+      yaAnotados.add(campo.toString());
+      formulario.addField(campo);
+    }
+  }
 
   await asentarPdf(new Uint8Array(await base.save()), despuesDe + 1);
   return {

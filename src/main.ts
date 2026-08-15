@@ -780,7 +780,7 @@ inputInsertar.addEventListener('change', async () => {
 
   try {
     const { insertarPdf } = await import('./editor/documento');
-    const { camposDelPdf } = await import('./editor/pdfExistente');
+    const { camposDelPdf, textosDelPdf, usarPagina } = await import('./editor/pdfExistente');
 
     const antes = medidasDeLaHoja(insertarDespuesDe);
     const medidas = await insertarPdf(lienzo, new Uint8Array(await archivo.arrayBuffer()), insertarDespuesDe);
@@ -788,9 +788,20 @@ inputInsertar.addEventListener('change', async () => {
 
     // Los campos se releen del PDF ya fusionado y se reparten por página, así que los que estaban
     // colocados no se tocan y los que entran caen en sus hojas nuevas.
+    const primera = paginaDeLaHoja(insertarDespuesDe + 1) ?? 0;
+    const paginasNuevas = new Set(medidas.map((_, i) => primera + i));
     const { campos } = await camposDelPdf();
-    const paginasNuevas = new Set(medidas.map((_, i) => (paginaDeLaHoja(insertarDespuesDe + 1) ?? 0) + i));
-    await colocarCamposImportados(campos.filter((c) => paginasNuevas.has(c.pagina)));
+    const nuevos = campos.filter((c) => paginasNuevas.has(c.pagina));
+    await colocarCamposImportados(nuevos);
+
+    // Cuántos textos se pueden editar con doble clic en lo que entró. Hay que recorrer página por
+    // página porque el módulo lee los textos de la que esté vigente.
+    let textos = 0;
+    for (const pagina of paginasNuevas) {
+      await usarPagina(pagina);
+      textos += textosDelPdf().length;
+    }
+    await irAHoja(lienzo, insertarDespuesDe + 1);
 
     registrarSnapshot(lienzo);
     await trasCambiarHojas(false);
@@ -801,6 +812,8 @@ inputInsertar.addEventListener('change', async () => {
     await mostrarAyuda(
       t('ayuda.pdfInsertado.titulo'),
       `<p>${t('ayuda.pdfInsertado.paginas', { n: medidas.length })}</p>` +
+        (textos ? `<p>${t(textos === 1 ? 'ayuda.pdfAbierto.textoUno' : 'ayuda.pdfAbierto.textoVarios', { n: textos })}${t('ayuda.pdfAbierto.textoResto')}</p>` : '') +
+        (nuevos.length ? `<p>${t(nuevos.length === 1 ? 'ayuda.pdfAbierto.campoUno' : 'ayuda.pdfAbierto.camposVarios', { n: nuevos.length })}</p>` : '') +
         (distintas.length
           ? `<p>${t('ayuda.pdfInsertado.otroTamano', { n: distintas.length, ancho: distintas[0].ancho, alto: distintas[0].alto })}</p>`
           : '')
