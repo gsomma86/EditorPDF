@@ -18,14 +18,21 @@ repetibles, rotación, texto vertical y de varias líneas, completar campos, des
 guardar/importar proyecto, exportar PDF, fondo de hoja (imagen y PDF), ayuda, atajos, y paneles
 colapsables de ancho ajustable.
 
-**Fase 2 (editar PDFs ajenos): completa.** Archivo → Abrir PDF trae el PDF de fondo con sus campos
-AcroForm ya importados y colocados; doble clic sobre cualquier texto lo borra del contenido real
-con una redacción de mupdf y lo reemplaza por un texto del diseño, con la misma tipografía y en el
-mismo renglón que el original. Funciona sobre cualquier página, no solo la primera (selector en la
-barra de estado), y retomar una sesión (o abrirla en otra computadora) vuelve al PDF y a la página
-donde se estaba, no solo al fondo. Al exportar, el PDF abierto es la base, así que lo que ya traía
-sigue siendo vectorial. Todo verificado de punta a punta en el navegador, más los arneses
-`verificar-pdf` y `verificar-campos` (ver más abajo).
+**Fase 2 (editar PDFs ajenos): completa, y con un recorrido real de punta a punta.** Archivo →
+Abrir PDF trae el PDF de fondo con sus campos AcroForm ya importados y colocados; doble clic sobre
+cualquier texto lo borra del contenido real con una redacción de mupdf y lo reemplaza por un texto
+del diseño, con la misma tipografía y en el mismo renglón que el original. Funciona sobre cualquier
+página, no solo la primera (selector en la barra de estado), y retomar una sesión (o abrirla en
+otra computadora) vuelve al PDF y a la página donde se estaba, no solo al fondo. Al exportar, el
+PDF abierto es la base, así que lo que ya traía sigue siendo vectorial.
+
+Además de la verificación pieza por pieza (navegador, `verificar-pdf`, `verificar-campos`), se hizo
+un recorrido completo abrir→editar→verificar→exportar con una plantilla real de ReciboMail y mouse
+de verdad (14/08/2026, ver ROADMAP.md fase 2 para el detalle). Confirmó lo importante —el PDF
+exportado sale vectorial, no una foto— y encontró tres bugs reales que ni la auditoría de menús ni
+la del panel habían encontrado (campos duplicados por el fondo, etiquetas desbordadas, un
+diagnóstico de aviso equivocado), los tres ya resueltos. **Lección**: las auditorías comparan
+contra una referencia y encuentran lo que falta; usar la app de verdad encuentra lo que molesta.
 
 **Fase 3 (formas preexistentes): en pausa**, sin caso de uso en los PDF reales disponibles — ver
 el punto 3.

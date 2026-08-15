@@ -314,6 +314,27 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
     de base: parecía que el arreglo no servía, cuando el borrado tardío de una prueba anterior era
     la causa. Para limpiar el estado antes de una prueba, cerrar la conexión o recargar antes de
     seguir, no encadenar un `deleteDatabase()` y continuar en la misma página.
+30. **Rasterizar una página con pdf.js dibuja sus anotaciones por defecto**, y un campo de
+    formulario es una anotación. Como los campos AcroForm también se importan como elementos del
+    diseño, cada uno se veía dos veces: el del fondo (con su valor ya cargado) y el nuestro encima.
+    El síntoma delator fue que al borrar un campo "aparecía algo abajo" —el del fondo, que seguía
+    ahí— y daba la sensación de que el borrado no había funcionado. Se corrige pasándole
+    `annotationMode: pdfjs.AnnotationMode.DISABLE` a `page.render()`, en `rasterizar()` de
+    `pdfExistente.ts`.
+31. **En el lienzo de Fabric el texto no se recorta solo a su caja**, a diferencia del editor
+    público (HTML + CSS, donde el navegador lo hace gratis). La etiqueta de un campo con un ID más
+    largo que su ancho se salía de la caja y se montaba sobre la del campo vecino — con una
+    plantilla real (una grilla de conceptos con varios campos angostos por fila) volvía ilegible
+    media hoja. Hay que medir con un `FabricText` temporal (mismo cuerpo y tipografía que el que se
+    va a dibujar) e ir sacando caracteres hasta que entre, agregando `…`. Ver `recortarAlAncho` en
+    `objetosFabric.ts`.
+32. **Las auditorías contra una referencia y usar la app de verdad encuentran bugs distintos, y
+    ninguna reemplaza a la otra.** Dos auditorías completas (menús contra el editor público, panel
+    de propiedades control por control) no encontraron los bugs de las lecciones 30 y 31: comparan
+    contra una referencia y detectan lo que *falta*. Un recorrido real —abrir una plantilla de
+    verdad y editarla con mouse, no eventos sintéticos— encontró ambos en minutos, porque encuentra
+    lo que *molesta* al usarlo. Antes de dar una función por probada, conviene además usarla de
+    punta a punta con un caso real, no solo auditarla contra una referencia.
 
 ## Cómo verificar cambios
 

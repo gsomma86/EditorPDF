@@ -141,6 +141,26 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
       catálogo del panel izquierdo sin duplicar nombres. Lo que el editor no representa (casillas,
       listas, firmas) se avisa con el motivo. Probado contra una plantilla real: 59 campos, 0
       omitidos, coinciden en posición y tamaño con mupdf. `camposDelPdf()` en `pdfExistente.ts`.
+- [x] **Recorrido completo con una plantilla real** (14/08/2026): abrir → editar → verificar →
+      exportar, con mouse de verdad sobre `Templeate.pdf`. Funciona de punta a punta: 59 campos
+      importados y colocados, mover un campo anda, el valor de ejemplo se guarda, preflight limpio,
+      y el PDF exportado sale con los 59 campos, sus valores y texto propio en su lugar —**y
+      vectorial, 0 imágenes en la página**, que era el riesgo grande de toda la fase 2 y quedó
+      confirmado sobre un archivo real. Tres hallazgos, los tres reales y ya resueltos:
+      - El fondo dibujaba los campos por duplicado (`b1c2ea6`): pdf.js rasterizaba también las
+        anotaciones —los campos lo son— así que cada uno se veía dos veces, el del fondo (con su
+        valor) y el nuestro encima. Lo delató que al borrar un campo "aparecía algo abajo".
+      - 28 de los 59 IDs de esa plantilla son más largos que el ancho de su campo, así que su
+        etiqueta se montaba sobre la del vecino y volvía ilegible media hoja (`eaf60da`): ahora se
+        recorta con puntos suspensivos.
+      - El aviso de PDF abierto diagnosticaba mal una plantilla sin contenido de página (todo lo
+        visible eran sus campos) como si fuera un PDF escaneado (`300c951`/`90ab76a`, ver arriba).
+      - Un cuarto hallazgo resultó ser falso positivo: un campo que "faltaba" en una corrida era un
+        artefacto de usar eventos de mouse sintéticos para probar, no un bug — con mouse real
+        vuelven a estar los 59 siempre.
+      - **Lección del ciclo**: ni la auditoría de menús ni la del panel encontraron estos bugs —
+        comparan contra una referencia y encuentran lo que falta. Usar la app de verdad, con un
+        archivo real, encontró lo que *molesta*: un tipo de bug distinto, y complementario.
 
 ## Fase 3 — Edición real de formas preexistentes (en pausa)
 
