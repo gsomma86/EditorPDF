@@ -221,18 +221,31 @@ button {
   background: var(--acento);
 }
 /* Colapsado no se arrastra: no hay ancho que ajustar. */
-.ed-panel.colapsado + .ed-separador,
+.ed-pieza.colapsado + .ed-separador,
 .ed-separador.inerte {
   cursor: default;
   pointer-events: none;
 }
-.ed-panel.colapsado .ed-panel-cont {
+.ed-pieza.colapsado .ed-panel-cont {
   display: none;
 }
-.ed-panel.colapsado .ed-panel-head {
+.ed-pieza.colapsado .ed-pieza-head {
   justify-content: center;
 }
-.ed-panel {
+.ed-ranura {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+#ed-ranura-abajo {
+  height: var(--alto-abajo, 105px);
+  padding: 0 12px;
+  flex-shrink: 0;
+}
+
+/* Una pieza es cualquiera de las tres cosas que se pueden mover de lugar. */
+.ed-pieza {
+  flex: 1;
   background: var(--fondo);
   border: 1px solid var(--borde-fuerte);
   border-radius: 10px;
@@ -240,18 +253,18 @@ button {
   flex-direction: column;
   overflow: hidden;
 }
-.ed-panel-head {
+.ed-pieza-head {
   display: flex;
   flex-shrink: 0;
   padding: 4px 6px;
 }
-.ed-panel.izq .ed-panel-head {
+.ed-pieza[data-lugar="izq"] .ed-pieza-head {
   justify-content: flex-end;
 }
-.ed-panel.der .ed-panel-head {
+.ed-pieza[data-lugar="der"] .ed-pieza-head {
   justify-content: flex-start;
 }
-.ed-panel-toggle {
+.ed-pieza-btn {
   width: 18px;
   height: 18px;
   border: 1px solid var(--borde-fuerte);
@@ -1084,4 +1097,104 @@ button {
 }
 .ed-hojas.colapsado .ed-hojas-lista {
   display: none;
+}
+
+/* ---------- Piezas flotantes, tira vertical y sombra de acople ---------- */
+
+/* El título solo hace falta flotando: acoplada, cada pieza ya lo dice adentro. */
+.ed-pieza-tit {
+  display: none;
+  flex: 1;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--texto);
+  padding-left: 2px;
+  user-select: none;
+}
+.ed-pieza.flotante {
+  position: fixed;
+  z-index: 55;
+  box-shadow: 0 10px 28px rgba(4, 44, 83, 0.2);
+}
+.ed-pieza.flotante .ed-pieza-tit {
+  display: block;
+}
+.ed-pieza.flotante .ed-pieza-head {
+  background: var(--card-1);
+  border-bottom: 1px solid var(--borde);
+  cursor: grab;
+  gap: 4px;
+  align-items: center;
+}
+.ed-pieza.flotante .ed-pieza-head:active {
+  cursor: grabbing;
+}
+.ed-pieza-esquina {
+  display: none;
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 12px;
+  height: 12px;
+  cursor: nwse-resize;
+  border-right: 2px solid var(--borde-fuerte);
+  border-bottom: 2px solid var(--borde-fuerte);
+  border-radius: 0 0 4px 0;
+}
+.ed-pieza.flotante .ed-pieza-esquina {
+  display: block;
+}
+
+/* La tira de hojas acoplada abajo se ve como siempre; en un costado se pone vertical y las
+   miniaturas se apilan, que es lo que permite ver muchas más en un documento largo. */
+/* Abajo, la cabecera va en una columna al costado y no en una fila arriba: una fila se comeria
+   un cuarto del alto de la tira y las miniaturas quedarian diminutas. */
+#ed-pieza-hojas.horizontal {
+  flex-direction: row;
+}
+#ed-pieza-hojas.horizontal .ed-pieza-head {
+  flex-direction: column;
+}
+#ed-pieza-hojas .ed-pieza-head {
+  gap: 4px;
+  align-items: center;
+}
+#ed-pieza-hojas.horizontal .ed-hojas-lista {
+  flex-direction: row;
+}
+#ed-pieza-hojas .ed-hojas-lista {
+  flex-direction: column;
+  align-items: center;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+#ed-pieza-hojas:not(.horizontal) .ed-hoja,
+#ed-pieza-hojas:not(.horizontal) .ed-hoja-nueva {
+  width: 100%;
+  max-width: 76px;
+  height: auto;
+}
+#ed-pieza-hojas:not(.horizontal) .ed-hoja-papel {
+  height: auto;
+  aspect-ratio: var(--relacion-hoja, 0.707);
+  flex: none;
+}
+
+/* El hueco que marca dónde va a caer la ventana al soltarla. Sin esto, soltar es a ciegas. */
+.ed-sombra-acople {
+  position: fixed;
+  z-index: 54;
+  border: 2px dashed var(--acento);
+  background: rgba(55, 138, 221, 0.1);
+  border-radius: 10px;
+  pointer-events: none;
+}
+.ed-flotantes {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 55;
+}
+.ed-flotantes > * {
+  pointer-events: auto;
 }

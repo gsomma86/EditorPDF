@@ -11,7 +11,7 @@ import { confirmar, mostrarAyuda, mostrarPreflight, pedirExportarPdf, pedirFilas
 import { formatearPeso, pesoDelPdf, verificarDiseno } from './editor/preflight';
 import { montarPanelCampos } from './ui/panelCampos';
 import { cablearAyuda } from './ui/ayuda';
-import { montarColumnas } from './ui/columnas';
+import { montarPaneles } from './ui/paneles';
 import { deshacer, inicializarHistorial, puedeDeshacer, puedeRehacer, registrarSnapshot, rehacer } from './editor/historial';
 import { alCambiarIdioma, aplicarIdioma, t, type ClaveI18n } from './ui/i18n';
 import { agregarHoja, aplicarConfigPagina, cantidadDeHojas, configActual, eliminarHoja, establecerFondoDeLaHoja, fondoDeLaHoja, establecerHojas, hojaActual, hojaEnBlanco, hojasDesdePdf, irAHoja, medidasDeLaHoja, miniaturaDeHoja, moverHoja, olvidarPaginasDibujadas, paginaDeLaHoja, refrescarPaginaDibujada } from './editor/documento';
@@ -30,7 +30,7 @@ const panelCampos = montarPanelCampos(espacio.panelCampos, async (nombre) => {
   guardar();
 });
 const ayuda = cablearAyuda();
-montarColumnas(espacio.raiz);
+montarPaneles(espacio.raiz);
 activarVista(lienzo);
 aplicarConfigPagina(lienzo, configPorDefecto());
 inicializarHistorial(lienzo);

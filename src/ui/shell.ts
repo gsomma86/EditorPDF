@@ -97,6 +97,52 @@ const MENUS: { id: string; etiqueta: import('./i18n').ClaveI18n; contenido: stri
   { id: 'ayuda', etiqueta: 'menu.ayuda', contenido: MENU_AYUDA },
 ];
 
+/**
+ * Las tres piezas que se pueden mover de lugar. Cada una es autónoma —su cabecera, su contenido— y
+ * vive dentro de una *ranura*: los dos costados, abajo, o una ventana suelta. Se escriben acá y no
+ * en el layout porque el layout ya no sabe cuál va en cada lado; eso lo decide `paneles.ts`.
+ *
+ * La cabecera es igual en las tres para que puedan intercambiarse sin casos especiales: el título
+ * (que solo se ve flotando), desacoplar y colapsar.
+ */
+const PIEZAS: Record<string, { titulo: string; cuerpo: string }> = {
+  campos: {
+    titulo: 'shell.campos.titulo',
+    cuerpo: `
+      <div class="ed-panel-cont" id="ed-panel-campos">
+        <div class="ed-col"><span class="ed-col-ic">−</span><span class="ed-col-t" data-i18n="shell.campos.titulo"></span><span class="ed-col-n">0</span></div>
+        <div class="ed-campos-add"><input type="text" id="ed-campo-nuevo" data-i18n-placeholder="shell.campos.placeholder" /><button type="button" id="ed-campo-agregar">+</button></div>
+        <div id="ed-lista-campos"></div>
+        <p class="nota" data-i18n="shell.campos.nota"></p>
+      </div>`,
+  },
+  props: {
+    titulo: 'shell.propiedades.titulo',
+    cuerpo: `
+      <div class="ed-panel-cont" id="ed-panel-propiedades">
+        <div class="ed-props-tit"><strong data-i18n="shell.propiedades.titulo"></strong></div>
+        <div class="ed-sinsel" data-i18n="shell.sinSeleccion"></div>
+      </div>`,
+  },
+  hojas: {
+    titulo: 'shell.hojas.titulo',
+    cuerpo: `<div class="ed-hojas-lista" id="ed-hojas-lista"></div>`,
+  },
+};
+
+function htmlDePieza(nombre: string): string {
+  const pieza = PIEZAS[nombre];
+  return `
+    <section class="ed-pieza" id="ed-pieza-${nombre}" data-pieza="${nombre}">
+      <div class="ed-pieza-head">
+        <span class="ed-pieza-tit" data-i18n="${pieza.titulo}"></span>
+        <button type="button" class="ed-pieza-btn" data-accion="desacoplar" data-i18n-title="shell.pieza.desacoplarTt">⧉</button>
+        <button type="button" class="ed-pieza-btn" data-accion="colapsar" data-i18n-title="shell.panelToggleTt">‹</button>
+      </div>
+      ${pieza.cuerpo}
+    </section>`;
+}
+
 export interface EspacioTrabajo {
   raiz: HTMLElement;
   menubar: HTMLElement;
@@ -130,17 +176,8 @@ export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
       ).join('')}
     </div>
 
-    <div class="ed-layout">
-      <aside class="ed-panel izq" id="ed-panel-izq">
-        <div class="ed-panel-head"><button type="button" class="ed-panel-toggle" id="ed-toggle-izq" data-i18n-title="shell.panelToggleTt">‹</button></div>
-        <div class="ed-panel-cont" id="ed-panel-campos">
-          <div class="ed-col"><span class="ed-col-ic">−</span><span class="ed-col-t" data-i18n="shell.campos.titulo"></span><span class="ed-col-n">0</span></div>
-          <div class="ed-campos-add"><input type="text" id="ed-campo-nuevo" data-i18n-placeholder="shell.campos.placeholder" /><button type="button" id="ed-campo-agregar">+</button></div>
-          <div id="ed-lista-campos"></div>
-          <p class="nota" data-i18n="shell.campos.nota"></p>
-        </div>
-      </aside>
-
+    <div class="ed-layout" id="ed-layout">
+      <div class="ed-ranura" id="ed-ranura-izq"></div>
       <div class="ed-separador" id="ed-separador-izq" data-i18n-title="shell.separadorTt"></div>
 
       <div class="ed-lienzo-cont">
@@ -148,21 +185,11 @@ export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
       </div>
 
       <div class="ed-separador" id="ed-separador-der" data-i18n-title="shell.separadorTt"></div>
-
-      <aside class="ed-panel der" id="ed-panel-der">
-        <div class="ed-panel-head"><button type="button" class="ed-panel-toggle" id="ed-toggle-der" data-i18n-title="shell.panelToggleTt">›</button></div>
-        <div class="ed-panel-cont" id="ed-panel-propiedades">
-          <div class="ed-props-tit"><strong data-i18n="shell.propiedades.titulo"></strong></div>
-          <div class="ed-sinsel" data-i18n="shell.sinSeleccion"></div>
-        </div>
-      </aside>
+      <div class="ed-ranura" id="ed-ranura-der"></div>
     </div>
 
     <div class="ed-separador-h" id="ed-separador-hojas" data-i18n-title="shell.separadorTt"></div>
-    <div class="ed-hojas" id="ed-hojas">
-      <button type="button" class="ed-hojas-toggle" id="ed-toggle-hojas" data-i18n-title="shell.hojasToggleTt">⌄</button>
-      <div class="ed-hojas-lista" id="ed-hojas-lista"></div>
-    </div>
+    <div class="ed-ranura" id="ed-ranura-abajo"></div>
 
     <div class="ed-status">
       <div class="ed-status-izq" data-i18n="shell.status.autoguardado"></div>
@@ -184,7 +211,15 @@ export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
         </div>
       </div>
     </div>
+
+    <div class="ed-flotantes" id="ed-flotantes"></div>
+    <div class="ed-sombra-acople" id="ed-sombra-acople" hidden></div>
   `;
+
+  // Las piezas nacen en su ranura por defecto; `paneles.ts` las reubica según lo que esté guardado.
+  raiz.querySelector('#ed-ranura-izq')!.innerHTML = htmlDePieza('campos');
+  raiz.querySelector('#ed-ranura-der')!.innerHTML = htmlDePieza('props');
+  raiz.querySelector('#ed-ranura-abajo')!.innerHTML = htmlDePieza('hojas');
 
   const menubar = raiz.querySelector<HTMLElement>('#ed-menubar')!;
   wireMenuDesplegable(menubar);
