@@ -229,6 +229,7 @@ const ES = {
   'props.tabla.estiloInterno': 'Estilo interno',
   'props.tabla.grosorLineaPt': 'Grosor de línea (pt)',
 
+  'props.imagen.reemplazar': 'Reemplazar imagen…',
   'props.imagen.mantenerProporcion': 'Mantener proporción al redimensionar',
   'props.imagen.opacidad': 'Opacidad',
 
@@ -490,6 +491,7 @@ const EN: Record<ClaveI18n, string> = {
   'props.tabla.estiloInterno': 'Inner style',
   'props.tabla.grosorLineaPt': 'Line thickness (pt)',
 
+  'props.imagen.reemplazar': 'Replace image…',
   'props.imagen.mantenerProporcion': 'Keep aspect ratio when resizing',
   'props.imagen.opacidad': 'Opacity',
 
@@ -749,6 +751,7 @@ const PT: Record<ClaveI18n, string> = {
   'props.tabla.estiloInterno': 'Estilo interno',
   'props.tabla.grosorLineaPt': 'Espessura da linha (pt)',
 
+  'props.imagen.reemplazar': 'Substituir imagem…',
   'props.imagen.mantenerProporcion': 'Manter proporção ao redimensionar',
   'props.imagen.opacidad': 'Opacidade',
 

@@ -8,7 +8,7 @@ import type { TablaObjeto } from '../editor/tablaObjeto';
 import type { LineaObjeto } from '../editor/lineaObjeto';
 import type { RectObjeto } from '../editor/rectObjeto';
 import { GROSOR_MINIMO_DOBLE } from '../editor/trazos';
-import { pedirCampoRepetible } from './modales';
+import { confirmar, pedirCampoRepetible } from './modales';
 import { aplicarIdioma, t } from './i18n';
 
 const ETIQUETA_TIPO: Record<Elemento['clase'], Parameters<typeof t>[0]> = {
@@ -20,6 +20,45 @@ const ETIQUETA_TIPO: Record<Elemento['clase'], Parameters<typeof t>[0]> = {
   imagen: 'tipo.imagen',
   campo: 'tipo.campo',
 };
+
+/**
+ * El botón "Reemplazar imagen…" comparte un único input de archivo (como los de `main.ts`), y
+ * apunta al elemento vigente en el momento del clic: no toca `x`/`y`/`w`/`h`, solo el contenido,
+ * para no perder la posición y el tamaño que ya tenía en la hoja.
+ */
+let objetivoReemplazoImagen: { lienzo: Canvas; objeto: FabricObject; elemento: Elemento & { clase: 'imagen' }; panel: HTMLElement } | null = null;
+
+const inputReemplazoImagen = document.createElement('input');
+inputReemplazoImagen.type = 'file';
+inputReemplazoImagen.accept = 'image/png,image/jpeg';
+inputReemplazoImagen.style.display = 'none';
+document.body.appendChild(inputReemplazoImagen);
+
+inputReemplazoImagen.addEventListener('change', async () => {
+  const archivo = inputReemplazoImagen.files?.[0];
+  const objetivo = objetivoReemplazoImagen;
+  if (!archivo || !objetivo) return;
+  const { lienzo, objeto, elemento, panel } = objetivo;
+
+  try {
+    // Misma validación y achique que al agregar una imagen nueva (ver editor/imagen.ts).
+    const { prepararImagen } = await import('../editor/imagen');
+    const imagen = await prepararImagen(archivo);
+    elemento.src = imagen.src;
+    const img = objeto as InstanceType<typeof FabricImage>;
+    await img.setSrc(imagen.src);
+    img.set({ scaleX: elemento.w / (img.width || elemento.w), scaleY: elemento.h / (img.height || elemento.h) });
+    lienzo.requestRenderAll();
+    registrarSnapshot(lienzo);
+    mostrarPropiedades(panel, lienzo, objeto);
+  } catch (error) {
+    await confirmar(
+      t('confirmar.noSePudoImportar.titulo'),
+      error instanceof Error ? error.message : t('confirmar.noSePudoImportar.generico'),
+      t('modal.btn.entendido')
+    );
+  }
+});
 
 function bloqueTipografia(elemento: { familia: string; negrita: boolean; cursiva: boolean; subrayado: boolean; align: 'left' | 'center' | 'right' }): string {
   return `
@@ -360,7 +399,8 @@ function campoQr(elemento: Elemento & { clase: 'qr' }): string {
     seccion(
       'comun.contenido',
       `<div><label class="ed-lbl" data-i18n="props.qr.textoUrl"></label><input type="text" id="ed-p-texto" value="${escapeHtml(elemento.texto)}"></div>
-      <div><label class="ed-lbl" data-i18n="props.qr.tamanoPt"></label><input type="number" id="ed-p-size" class="mono" value="${elemento.w}" min="20"></div>`
+      <div><label class="ed-lbl" data-i18n="props.qr.tamanoPt"></label><input type="number" id="ed-p-size" class="mono" value="${elemento.w}" min="20"></div>
+      <div id="ed-p-qr-prev" class="ed-img-prev"></div>`
     ) +
     seccion(
       'comun.formato',
@@ -398,7 +438,9 @@ function campoTabla(elemento: Elemento & { clase: 'tabla' }): string {
 function campoImagen(elemento: Elemento & { clase: 'imagen' }): string {
   return seccion(
     'comun.formato',
-    `<label class="ed-check"><input type="checkbox" id="ed-p-proporcion" ${elemento.proporcion ? 'checked' : ''}> <span data-i18n="props.imagen.mantenerProporcion"></span></label>
+    `<div id="ed-p-imagen-prev" class="ed-img-prev" style="background-image:url('${elemento.src}')"></div>
+    <button type="button" id="ed-p-imagen-reemplazar" class="ed-toggle" style="width:100%;margin-bottom:10px;" data-i18n="props.imagen.reemplazar"></button>
+    <label class="ed-check"><input type="checkbox" id="ed-p-proporcion" ${elemento.proporcion ? 'checked' : ''}> <span data-i18n="props.imagen.mantenerProporcion"></span></label>
     <label class="ed-lbl" style="margin-top:8px;" data-i18n="props.imagen.opacidad"></label><input type="range" id="ed-p-opacidad" min="10" max="100" value="${elemento.opacidad}">`
   );
 }
@@ -612,6 +654,7 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
   }
 
   if (elemento.clase === 'qr') {
+    const previa = $<HTMLElement>('#ed-p-qr-prev');
     // setSrc es asincrónico: hay que esperarlo antes de repintar, o el dibujo queda con el QR
     // anterior. El contador descarta respuestas fuera de orden si se tipea rápido.
     let generacion = 0;
@@ -626,8 +669,14 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
         scaleX: elemento.w / (imagen.width || elemento.w),
         scaleY: elemento.h / (imagen.height || elemento.h),
       });
+      if (previa) previa.style.backgroundImage = `url(${dataUrl})`;
       repintar();
     };
+    // La vista previa del panel arranca vacía: se llena con el QR ya generado, sin tocar el
+    // objeto del lienzo (que ya lo tiene) ni esperar a que se edite algo.
+    generarQr(elemento).then((dataUrl) => {
+      if (previa) previa.style.backgroundImage = `url(${dataUrl})`;
+    });
 
     $('#ed-p-texto')!.addEventListener('input', (e) => {
       elemento.texto = (e.target as HTMLInputElement).value;
@@ -700,6 +749,11 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
   }
 
   if (elemento.clase === 'imagen') {
+    $('#ed-p-imagen-reemplazar')!.addEventListener('click', () => {
+      objetivoReemplazoImagen = { lienzo, objeto, elemento, panel };
+      inputReemplazoImagen.value = '';
+      inputReemplazoImagen.click();
+    });
     $('#ed-p-w')!.addEventListener('input', (e) => {
       const ancho = Number((e.target as HTMLInputElement).value);
       const relacion = elemento.h / elemento.w;
