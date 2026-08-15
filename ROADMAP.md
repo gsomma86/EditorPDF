@@ -230,11 +230,14 @@ Hallazgos técnicos que siguen valiendo:
 
 **Alcance de la v1**, sacado de lo medido y no de lo imaginado:
 
-- [ ] Detectar las formas del contenido de la página: rectángulos de ejes rectos y líneas rectas,
-      que son el 84% de lo que hay. Las líneas suelen venir como rectángulos degenerados (alto o
-      ancho 0), así que cuentan como el mismo caso.
-- [ ] Mapear cada forma a su operador del content stream **por posición** (el enésimo relleno del
-      recorrido es el enésimo del stream), no comparando coordenadas: los CTM no son la identidad.
+- [x] **Detectar las formas del contenido** (15/08/2026, `editor/formasPdf.ts`): rectángulos de
+      ejes rectos y líneas, con su posición, color y grosor. Las líneas suelen venir como
+      rectángulos degenerados (alto o ancho 0) y se clasifican como línea, que es lo que son.
+- [x] **Sacar una forma del contenido, de verdad** (15/08/2026). Como `Redact` no sirve para
+      vectores, se opera sobre el content stream: se lo recorre con un lector chico que ubica cada
+      operador que pinta, y se reemplaza por espacios el camino de la forma elegida junto con su
+      operador. Se la ubica **por posición** —el enésimo relleno del recorrido es el enésimo del
+      stream— porque comparar coordenadas no serviría: los CTM no son la identidad.
 - [ ] Doble clic sobre una forma la convierte en un `RectObjeto`/`LineaObjeto` del diseño, como ya
       hace el texto en la fase 2, y se borra la original del contenido.
 - [ ] Curvas, paths compuestos y formas rotadas quedan afuera: no se detectan y no se tocan.
