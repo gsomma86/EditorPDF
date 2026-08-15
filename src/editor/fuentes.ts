@@ -169,6 +169,22 @@ export async function bytesDeFuente(familia: string, negrita: boolean, cursiva: 
   return woffASfnt(await respuesta.arrayBuffer());
 }
 
+/**
+ * Lo que las tipografías del editor saben dibujar: latín y su puntuación. Vale para las tres
+ * estándar del PDF —que usan la codificación WinAnsi— y también para las web, porque los archivos
+ * de @fontsource vienen separados por alfabeto y se usa el "latin".
+ *
+ * Un carácter fuera de esto no da error: el PDF lo escribe como `?`, sin avisar. Por eso conviene
+ * detectarlo antes (lo hace `verificarDiseno`) en vez de descubrirlo con el PDF ya hecho.
+ */
+const COBERTURA = /[ -ſƒˆ˜–—‘-‚“-„†-•…‰‹›€™]/;
+
+/** Los caracteres del texto que la tipografía no puede representar, sin repetir. */
+export function caracteresNoRepresentables(texto: string): string[] {
+  const fuera = [...texto].filter((c) => !COBERTURA.test(c));
+  return [...new Set(fuera)];
+}
+
 export const FAMILIAS_BASE = ['Helvetica', 'Times', 'Courier'];
 export const FAMILIAS_WEB = Object.keys(CATALOGO);
 

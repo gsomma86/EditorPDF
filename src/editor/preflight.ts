@@ -3,6 +3,12 @@ import { anchoTotalTabla, altoTotalTabla, nombresDeCampo, pasoRepeticion, type E
 import { elementoDe } from './objetosFabric';
 import { configActual } from './documento';
 import { dimensionesDe } from './pagina';
+import { caracteresNoRepresentables } from './fuentes';
+
+/** Un texto largo se corta para que quepa en el aviso. */
+function recortar(texto: string, largo = 24): string {
+  return texto.length > largo ? `${texto.slice(0, largo)}…` : texto;
+}
 
 export interface Hallazgo {
   gravedad: 'error' | 'advertencia';
@@ -37,6 +43,20 @@ export function verificarDiseno(lienzo: Canvas): Hallazgo[] {
   if (!elementos.length) {
     hallazgos.push({ gravedad: 'error', mensaje: 'El diseño está vacío: no hay nada para exportar.' });
     return hallazgos;
+  }
+
+  // Caracteres que las tipografías del editor no saben dibujar. No dan error al exportar: el PDF
+  // los escribe como '?' sin avisar, así que el aviso tiene que llegar antes.
+  for (const elemento of elementos) {
+    const texto = elemento.clase === 'texto' ? elemento.text : elemento.clase === 'campo' ? elemento.defaultValue : '';
+    if (!texto) continue;
+    const fuera = caracteresNoRepresentables(texto);
+    if (!fuera.length) continue;
+    const donde = elemento.clase === 'campo' ? `El valor del campo «${elemento.name}»` : `El texto «${recortar(texto)}»`;
+    hallazgos.push({
+      gravedad: 'advertencia',
+      mensaje: `${donde} tiene caracteres que la tipografía no puede representar (${fuera.join(' ')}): en el PDF van a salir como «?».`,
+    });
   }
 
   const campos = elementos.filter((e): e is Elemento & { clase: 'campo' } => e.clase === 'campo');
