@@ -3,7 +3,7 @@ import { montarEspacioTrabajo } from './ui/shell';
 import { crearLienzo } from './editor/lienzo';
 import { crearElemento, crearElementoCampo, crearElementoImagen, crearElementoTabla, duplicarElemento, type ClaseSimple, type Elemento } from './editor/elemento';
 import { activarModoCompletar, agregarAlLienzo, elementoDe, reconstruirLienzo, sincronizarGeometria } from './editor/objetosFabric';
-import { mostrarMultiSeleccion, mostrarPropiedades, mostrarSinSeleccion } from './ui/panelPropiedades';
+import { escapeHtml, mostrarMultiSeleccion, mostrarPropiedades, mostrarSinSeleccion } from './ui/panelPropiedades';
 import { ActiveSelection, type FabricObject } from 'fabric';
 import { borrarAutoguardado, hayAutoguardado, programarAutoguardado, restaurarAutoguardado } from './editor/autoguardado';
 import { camposDesdeCsv, csvDesdeCampos, descargarCsv } from './editor/csvCampos';
@@ -479,11 +479,48 @@ inputPdf.addEventListener('change', async () => {
   if (!archivo) return;
 
   try {
-    const { abrirPdf, textosDelPdf } = await import('./editor/pdfExistente');
+    const { abrirPdf, textosDelPdf, camposDelPdf } = await import('./editor/pdfExistente');
     const pdf = await abrirPdf(archivo);
 
     // La hoja toma las medidas del PDF, que puede no ser de ningún tamaño del catálogo.
     cambiarPagina({ fondo: pdf.fondo, medidas: { ancho: pdf.ancho, alto: pdf.alto }, ...tamanoParecido(pdf.ancho, pdf.alto) });
+
+    // Los campos AcroForm entran ya colocados en la hoja, con sus mismas coordenadas, tipografía
+    // y color: quedan listos para editar en un paso, en vez de que haya que rearmar la plantilla
+    // a mano campo por campo.
+    const { campos, omitidos } = await camposDelPdf();
+    for (const campo of campos) {
+      const elemento = {
+        ...crearElementoCampo(campo.name),
+        x: campo.x,
+        y: campo.y,
+        w: campo.w,
+        h: campo.h,
+        size: campo.size,
+        familia: campo.familia,
+        negrita: campo.negrita,
+        cursiva: campo.cursiva,
+        color: campo.color,
+        align: campo.align,
+        readonly: campo.readonly,
+        multilinea: campo.multilinea,
+        defaultValue: campo.defaultValue,
+        bordeGrosor: campo.bordeGrosor,
+        bordeColor: campo.bordeColor,
+        conFondo: campo.conFondo,
+        fondoColor: campo.fondoColor,
+      };
+      await agregarAlLienzo(lienzo, elemento);
+    }
+    // Un mismo ID puede repetirse en varias posiciones (como en el editor): el catálogo lo lista
+    // una sola vez. Se suma al catálogo existente, sin repetir, igual que al importar un CSV.
+    if (campos.length) {
+      panelCampos.establecerCatalogo([...new Set([...panelCampos.obtenerCatalogo(), ...campos.map((c) => c.name)])]);
+    }
+    if (campos.length || omitidos.length) {
+      registrarSnapshot(lienzo);
+      guardar();
+    }
 
     const cuantos = textosDelPdf().length;
     await mostrarAyuda(
@@ -493,6 +530,16 @@ inputPdf.addEventListener('change', async () => {
          cuantos
            ? `<p>${cuantos === 1 ? t('ayuda.pdfAbierto.textoUno') : t('ayuda.pdfAbierto.textoVarios', { n: cuantos })}${t('ayuda.pdfAbierto.textoResto')}</p>`
            : `<p>${t('ayuda.pdfAbierto.sinTexto')}</p>`
+       }
+       ${
+         campos.length
+           ? `<p>${campos.length === 1 ? t('ayuda.pdfAbierto.campoUno') : t('ayuda.pdfAbierto.camposVarios', { n: campos.length })}</p>`
+           : ''
+       }
+       ${
+         omitidos.length
+           ? `<p>${t('ayuda.pdfAbierto.omitidosTitulo')}</p><ul>${omitidos.map((o) => `<li><b>${escapeHtml(o.name)}</b>: ${escapeHtml(o.motivo)}</li>`).join('')}</ul>`
+           : ''
        }
        ${pdf.paginas > 1 ? `<p>${t('ayuda.pdfAbierto.paginas', { n: pdf.paginas })}</p>` : ''}`
     );

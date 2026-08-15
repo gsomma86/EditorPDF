@@ -433,7 +433,7 @@ function opcionesEstilo(actual: string): string {
     .join('');
 }
 
-function escapeHtml(texto: string): string {
+export function escapeHtml(texto: string): string {
   return texto.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
