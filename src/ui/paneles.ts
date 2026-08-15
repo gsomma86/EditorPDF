@@ -157,12 +157,20 @@ export function montarPaneles(raiz: HTMLElement): void {
       const separador = raiz.querySelector<HTMLElement>(`#ed-separador-${lado}`)!;
       separador.classList.toggle('inerte', !arriba && !abajoDelLado);
 
-      // El separador de adentro solo tiene sentido con las dos mitades ocupadas; si no, la que
-      // esté ocupa el costado entero.
+      // Colapsar es del costado entero, no de cada barra: quedan 32 px de ancho, y ahí no entran
+      // dos listas ni tiene sentido tener una abierta y la otra no. Colapsado se ve un solo riel.
+      const colapsado = !!arriba && estado[arriba].colapsado;
+      if (colapsado && abajoDelLado) piezaDe(abajoDelLado).hidden = true;
+
+      // El separador de adentro solo tiene sentido con las dos mitades ocupadas y desplegadas; si
+      // no, la que esté ocupa el costado entero.
       const sub = raiz.querySelector<HTMLElement>(`#ed-separador-${lado}-sub`)!;
-      const partido = !!arriba && !!abajoDelLado;
+      const partido = !!arriba && !!abajoDelLado && !colapsado;
       sub.style.display = partido ? '' : 'none';
       raiz.style.setProperty(`--alto-${lado}-1`, partido ? `${estado[arriba].altoEnElCostado}%` : arriba ? '100%' : '0%');
+
+      // Un solo botón de colapsar por costado: el de la barra de abajo desaparece.
+      if (abajoDelLado) piezaDe(abajoDelLado).querySelector<HTMLElement>('[data-accion="colapsar"]')!.hidden = !!arriba;
     }
 
     const abajo = quienEsta('abajo');
@@ -194,10 +202,18 @@ export function montarPaneles(raiz: HTMLElement): void {
       // Flotando, este botón devuelve la pieza a su costado. Si el que tenía está ocupado, va al
       // que esté libre; si no hay ninguno, se queda flotando.
       if (pieza.lugar === 'flotante') {
-        const libre = (['izq', 'der', 'abajo'] as const).find((l) => !quienEsta(l));
-        if (libre) pieza.lugar = libre;
+        const libre = RANURAS.find((r) => !quienEsta(r.lugar, r.mitad));
+        if (libre) {
+          pieza.lugar = libre.lugar;
+          pieza.mitad = libre.mitad;
+        }
       } else {
-        pieza.colapsado = !pieza.colapsado;
+        // Colapsar es del costado entero: con 32 px de ancho no tiene sentido dejar una barra
+        // abierta y la otra no, así que las dos que comparten costado van juntas.
+        const colapsado = !pieza.colapsado;
+        for (const otro of nombres) {
+          if (estado[otro].lugar === pieza.lugar) estado[otro].colapsado = colapsado;
+        }
       }
       aplicar();
     });
