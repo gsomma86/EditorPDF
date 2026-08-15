@@ -40,7 +40,7 @@ async function ponerTexto(lienzo: any, contenido: string): Promise<void> {
   await agregarAlLienzo(lienzo, elemento);
 }
 
-const textosDe = (hojas: Elemento[][]) => hojas.map((h) => h.filter((e) => e.clase === 'texto').map((e: any) => e.text));
+const textosDe = (hojas: { elementos: Elemento[] }[]) => hojas.map((h) => h.elementos.filter((e) => e.clase === 'texto').map((e: any) => e.text));
 
 await mkdir(SALIDA, { recursive: true });
 

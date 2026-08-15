@@ -442,18 +442,31 @@ async function contenidoDeLaPagina(): Promise<ContenidoDePagina> {
 /** Escala de rasterizado: el doble del tamaño real, para que no se vea borroso con zoom. */
 const ESCALA = 2;
 
-/** Dibuja la página elegida de los bytes vigentes y la devuelve como imagen. */
-async function rasterizar(): Promise<PdfAbierto> {
+/** Una página dibujada como imagen, con sus medidas reales en puntos. */
+export interface PaginaDibujada {
+  fondo: string;
+  ancho: number;
+  alto: number;
+}
+
+/**
+ * Dibuja **cualquier** página del PDF abierto, sin tocar cuál es la vigente. Es lo que usan las
+ * hojas del documento: cada una muestra su propia página, y la miniatura de la tira pide la misma
+ * página con una escala chica.
+ */
+export async function dibujarPagina(indice: number, escala = ESCALA): Promise<PaginaDibujada> {
+  if (!bytesActuales) throw new Error('No hay ningún PDF abierto.');
+
   const pdfjs = await import('pdfjs-dist');
   const trabajador = await import('pdfjs-dist/build/pdf.worker.mjs?url');
   pdfjs.GlobalWorkerOptions.workerSrc = trabajador.default;
 
   // pdf.js se queda con el buffer que recibe, así que se le pasa una copia.
-  const documento = await pdfjs.getDocument({ data: bytesActuales!.slice() }).promise;
+  const documento = await pdfjs.getDocument({ data: bytesActuales.slice() }).promise;
   // pdf.js cuenta las páginas desde 1 y el resto del módulo desde 0.
-  const pagina = await documento.getPage(paginaElegida + 1);
+  const pagina = await documento.getPage(Math.min(Math.max(0, indice), documento.numPages - 1) + 1);
   const medidas = pagina.getViewport({ scale: 1 });
-  const vista = pagina.getViewport({ scale: ESCALA });
+  const vista = pagina.getViewport({ scale: escala });
 
   const lienzo = document.createElement('canvas');
   lienzo.width = Math.ceil(vista.width);
@@ -471,9 +484,21 @@ async function rasterizar(): Promise<PdfAbierto> {
     fondo: lienzo.toDataURL('image/png'),
     ancho: Math.round(medidas.width),
     alto: Math.round(medidas.height),
-    paginas: documento.numPages,
-    contenido: await contenidoDeLaPagina(),
   };
+}
+
+/** Cuántas páginas tiene el PDF abierto. 0 si no hay ninguno. */
+export async function cantidadDePaginas(): Promise<number> {
+  if (!bytesActuales) return 0;
+  const mupdf = await motor();
+  const documento = mupdf.PDFDocument.openDocument(bytesActuales.slice(), 'application/pdf') as InstanceType<typeof mupdf.PDFDocument>;
+  return documento.countPages();
+}
+
+/** Dibuja la página elegida de los bytes vigentes y la devuelve como imagen. */
+async function rasterizar(): Promise<PdfAbierto> {
+  const dibujo = await dibujarPagina(paginaElegida);
+  return { ...dibujo, paginas: await cantidadDePaginas(), contenido: await contenidoDeLaPagina() };
 }
 
 export async function abrirPdf(archivo: File, pagina = 0): Promise<PdfAbierto> {
@@ -487,6 +512,12 @@ export async function abrirPdf(archivo: File, pagina = 0): Promise<PdfAbierto> {
  * El diseño que ya esté en la hoja no se toca: es responsabilidad de quien llama decidir qué
  * hacer con él, porque los elementos estaban puestos sobre la página anterior.
  */
+export async function usarPagina(indice: number): Promise<void> {
+  if (!bytesActuales || indice === paginaElegida) return;
+  // Relee los textos y las formas: son los de la página nueva, y son lo que ofrece el doble clic.
+  await asentarPdf(bytesActuales, indice);
+}
+
 export async function elegirPagina(indice: number): Promise<PdfAbierto> {
   if (!bytesActuales) throw new Error('No hay ningún PDF abierto.');
   paginaElegida = Math.max(0, indice);

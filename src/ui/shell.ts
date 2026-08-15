@@ -156,22 +156,19 @@ export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
       </aside>
     </div>
 
+    <div class="ed-separador-h" id="ed-separador-hojas" data-i18n-title="shell.separadorTt"></div>
     <div class="ed-hojas" id="ed-hojas">
+      <button type="button" class="ed-hojas-toggle" id="ed-toggle-hojas" data-i18n-title="shell.hojasToggleTt">⌄</button>
       <div class="ed-hojas-lista" id="ed-hojas-lista"></div>
-      <button type="button" class="ed-hojas-boton" id="ed-hoja-duplicar" data-i18n-title="shell.hojas.duplicarTt">⧉</button>
-      <button type="button" class="ed-hojas-boton" id="ed-hoja-agregar" data-i18n-title="shell.hojas.agregarTt">+</button>
     </div>
 
     <div class="ed-status">
       <div class="ed-status-izq" data-i18n="shell.status.autoguardado"></div>
       <div class="ed-status-der">
         <span class="ed-status-vista"><b id="ed-status-tam">A4</b> · <span id="ed-status-orient" data-i18n="pagina.orientacion.vertical"></span></span>
-        <div class="ed-status-divisor" id="ed-status-divisor-pagina" hidden></div>
-        <span class="ed-status-pagina" id="ed-status-pagina" hidden>
-          <span data-i18n="shell.status.paginaLbl"></span>
-          <select id="ed-pagina-select"></select>
-        </span>
         <div class="ed-status-divisor"></div>
+        <span class="ed-status-paginas" id="ed-status-paginas" hidden></span>
+        <div class="ed-status-divisor" id="ed-status-divisor-paginas" hidden></div>
         <button type="button" class="ed-status-peso" id="ed-peso-btn" data-i18n="shell.status.peso"></button>
         <div class="ed-status-divisor"></div>
         <button type="button" class="ed-status-peso" id="ed-preflight-btn" data-i18n="shell.status.verificar"></button>

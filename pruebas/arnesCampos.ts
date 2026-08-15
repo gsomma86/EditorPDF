@@ -14,6 +14,7 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { PDFDocument, StandardFonts, TextAlignment, rgb } from '@cantoo/pdf-lib';
 import { asentarPdf, camposDelPdf, cerrarPdf, type CampoDelPdf } from '../src/editor/pdfExistente';
+import { anclarHoja } from '../src/editor/documento';
 import { exportarPdf } from '../src/editor/exportarPdf';
 import type { Elemento } from '../src/editor/elemento';
 
@@ -100,6 +101,9 @@ const antes = await rectangulos(original);
 // ---------- Importar ----------
 
 await asentarPdf(original);
+// La hoja se apoya en la página 0 del PDF, como cuando se abre uno desde el editor: sin eso sería
+// una hoja en blanco y al exportar saldría una página nueva en vez de la del PDF.
+anclarHoja(0, 0);
 const { campos, omitidos } = await camposDelPdf();
 
 comparar('importar', 'cantidad de campos', CASOS.length, campos.length);

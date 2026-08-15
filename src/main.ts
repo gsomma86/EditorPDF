@@ -13,12 +13,11 @@ import { montarPanelCampos } from './ui/panelCampos';
 import { cablearAyuda } from './ui/ayuda';
 import { montarColumnas } from './ui/columnas';
 import { deshacer, inicializarHistorial, puedeDeshacer, puedeRehacer, registrarSnapshot, rehacer } from './editor/historial';
-import { alCambiarIdioma, t, type ClaveI18n } from './ui/i18n';
-import { agregarHoja, aplicarConfigPagina, cantidadDeHojas, configActual, eliminarHoja, establecerHojas, hojaActual, irAHoja, moverHoja } from './editor/documento';
+import { alCambiarIdioma, aplicarIdioma, t, type ClaveI18n } from './ui/i18n';
+import { agregarHoja, aplicarConfigPagina, cantidadDeHojas, configActual, eliminarHoja, establecerFondoDeLaHoja, fondoDeLaHoja, establecerHojas, hojaActual, hojaEnBlanco, hojasDesdePdf, irAHoja, miniaturaDeHoja, moverHoja, olvidarPaginasDibujadas, paginaDeLaHoja, refrescarPaginaDibujada } from './editor/documento';
 import { activarVista, configurarVista, establecerZoom, vistaActual } from './editor/vista';
-import { configPorDefecto, tamanoParecido, type Orientacion, type TamanoPagina } from './editor/pagina';
+import { configPorDefecto, dimensionesDe, tamanoParecido, type Orientacion, type TamanoPagina } from './editor/pagina';
 import { cargarProyecto, descargarProyecto, leerProyecto, serializarProyecto } from './editor/proyecto';
-import { hayPdfAbierto } from './editor/pdfExistente';
 
 const raiz = document.querySelector<HTMLDivElement>('#app')!;
 const espacio = montarEspacioTrabajo(raiz);
@@ -446,47 +445,32 @@ const estadoOrient = document.getElementById('ed-status-orient')!;
 
 const selFondo = document.getElementById('ed-fondo-modo') as HTMLSelectElement;
 
-const pagDivisor = document.getElementById('ed-status-divisor-pagina')!;
-const pagCont = document.getElementById('ed-status-pagina')!;
-const pagSelect = document.getElementById('ed-pagina-select') as HTMLSelectElement;
+const paginasCont = document.getElementById('ed-status-paginas')!;
+const paginasDivisor = document.getElementById('ed-status-divisor-paginas')!;
 
-/** Muestra el selector de página solo si el PDF de fondo tiene más de una; lo arma con 1..N. */
-function reflejarSelectorPagina(paginas: number, indice: number): void {
-  const visible = paginas > 1;
-  pagDivisor.hidden = !visible;
-  pagCont.hidden = !visible;
-  if (!visible) return;
-  pagSelect.innerHTML = Array.from({ length: paginas }, (_, i) => `<option value="${i}">${i + 1}</option>`).join('');
-  pagSelect.value = String(indice);
+/**
+ * Cuántas páginas va a tener el PDF exportado: una por hoja. Se muestra solo con más de una,
+ * porque es ahí donde importa —al borrar o duplicar hojas, el archivo final deja de coincidir con
+ * el PDF que se abrió y hasta ahora nada lo decía.
+ */
+function reflejarCantidadDePaginas(): void {
+  const total = cantidadDeHojas();
+  paginasCont.hidden = total < 2;
+  paginasDivisor.hidden = total < 2;
+  // Sin `data-i18n`: lleva un número adentro, así que el barrido de aplicarIdioma() lo dejaría en
+  // el molde sin reemplazar. Se rehace desde alCambiarIdioma(), como el resto del texto con datos.
+  paginasCont.textContent = t('shell.status.paginas', { n: total });
 }
-
-pagSelect.addEventListener('change', async () => {
-  const { elegirPagina, paginaDelPdf } = await import('./editor/pdfExistente');
-  const destino = Number(pagSelect.value);
-
-  // El diseño que ya esté en la hoja quedó puesto sobre la página actual: elegirPagina() no lo
-  // toca, así que conviene avisar antes de cambiar el fondo debajo suyo.
-  if (
-    lienzo.getObjects().length &&
-    !(await confirmar(t('confirmar.cambiarPagina.titulo'), t('confirmar.cambiarPagina.mensaje'), t('confirmar.cambiarPagina.aceptar')))
-  ) {
-    pagSelect.value = String(paginaDelPdf());
-    return;
-  }
-
-  const pdf = await elegirPagina(destino);
-  cambiarPagina({ fondo: pdf.fondo, medidas: { ancho: pdf.ancho, alto: pdf.alto }, ...tamanoParecido(pdf.ancho, pdf.alto) });
-  reflejarSelectorPagina(pdf.paginas, destino);
-});
 
 function reflejarPagina(): void {
   const config = configActual();
   selTamano.value = config.tamano;
   selOrient.value = config.orientacion;
-  // Un fondo de PDF también viaja como data URL en config.fondo, igual que uno de imagen: sin
-  // preguntarle al módulo si hay un PDF de base, el selector quedaría mostrando "Imagen" después
-  // de elegir "PDF".
-  selFondo.value = hayPdfAbierto() ? 'pdf' : config.fondo ? 'imagen' : 'blanco';
+  selFondo.value = paginaDeLaHoja() !== null ? 'pdf' : fondoDeLaHoja() ? 'imagen' : 'blanco';
+  // Las miniaturas de la tira sacan su ancho de la proporción de la hoja, así que tienen que
+  // enterarse cuando cambia el tamaño o la orientación.
+  const { ancho, alto } = dimensionesDe(config);
+  espacio.raiz.style.setProperty('--relacion-hoja', String(ancho / alto));
   // Se guarda la clave en data-i18n (no solo el texto ya traducido): así, si más tarde se cambia
   // de idioma sin volver a tocar la página, el barrido de aplicarIdioma() sabe qué re-traducir.
   estadoTam.dataset.i18n = `pagina.tamano.${config.tamano}`;
@@ -506,78 +490,166 @@ function cambiarPagina(cambio: Partial<ReturnType<typeof configActual>>): void {
 
 const hojasLista = document.getElementById('ed-hojas-lista')!;
 
+/** Deja el editor consistente después de tocar las hojas. Todas las operaciones terminan igual. */
+async function trasCambiarHojas(conHistorial: boolean): Promise<void> {
+  mostrarSinSeleccion(espacio.panelPropiedades);
+  if (conHistorial) registrarSnapshot(lienzo);
+  reflejarHojas();
+  reflejarCantidadDePaginas();
+  guardar();
+}
+
 /**
- * Redibuja la tira de pestañas de hojas. Se llama después de cualquier operación que agregue,
- * saque, reordene o cambie de hoja —incluidos deshacer/rehacer y cargar un proyecto—, porque
- * ninguna de esas funciones toca la interfaz por su cuenta.
+ * Redibuja la tira de hojas. Se llama después de cualquier operación que agregue, saque, reordene
+ * o cambie de hoja —incluidos deshacer/rehacer y cargar un proyecto—, porque ninguna de esas
+ * funciones toca la interfaz por su cuenta.
+ *
+ * Cada hoja se muestra como la página que es. Las imágenes se piden después de armar la tira y se
+ * van colocando a medida que salen: con un PDF de doce páginas, dibujarlas todas antes de mostrar
+ * nada dejaría la tira vacía varios segundos.
  */
 function reflejarHojas(): void {
   const total = cantidadDeHojas();
   const actual = hojaActual();
 
-  hojasLista.innerHTML = Array.from(
-    { length: total },
-    (_, i) => `
-    <div class="ed-hoja-tab ${i === actual ? 'activa' : ''}" draggable="true" data-hoja="${i}">
-      <span>${t('shell.hojas.etiqueta', { n: i + 1 })}</span>
-      ${total > 1 ? `<button type="button" class="ed-hoja-cerrar" data-cerrar="${i}" title="${t('shell.hojas.cerrarTt')}">×</button>` : ''}
+  hojasLista.innerHTML =
+    Array.from(
+      { length: total },
+      (_, i) => `
+    <div class="ed-hoja ${i === actual ? 'activa' : ''}" draggable="true" data-hoja="${i}" title="${t('shell.hojas.etiqueta', { n: i + 1 })}">
+      <div class="ed-hoja-papel">
+        <img alt="" data-mini="${i}" hidden>
+        <div class="ed-hoja-acciones">
+          <button type="button" data-duplicar="${i}" title="${t('shell.hojas.duplicarTt')}">⧉</button>
+          <button type="button" class="borrar" data-cerrar="${i}" title="${t('shell.hojas.cerrarTt')}" ${total > 1 ? '' : 'disabled'}>×</button>
+        </div>
+      </div>
+      <div class="ed-hoja-et">${i + 1}${origenDeLaHoja(i)}</div>
     </div>`
-  ).join('');
+    ).join('') +
+    `<div class="ed-hoja-nueva" id="ed-hoja-agregar" title="${t('shell.hojas.agregarTt')}"><div class="ed-hoja-papel">+</div><div class="ed-hoja-et" data-i18n="shell.hojas.nueva"></div></div>`;
 
-  hojasLista.querySelectorAll<HTMLElement>('.ed-hoja-tab').forEach((tab) => {
-    const indice = Number(tab.dataset.hoja);
+  aplicarIdioma(hojasLista);
+  void pintarMiniaturas();
 
-    tab.addEventListener('click', async (e) => {
-      if ((e.target as HTMLElement).closest('[data-cerrar]')) return;
+  hojasLista.querySelectorAll<HTMLElement>('.ed-hoja').forEach((tarjeta) => {
+    const indice = Number(tarjeta.dataset.hoja);
+
+    tarjeta.addEventListener('click', async (e) => {
+      if ((e.target as HTMLElement).closest('button')) return;
       await irAHoja(lienzo, indice);
-      mostrarSinSeleccion(espacio.panelPropiedades);
-      reflejarHojas();
-      guardar();
+      await trasCambiarHojas(false);
     });
 
-    // Reordenar arrastrando: HTML5 drag and drop nativo, alcanza para una tira corta de pestañas.
-    tab.addEventListener('dragstart', (e) => {
+    tarjeta.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      menuDeHoja(indice, e.clientX, e.clientY);
+    });
+
+    // Reordenar arrastrando: HTML5 drag and drop nativo, alcanza para una tira corta.
+    tarjeta.addEventListener('dragstart', (e) => {
       e.dataTransfer?.setData('text/plain', String(indice));
     });
-    tab.addEventListener('dragover', (e) => e.preventDefault());
-    tab.addEventListener('drop', async (e) => {
+    tarjeta.addEventListener('dragover', (e) => e.preventDefault());
+    tarjeta.addEventListener('drop', async (e) => {
       e.preventDefault();
       const desde = Number(e.dataTransfer?.getData('text/plain'));
       if (Number.isNaN(desde) || desde === indice) return;
       await moverHoja(lienzo, desde, indice);
-      registrarSnapshot(lienzo);
-      reflejarHojas();
-      guardar();
+      await trasCambiarHojas(true);
     });
   });
 
   hojasLista.querySelectorAll<HTMLButtonElement>('[data-cerrar]').forEach((boton) => {
-    boton.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      await eliminarHoja(lienzo, Number(boton.dataset.cerrar));
-      mostrarSinSeleccion(espacio.panelPropiedades);
-      registrarSnapshot(lienzo);
-      reflejarHojas();
-      guardar();
-    });
+    boton.addEventListener('click', () => void borrarHoja(Number(boton.dataset.cerrar)));
   });
+  hojasLista.querySelectorAll<HTMLButtonElement>('[data-duplicar]').forEach((boton) => {
+    boton.addEventListener('click', () => void duplicarHoja(Number(boton.dataset.duplicar)));
+  });
+  document.getElementById('ed-hoja-agregar')!.addEventListener('click', () => void nuevaHoja());
 }
 
-document.getElementById('ed-hoja-agregar')!.addEventListener('click', async () => {
-  await agregarHoja(lienzo, false);
-  mostrarSinSeleccion(espacio.panelPropiedades);
-  registrarSnapshot(lienzo);
-  reflejarHojas();
-  guardar();
-});
+/**
+ * De qué página del PDF viene la hoja, cuando ya no coincide con su número. Después de borrar o
+ * reordenar, "3" a secas no dice nada: esto es lo que permite reconocerla contra el original.
+ */
+function origenDeLaHoja(indice: number): string {
+  const pagina = paginaDeLaHoja(indice);
+  if (pagina === null || pagina === indice) return '';
+  return ` <span class="ed-hoja-orig">p.${pagina + 1}</span>`;
+}
 
-document.getElementById('ed-hoja-duplicar')!.addEventListener('click', async () => {
+async function pintarMiniaturas(): Promise<void> {
+  for (const img of hojasLista.querySelectorAll<HTMLImageElement>('[data-mini]')) {
+    const fuente = await miniaturaDeHoja(Number(img.dataset.mini));
+    // Otra operación pudo rehacer la tira mientras se dibujaba: si esta imagen ya no está en el
+    // documento, colocarla no rompe nada pero es al pedo, y el bucle sigue con una tira vieja.
+    if (!img.isConnected) return;
+    if (!fuente) continue;
+    img.src = fuente;
+    img.hidden = false;
+  }
+}
+
+async function borrarHoja(indice: number): Promise<void> {
+  await eliminarHoja(lienzo, indice);
+  await trasCambiarHojas(true);
+}
+
+async function duplicarHoja(indice: number): Promise<void> {
+  await irAHoja(lienzo, indice);
   await agregarHoja(lienzo, true);
-  mostrarSinSeleccion(espacio.panelPropiedades);
-  registrarSnapshot(lienzo);
-  reflejarHojas();
-  guardar();
-});
+  await trasCambiarHojas(true);
+}
+
+async function nuevaHoja(alFinal = false): Promise<void> {
+  if (alFinal) await irAHoja(lienzo, cantidadDeHojas() - 1);
+  await agregarHoja(lienzo, false);
+  await trasCambiarHojas(true);
+}
+
+/** El menú de clic derecho sobre una hoja: lo que no entra en dos botones de 15 px. */
+function menuDeHoja(indice: number, x: number, y: number): void {
+  const opciones: { clave: ClaveI18n; roja?: boolean; hacer: () => Promise<void> }[] = [
+    { clave: 'shell.hojas.duplicarTt', hacer: () => duplicarHoja(indice) },
+    { clave: 'shell.hojas.insertar', hacer: () => nuevaHoja() },
+    { clave: 'shell.hojas.moverIzq', hacer: async () => {
+      await moverHoja(lienzo, indice, Math.max(0, indice - 1));
+      await trasCambiarHojas(true);
+    } },
+    { clave: 'shell.hojas.moverDer', hacer: async () => {
+      await moverHoja(lienzo, indice, Math.min(cantidadDeHojas() - 1, indice + 1));
+      await trasCambiarHojas(true);
+    } },
+    { clave: 'shell.hojas.cerrarTt', roja: true, hacer: () => borrarHoja(indice) },
+  ];
+
+  const menu = document.createElement('div');
+  menu.className = 'ed-hoja-menu';
+  menu.style.left = `${x}px`;
+  menu.style.top = `${y}px`;
+
+  for (const opcion of opciones) {
+    const fila = document.createElement('div');
+    fila.textContent = t(opcion.clave);
+    if (opcion.roja) fila.className = 'roja';
+    if (opcion.roja && cantidadDeHojas() < 2) fila.classList.add('apagada');
+    else fila.addEventListener('click', () => {
+      menu.remove();
+      void opcion.hacer();
+    });
+    menu.appendChild(fila);
+  }
+
+  document.body.appendChild(menu);
+  // Si se abre cerca del borde, el menú se corre para adentro en vez de salirse de la ventana.
+  const caja = menu.getBoundingClientRect();
+  if (caja.right > innerWidth) menu.style.left = `${innerWidth - caja.width - 6}px`;
+  if (caja.bottom > innerHeight) menu.style.top = `${y - caja.height}px`;
+
+  const cerrar = () => menu.remove();
+  setTimeout(() => addEventListener('pointerdown', cerrar, { once: true }));
+}
 
 reflejarHojas();
 
@@ -600,7 +672,11 @@ inputFondo.addEventListener('change', async () => {
     lector.onload = () => resolve(lector.result as string);
     lector.readAsDataURL(archivo);
   });
-  cambiarPagina({ fondo });
+  // El fondo es de esta hoja, no del documento: las demás siguen con el suyo.
+  await establecerFondoDeLaHoja(lienzo, fondo);
+  reflejarPagina();
+  reflejarHojas();
+  guardar();
 });
 
 // ---------- Abrir un PDF existente ----------
@@ -631,9 +707,13 @@ inputPdf.addEventListener('change', async () => {
     const pdf = await abrirPdf(archivo);
 
     // La hoja toma las medidas del PDF, que puede no ser de ningún tamaño del catálogo.
-    cambiarPagina({ fondo: pdf.fondo, medidas: { ancho: pdf.ancho, alto: pdf.alto }, ...tamanoParecido(pdf.ancho, pdf.alto) });
-    // abrirPdf() siempre arranca en la página 0; el selector recién se muestra si hay más de una.
-    reflejarSelectorPagina(pdf.paginas, 0);
+    cambiarPagina({ medidas: { ancho: pdf.ancho, alto: pdf.alto }, ...tamanoParecido(pdf.ancho, pdf.alto) });
+    // Una hoja por página: el documento *es* el PDF. Lo que se borre o se mueva acá se borra o se
+    // mueve en el archivo exportado.
+    olvidarPaginasDibujadas();
+    await hojasDesdePdf(lienzo, pdf.paginas);
+    reflejarHojas();
+    reflejarCantidadDePaginas();
 
     // Los campos AcroForm entran ya colocados en la hoja, con sus mismas coordenadas, tipografía
     // y color: quedan listos para editar en un paso, en vez de que haya que rearmar la plantilla
@@ -727,7 +807,7 @@ lienzo.on('mouse:dblclick', async (e) => {
     // lleva las líneas que la bordean—, así que se convierten todas las que se hayan ido: si no,
     // desaparecerían de la hoja sin que nadie las pidiera.
     const { fondo, quitadas } = await quitarFormaDelPdf(forma);
-    cambiarPagina({ fondo });
+    await refrescarPaginaDibujada(lienzo, paginaDeLaHoja() ?? 0, fondo);
 
     const { elementoDesdeForma } = await import('./editor/formasPdf');
     let elegido: FabricObject | undefined;
@@ -753,7 +833,7 @@ lienzo.on('mouse:dblclick', async (e) => {
   }
 
   const fondo = await borrarTextoDelPdf(original);
-  cambiarPagina({ fondo });
+  await refrescarPaginaDibujada(lienzo, paginaDeLaHoja() ?? 0, fondo);
 
   const elemento = crearElemento('texto') as Elemento & { clase: 'texto' };
   elemento.text = original.texto;
@@ -776,9 +856,13 @@ lienzo.on('mouse:dblclick', async (e) => {
   guardar();
 });
 
-selFondo.addEventListener('change', () => {
+selFondo.addEventListener('change', async () => {
   if (selFondo.value === 'blanco') {
-    cambiarPagina({ fondo: null });
+    // Deja de venir del PDF: al exportar, esta hoja sale como página en blanco.
+    await establecerFondoDeLaHoja(lienzo, null);
+    reflejarPagina();
+    reflejarHojas();
+    guardar();
     return;
   }
   // Un PDF de fondo es lo mismo que abrirlo: además de verse de fondo queda de base al exportar,
@@ -882,7 +966,7 @@ document.getElementById('ed-nuevo')!.addEventListener('click', async () => {
   aplicarConfigPagina(lienzo, config);
   // Una sola hoja vacía: vaciar el lienzo no alcanza, porque las otras hojas viven en el modelo
   // y seguirían saliendo en el PDF.
-  await establecerHojas(lienzo, [[]], 0);
+  await establecerHojas(lienzo, [hojaEnBlanco()], 0);
   panelCampos.establecerCatalogo([]);
   mostrarSinSeleccion(espacio.panelPropiedades);
   reflejarPagina();
@@ -973,7 +1057,8 @@ document.getElementById('ed-nuevo')!.addEventListener('click', async () => {
   borrarAutoguardado();
   // Empezar de cero también suelta el PDF de base, o quedaría de fondo de un diseño nuevo.
   (await import('./editor/pdfExistente')).cerrarPdf();
-  reflejarSelectorPagina(0, 0);
+  olvidarPaginasDibujadas();
+  reflejarCantidadDePaginas();
 });
 
 // Al abrir, ofrecer seguir donde se dejó. Se pregunta en vez de restaurar solo, para no
@@ -987,17 +1072,22 @@ if (hayAutoguardado()) {
   const { recuperarPdfGuardado, cerrarPdf, textosDelPdf } = await import('./editor/pdfExistente');
 
   if (seguir) {
+    // El PDF de base va aparte del diseño: no entra en el autoguardado (no es texto y es grande),
+    // así que se recupera de su propio almacén. Sin esto quedaba la imagen de fondo pero no el
+    // PDF, y al exportar salía una foto en vez del original vectorial.
+    // Va **antes** de restaurar el diseño: cada hoja se dibuja pidiéndole su página al PDF, así
+    // que restaurando primero saldrían todas en blanco.
+    const recuperado = await recuperarPdfGuardado();
+
     const proyecto = await restaurarAutoguardado(lienzo);
     if (proyecto) {
       panelCampos.establecerCatalogo(proyecto.campos);
       reflejarPagina();
       reflejarHojas();
+      reflejarCantidadDePaginas();
       inicializarHistorial(lienzo);
     }
-    // El PDF de base va aparte del diseño: no entra en el autoguardado (no es texto y es
-    // grande), así que se recupera de su propio almacén. Sin esto quedaba la imagen de fondo
-    // pero no el PDF, y al exportar salía una foto en vez del original vectorial.
-    if (await recuperarPdfGuardado()) {
+    if (recuperado) {
       const cuantos = textosDelPdf().length;
       // Se saca data-i18n: de otro modo un cambio de idioma posterior pisaría este texto con el
       // de "Guardado automático...", que es lo que ese atributo apunta a traducir por defecto.

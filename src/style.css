@@ -554,66 +554,149 @@ button {
 /* ---------- Hojas del documento ---------- */
 .ed-hojas {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
+  align-items: stretch;
+  gap: 8px;
+  padding: 6px 10px;
+  height: var(--alto-hojas, 105px);
   background: var(--fondo-suave);
   border-top: 1px solid var(--borde);
   flex-shrink: 0;
 }
 .ed-hojas-lista {
   display: flex;
-  gap: 4px;
+  align-items: stretch;
+  gap: 9px;
   overflow-x: auto;
+  overflow-y: hidden;
   flex: 1;
   min-width: 0;
 }
-.ed-hoja-tab {
+/* Cada hoja se muestra como la página que es: se reconoce de un vistazo cuál se está editando,
+   sin tener que leer un número — que después de borrar o reordenar ya no dice mucho. */
+.ed-hoja,
+.ed-hoja-nueva {
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+.ed-hoja-papel {
+  flex: 1;
+  min-height: 0;
+  aspect-ratio: var(--relacion-hoja, 0.707);
+  background: #fff;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+}
+.ed-hoja-papel img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.ed-hoja:hover .ed-hoja-papel {
+  border-color: var(--acento);
+}
+.ed-hoja.activa .ed-hoja-papel {
+  border-color: var(--acento);
+  box-shadow: 0 0 0 2px rgba(55, 138, 221, 0.35);
+}
+.ed-hoja-et {
+  font-size: 10px;
+  text-align: center;
+  color: var(--texto-suave);
+  margin-top: 3px;
+  white-space: nowrap;
+}
+.ed-hoja.activa .ed-hoja-et {
+  color: var(--acento);
+  font-weight: 600;
+}
+.ed-hoja-orig {
+  color: #a9c0d6;
+  font-size: 9px;
+}
+/* Duplicar y eliminar viven sobre la miniatura: siempre a la vista en la hoja activa, y al pasar
+   el mouse en las demás. El resto de las acciones está en el menú de clic derecho. */
+.ed-hoja-acciones {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: none;
+  gap: 2px;
+}
+.ed-hoja.activa .ed-hoja-acciones,
+.ed-hoja:hover .ed-hoja-acciones {
+  display: flex;
+}
+.ed-hoja-acciones button {
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--texto-2);
+  font-size: 9px;
+  line-height: 1;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  border-radius: 6px;
-  border: 1px solid var(--borde-fuerte);
-  background: #fff;
-  color: var(--texto);
-  font-size: 11.5px;
-  white-space: nowrap;
-  cursor: pointer;
-  flex-shrink: 0;
+  justify-content: center;
 }
-.ed-hoja-tab.activa {
-  background: var(--acento);
-  border-color: var(--acento);
-  color: #fff;
-}
-.ed-hoja-cerrar {
-  border: none;
-  background: transparent;
-  color: inherit;
-  font-size: 12px;
-  line-height: 1;
-  padding: 0 1px;
-  cursor: pointer;
-  opacity: 0.7;
-}
-.ed-hoja-cerrar:hover {
-  opacity: 1;
-}
-.ed-hojas-boton {
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
-  border: 1px solid var(--borde-fuerte);
-  border-radius: 5px;
-  background: #fff;
-  color: var(--texto-2);
-  font-size: 13px;
-  line-height: 1;
-  cursor: pointer;
-}
-.ed-hojas-boton:hover {
+.ed-hoja-acciones button:hover {
   background: var(--card-1);
+}
+.ed-hoja-acciones button.borrar {
+  color: var(--err-texto);
+}
+.ed-hoja-acciones button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.ed-hoja-nueva .ed-hoja-papel {
+  border-style: dashed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--texto-2);
+  font-size: 20px;
+}
+.ed-hoja-nueva:hover .ed-hoja-papel {
+  background: var(--card-1);
+}
+.ed-hoja-menu {
+  position: fixed;
+  z-index: 40;
+  background: #fff;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(4, 44, 83, 0.14);
+  padding: 4px;
+  font-size: 11.5px;
+  min-width: 170px;
+}
+.ed-hoja-menu div {
+  padding: 5px 8px;
+  border-radius: 4px;
+  color: var(--texto);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ed-hoja-menu div:hover {
+  background: var(--card-1);
+}
+.ed-hoja-menu div.roja {
+  color: var(--err-texto);
+}
+.ed-hoja-menu div.apagada {
+  opacity: 0.4;
+  cursor: default;
+}
+.ed-hoja-menu div.apagada:hover {
+  background: transparent;
 }
 
 /* ---------- Barra de estado ---------- */
@@ -944,4 +1027,45 @@ button {
    pueda dibujarse por debajo de la pagina sin que un fondo opaco la tape. */
 .canvas-container {
   background: #ffffff;
+}
+
+/* ---------- Separador y colapso de la tira de hojas ---------- */
+
+.ed-separador-h {
+  height: 5px;
+  flex-shrink: 0;
+  cursor: row-resize;
+  border-radius: 3px;
+  background: transparent;
+  transition: background 0.15s;
+}
+.ed-separador-h:hover,
+.ed-separador-h.arrastrando {
+  background: var(--acento);
+}
+.ed-separador-h.inerte {
+  cursor: default;
+  pointer-events: none;
+}
+.ed-hojas-toggle {
+  width: 18px;
+  flex-shrink: 0;
+  align-self: stretch;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: 5px;
+  background: #fff;
+  color: var(--texto-2);
+  font-size: 11px;
+  line-height: 1;
+  padding: 0;
+}
+.ed-hojas-toggle:hover {
+  background: var(--card-1);
+}
+/* Colapsada queda solo el botón: la lista no ocupa lugar ni deja media miniatura asomando. */
+.ed-hojas.colapsado {
+  padding: 2px 10px;
+}
+.ed-hojas.colapsado .ed-hojas-lista {
+  display: none;
 }

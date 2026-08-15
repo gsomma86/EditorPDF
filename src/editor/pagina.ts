@@ -20,12 +20,6 @@ export interface ConfigPagina {
   orientacion: Orientacion;
   margenes: Margenes;
   /**
-   * Imagen de fondo de la hoja, como data URL, o null si va en blanco. Es una propiedad de la
-   * página y no un elemento del diseño: se estira a toda la hoja, no se puede seleccionar ni
-   * mover, y siempre queda por debajo de todo.
-   */
-  fondo: string | null;
-  /**
    * Medidas en puntos cuando la hoja no es un tamaño del catálogo: pasa al abrir un PDF, que
    * puede venir de cualquier medida. Si está, manda sobre `tamano` y `orientacion`.
    */
@@ -37,7 +31,6 @@ export function configPorDefecto(): ConfigPagina {
     tamano: 'A4',
     orientacion: 'vertical',
     margenes: { arriba: 10, abajo: 10, izquierda: 10, derecha: 10 },
-    fondo: null,
     medidas: null,
   };
 }

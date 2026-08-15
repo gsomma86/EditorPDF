@@ -36,10 +36,10 @@ function nombreDe(el: Elemento): string {
  */
 export function verificarDiseno(lienzo: Canvas): Hallazgo[] {
   const hojas = hojasDelDocumento(lienzo);
-  const elementos = hojas.flat();
+  const elementos = hojas.flatMap((hoja) => hoja.elementos);
   // Con una sola hoja no se aclara nada: seria ruido en todos los mensajes.
   const enHoja = (el: Elemento): string =>
-    hojas.length > 1 ? `${nombreDe(el)} (hoja ${hojas.findIndex((h) => h.includes(el)) + 1})` : nombreDe(el);
+    hojas.length > 1 ? `${nombreDe(el)} (hoja ${hojas.findIndex((h) => h.elementos.includes(el)) + 1})` : nombreDe(el);
 
   const hallazgos: Hallazgo[] = [];
   const config = configActual();
