@@ -345,19 +345,55 @@ function leerTextos(pagina: any): TextoDelPdf[] {
   return encontrados;
 }
 
+/**
+ * Qué tiene la página, para poder explicarlo bien cuando no hay texto que editar. Sin esto los
+ * dos casos se confunden: una plantilla de formulario no tiene nada dibujado —todo lo que se ve
+ * son sus campos— y decirle al usuario que "puede ser un PDF escaneado" lo preocupa al pedo.
+ */
+export type ContenidoDePagina =
+  /** Hay texto y se puede reemplazar con doble clic. */
+  | 'conTexto'
+  /** Hay dibujo pero ninguna letra: casi siempre es un PDF escaneado, o sea una foto. */
+  | 'escaneada'
+  /** La página no tiene contenido propio: lo que se ve, si algo se ve, son sus campos. */
+  | 'vacia';
+
 export interface PdfAbierto {
-  /** Página 1 rasterizada, para usar de fondo de la hoja mientras se edita. */
+  /** La página elegida, rasterizada, para usar de fondo de la hoja mientras se edita. */
   fondo: string;
   ancho: number;
   alto: number;
   paginas: number;
+  contenido: ContenidoDePagina;
+}
+
+/**
+ * Mira si la página tiene algo dibujado, sin contar sus campos. Se recorre solo el contenido
+ * —`runPageContents`, no `run`— justamente porque `run` dibuja también los campos de formulario,
+ * que es lo que hacía parecer que una plantilla tenía contenido propio.
+ */
+async function contenidoDeLaPagina(): Promise<ContenidoDePagina> {
+  if (textos.length) return 'conTexto';
+
+  const mupdf = await motor();
+  const documento = mupdf.PDFDocument.openDocument(bytesActuales!.slice(), 'application/pdf') as InstanceType<typeof mupdf.PDFDocument>;
+  let dibujos = 0;
+  const dispositivo = new mupdf.Device({
+    fillPath: () => void dibujos++,
+    strokePath: () => void dibujos++,
+    fillImage: () => void dibujos++,
+    fillImageMask: () => void dibujos++,
+    fillText: () => void dibujos++,
+  });
+  (documento.loadPage(paginaElegida) as any).runPageContents(dispositivo, mupdf.Matrix.identity);
+  return dibujos > 0 ? 'escaneada' : 'vacia';
 }
 
 /** Escala de rasterizado: el doble del tamaño real, para que no se vea borroso con zoom. */
 const ESCALA = 2;
 
 /** Dibuja la página elegida de los bytes vigentes y la devuelve como imagen. */
-async function rasterizar(): Promise<{ fondo: string; ancho: number; alto: number; paginas: number }> {
+async function rasterizar(): Promise<PdfAbierto> {
   const pdfjs = await import('pdfjs-dist');
   const trabajador = await import('pdfjs-dist/build/pdf.worker.mjs?url');
   pdfjs.GlobalWorkerOptions.workerSrc = trabajador.default;
@@ -384,6 +420,7 @@ async function rasterizar(): Promise<{ fondo: string; ancho: number; alto: numbe
     ancho: Math.round(medidas.width),
     alto: Math.round(medidas.height),
     paginas: documento.numPages,
+    contenido: await contenidoDeLaPagina(),
   };
 }
 
