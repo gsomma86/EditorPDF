@@ -172,8 +172,15 @@ export function montarPaneles(raiz: HTMLElement): void {
       sub.style.display = partido ? '' : 'none';
       raiz.style.setProperty(`--alto-${lado}-1`, partido ? `${estado[arriba].altoEnElCostado}%` : arriba ? '100%' : '0%');
 
-      // Un solo botón de colapsar por costado: el de la barra de abajo desaparece.
-      if (abajoDelLado) piezaDe(abajoDelLado).querySelector<HTMLElement>('[data-accion="colapsar"]')!.hidden = !!arriba;
+      // El botón de colapsar de un costado vive **sobre la línea que lo separa del lienzo**, como
+      // una lengüeta: ahí se lee como lo que es —colapsa el costado entero— y no como si fuera de
+      // la barra en cuya cabecera estuviera. Por eso las barras acopladas a un costado no lo llevan.
+      const lengueta = raiz.querySelector<HTMLElement>(`#ed-colapsar-${lado}`)!;
+      lengueta.hidden = !arriba && !abajoDelLado;
+      lengueta.textContent = lado === 'izq' ? (colapsado ? '›' : '‹') : colapsado ? '‹' : '›';
+      for (const quien of [arriba, abajoDelLado]) {
+        if (quien) piezaDe(quien).querySelector<HTMLElement>('[data-accion="colapsar"]')!.hidden = true;
+      }
     }
 
     const abajo = quienEsta('abajo');
@@ -504,6 +511,20 @@ export function montarPaneles(raiz: HTMLElement): void {
 
   repartirCostado('izq');
   repartirCostado('der');
+
+  // La lengüeta de la línea colapsa el costado entero, con las dos barras que tenga.
+  for (const lado of ['izq', 'der'] as const) {
+    raiz.querySelector<HTMLElement>(`#ed-colapsar-${lado}`)!.addEventListener('pointerdown', (e) => {
+      // Frena el arrastre del separador, que escucha el mismo evento sobre el mismo elemento.
+      e.preventDefault();
+      e.stopPropagation();
+      const habitantes = nombres.filter((n) => estado[n].lugar === lado);
+      if (!habitantes.length) return;
+      const colapsado = !estado[habitantes[0]].colapsado;
+      for (const quien of habitantes) estado[quien].colapsado = colapsado;
+      aplicar();
+    });
+  }
 
   // La ranura de abajo crece hacia arriba, así que su delta va al revés que el de un costado.
   const separadorAbajo = raiz.querySelector<HTMLElement>('#ed-separador-hojas')!;

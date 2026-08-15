@@ -1410,3 +1410,48 @@ button {
   color: var(--texto-2);
   font-size: 11px;
 }
+
+/* ---------- Lengüeta para colapsar un costado ---------- */
+
+/* Vive sobre la línea que separa el costado del lienzo: ahí se lee como lo que es —colapsa el
+   costado entero— y no como si fuera de la barra en cuya cabecera estuviera. */
+.ed-separador {
+  position: relative;
+}
+.ed-colapsar-costado {
+  position: absolute;
+  top: 50%;
+  margin-top: -22px;
+  width: 14px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--borde-fuerte);
+  background: #fff;
+  color: var(--texto-2);
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(4, 44, 83, 0.12);
+  z-index: 3;
+}
+.ed-colapsar-costado:hover {
+  background: var(--card-1);
+  color: var(--primario);
+}
+/* Sale del borde del costado hacia el lienzo, como una lengüeta. */
+#ed-separador-izq .ed-colapsar-costado {
+  left: 0;
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+}
+#ed-separador-der .ed-colapsar-costado {
+  right: 0;
+  border-right: none;
+  border-radius: 6px 0 0 6px;
+}
+/* El separador inerte no se arrastra, pero su lengüeta tiene que seguir andando. */
+.ed-separador.inerte .ed-colapsar-costado {
+  pointer-events: auto;
+  cursor: pointer;
+}

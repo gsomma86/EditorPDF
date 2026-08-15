@@ -210,13 +210,13 @@ export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
         <div class="ed-separador-h ed-sep-costado" id="ed-separador-izq-sub" data-i18n-title="shell.separadorAltoTt"></div>
         <div class="ed-ranura" id="ed-ranura-izq-2"></div>
       </div>
-      <div class="ed-separador" id="ed-separador-izq" data-i18n-title="shell.separadorTt"></div>
+      <div class="ed-separador" id="ed-separador-izq" data-i18n-title="shell.separadorTt"><button type="button" class="ed-colapsar-costado" id="ed-colapsar-izq" data-i18n-title="shell.colapsarCostadoTt">‹</button></div>
 
       <div class="ed-lienzo-cont">
         <div class="ed-lienzo-scroll" id="ed-lienzo-scroll"></div>
       </div>
 
-      <div class="ed-separador" id="ed-separador-der" data-i18n-title="shell.separadorTt"></div>
+      <div class="ed-separador" id="ed-separador-der" data-i18n-title="shell.separadorTt"><button type="button" class="ed-colapsar-costado" id="ed-colapsar-der" data-i18n-title="shell.colapsarCostadoTt">‹</button></div>
       <div class="ed-costado" id="ed-costado-der">
         <div class="ed-ranura" id="ed-ranura-der-1"></div>
         <div class="ed-separador-h ed-sep-costado" id="ed-separador-der-sub" data-i18n-title="shell.separadorAltoTt"></div>
