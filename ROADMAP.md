@@ -326,6 +326,28 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
       hoja se acuerda de su tamaño y orientación y el lienzo cambia al pasar de una a otra; los
       márgenes siguen siendo del documento. Al insertar un PDF de otro tamaño se **avisa, sin
       bloquear**: el aviso es solo un aviso, la inserción se hace igual.
+- [ ] **Ocultar los campos de formulario en el lienzo** — decidido el 15/08/2026, sin empezar.
+      Un interruptor en el menú Ver para mirar el documento sin sus campos. **Es una vista y nada
+      más**: no toca el modelo, no entra al historial, no se autoguarda como un cambio del diseño y
+      no afecta la exportación — los campos siguen ahí y salen en el PDF. Ojo con eso, porque el
+      editor guarda leyendo el lienzo (`asentarHoja`): los objetos van **invisibles pero
+      presentes**, nunca borrados, o el autoguardado se lleva el trabajo puesto.
+      Solo los campos: los márgenes punteados se quedan como están (se evaluó una "vista previa"
+      que apagara las dos cosas y se descartó).
+      Lo que hay que resolver al hacerlo:
+      - `visible: false` **y** `selectable: false`, o se termina arrastrando algo que no se ve.
+        Deseleccionar lo que estuviera activo al apagarlos.
+      - Un aviso permanente en la barra de estado mientras dure. Es la trampa clásica: se apagan,
+        uno se olvida y cree que perdió los campos.
+      - **No se recuerda entre sesiones**: al recargar vuelven a verse. Es para mirar un momento,
+        no una configuración.
+      - Convive con "Completar campos", que es el modo opuesto: encender esto sale de ese modo, sin
+        preguntar.
+      - Se aplica también a lo que aparezca después —cambiar de hoja reconstruye el lienzo y un
+        campo nuevo nace visible—, así que el apagado va donde se arma el objeto y no en un barrido
+        de una sola vez.
+      Efecto secundario bueno: los campos de una plantilla real tapan el 47% de la hoja, y con
+      ellos apagados el doble clic para editar textos y formas del PDF llega a todos lados.
 - [ ] Capas
 - [x] **Multi-página real (insertar, reordenar, eliminar páginas)** (15/08/2026). Un documento es
       varias hojas y el lienzo muestra una por vez; el tamaño, la orientación, los márgenes y el
