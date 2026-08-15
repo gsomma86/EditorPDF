@@ -125,6 +125,156 @@ export async function recuperarPdfGuardado(): Promise<boolean> {
   return true;
 }
 
+/**
+ * Un campo de formulario leído del PDF, listo para volverse un elemento 'campo' del editor. Las
+ * coordenadas ya vienen como las usa el lienzo: desde la esquina superior izquierda de la hoja.
+ */
+export interface CampoDelPdf {
+  name: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  size: number;
+  familia: string;
+  negrita: boolean;
+  cursiva: boolean;
+  color: string;
+  align: 'left' | 'center' | 'right';
+  readonly: boolean;
+  multilinea: boolean;
+  defaultValue: string;
+  bordeGrosor: number;
+  bordeColor: string;
+  conFondo: boolean;
+  fondoColor: string;
+}
+
+export interface CamposImportados {
+  campos: CampoDelPdf[];
+  /** Los que no se pueden representar (casillas, listas, firmas), para poder avisar por qué. */
+  omitidos: { name: string; motivo: string }[];
+}
+
+/** Nombres de las fuentes estándar como aparecen en el /DA de un formulario. */
+const FUENTES_DA: Record<string, { familia: string; negrita: boolean; cursiva: boolean }> = {
+  Helv: { familia: 'Helvetica', negrita: false, cursiva: false },
+  HeBo: { familia: 'Helvetica', negrita: true, cursiva: false },
+  HeOb: { familia: 'Helvetica', negrita: false, cursiva: true },
+  HeBO: { familia: 'Helvetica', negrita: true, cursiva: true },
+  TiRo: { familia: 'Times', negrita: false, cursiva: false },
+  TiBo: { familia: 'Times', negrita: true, cursiva: false },
+  TiIt: { familia: 'Times', negrita: false, cursiva: true },
+  TiBI: { familia: 'Times', negrita: true, cursiva: true },
+  Cour: { familia: 'Courier', negrita: false, cursiva: false },
+  CoBo: { familia: 'Courier', negrita: true, cursiva: false },
+  CoOb: { familia: 'Courier', negrita: false, cursiva: true },
+  CoBO: { familia: 'Courier', negrita: true, cursiva: true },
+};
+
+function hex(componentes: number[]): string {
+  const aByte = (v: number) => Math.round(Math.min(1, Math.max(0, v)) * 255);
+  // Un color de PDF viene en gris (1 número), RGB (3) o CMYK (4).
+  if (componentes.length === 1) {
+    const g = aByte(componentes[0]);
+    return `#${[g, g, g].map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+  }
+  if (componentes.length === 4) {
+    const [c, m, y, k] = componentes;
+    componentes = [(1 - c) * (1 - k), (1 - m) * (1 - k), (1 - y) * (1 - k)];
+  }
+  return `#${componentes.slice(0, 3).map((v) => aByte(v).toString(16).padStart(2, '0')).join('')}`;
+}
+
+/**
+ * Lee del `/DA` el cuerpo, la tipografía y el color con que el campo dibuja su texto. Es una
+ * cadena de operadores de PDF, tipo `/Helv 9 Tf 0 g`; con cuerpo 0 el visor lo ajusta solo, así
+ * que acá se elige uno usable.
+ */
+function leerDA(da: string, alto: number) {
+  const fuente = /\/(\w+)\s+([\d.]+)\s+Tf/.exec(da);
+  const nombre = fuente?.[1] ?? 'Helv';
+  const pedido = Number(fuente?.[2] ?? 0);
+  const tipografia = FUENTES_DA[nombre] ?? { familia: 'Helvetica', negrita: false, cursiva: false };
+
+  const gris = /(-?[\d.]+)\s+g(?![a-zA-Z])/.exec(da);
+  const rgb = /(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+rg(?![a-zA-Z])/.exec(da);
+  const cmyk = /(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+k(?![a-zA-Z])/.exec(da);
+  const componentes = rgb ? rgb.slice(1, 4) : cmyk ? cmyk.slice(1, 5) : gris ? gris.slice(1, 2) : ['0'];
+
+  return {
+    ...tipografia,
+    // El cuerpo automático se cambia por uno que entre en la caja, como hace cualquier visor.
+    size: pedido > 0 ? pedido : Math.max(6, Math.min(12, Math.round(alto * 0.6))),
+    color: hex(componentes.map(Number)),
+  };
+}
+
+/**
+ * Los campos AcroForm del PDF abierto. Un mismo campo puede estar colocado varias veces en la
+ * hoja: cada posición se devuelve por separado, como en el editor, todas con el mismo ID.
+ */
+export async function camposDelPdf(): Promise<CamposImportados> {
+  // Copia local: entre acá y el `await` de abajo el módulo puede quedarse sin PDF —si mientras
+  // tanto se cierra o se abre otro— y la comprobación de arriba ya no valdría.
+  const bytes = bytesActuales;
+  if (!bytes) return { campos: [], omitidos: [] };
+
+  const { PDFDocument, PDFTextField } = await import('@cantoo/pdf-lib');
+  const doc = await PDFDocument.load(bytes.slice(), { updateMetadata: false });
+  const alturaPagina = doc.getPage(0).getHeight();
+
+  const campos: CampoDelPdf[] = [];
+  const omitidos: { name: string; motivo: string }[] = [];
+
+  for (const campo of doc.getForm().getFields()) {
+    if (!(campo instanceof PDFTextField)) {
+      omitidos.push({ name: campo.getName(), motivo: `es ${campo.constructor.name.replace('PDF', '').replace('Field', '').toLowerCase()}, y el editor solo maneja campos de texto` });
+      continue;
+    }
+
+    for (const widget of campo.acroField.getWidgets()) {
+      const r = widget.getRectangle();
+      // Un widget puede venir con las esquinas al revés; el rectángulo se normaliza.
+      const x = Math.min(r.x, r.x + r.width);
+      const w = Math.abs(r.width);
+      const h = Math.abs(r.height);
+      const yPdf = Math.min(r.y, r.y + r.height);
+
+      const apariencia = widget.getAppearanceCharacteristics();
+      const fondo = apariencia?.getBackgroundColor();
+      const borde = apariencia?.getBorderColor();
+      const grosor = widget.getBorderStyle()?.getWidth();
+      const da = widget.getDefaultAppearance() ?? campo.acroField.getDefaultAppearance() ?? '';
+      const estilo = leerDA(da, h);
+
+      campos.push({
+        name: campo.getName(),
+        x: Math.round(x * 100) / 100,
+        // El PDF mide desde abajo y el lienzo desde arriba.
+        y: Math.round((alturaPagina - yPdf - h) * 100) / 100,
+        w: Math.round(w * 100) / 100,
+        h: Math.round(h * 100) / 100,
+        size: estilo.size,
+        familia: estilo.familia,
+        negrita: estilo.negrita,
+        cursiva: estilo.cursiva,
+        color: estilo.color,
+        align: campo.getAlignment() === 1 ? 'center' : campo.getAlignment() === 2 ? 'right' : 'left',
+        readonly: campo.isReadOnly(),
+        multilinea: campo.isMultiline(),
+        defaultValue: campo.getText() ?? '',
+        bordeGrosor: borde?.length ? (grosor ?? 1) : 0,
+        bordeColor: borde?.length ? hex(borde) : '#000000',
+        conFondo: !!fondo?.length,
+        fondoColor: fondo?.length ? hex(fondo) : '#ffffff',
+      });
+    }
+  }
+
+  return { campos, omitidos };
+}
+
 /** El texto del PDF que cae bajo un punto de la hoja, si hay alguno. */
 export function textoEn(x: number, y: number): TextoDelPdf | undefined {
   return textos.find((t) => x >= t.x && x <= t.x + t.w && y >= t.y && y <= t.y + t.h);
