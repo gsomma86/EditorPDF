@@ -47,6 +47,13 @@ export interface ElementoLinea {
   angulo: number;
   color: string;
   estilo: EstiloLinea;
+  /**
+   * Se dibuja *debajo* de la página del PDF, no encima. Lo llevan las formas que se sacan de un
+   * PDF abierto: allá estaban debajo del texto, y si se dibujaran como un elemento común lo
+   * taparían. Vive en el modelo y no solo en el objeto de Fabric porque si no se pierde al
+   * deshacer, al cambiar de hoja o al recargar, y la forma salta al frente.
+   */
+  debajoDeLaPagina?: boolean;
 }
 
 export interface ElementoRect {
@@ -63,6 +70,13 @@ export interface ElementoRect {
   radio: number;
   conRelleno: boolean;
   rellenoColor: string;
+  /**
+   * Se dibuja *debajo* de la página del PDF, no encima. Lo llevan las formas que se sacan de un
+   * PDF abierto: allá estaban debajo del texto, y si se dibujaran como un elemento común lo
+   * taparían. Vive en el modelo y no solo en el objeto de Fabric porque si no se pierde al
+   * deshacer, al cambiar de hoja o al recargar, y la forma salta al frente.
+   */
+  debajoDeLaPagina?: boolean;
 }
 
 export interface ElementoQr {

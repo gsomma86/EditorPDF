@@ -263,7 +263,20 @@ Hallazgos técnicos que siguen valiendo:
       hoja, así que si mandaran ellos, la mitad de las líneas quedaría inalcanzable. La caja de un
       campo es un marcador, no un dibujo; lo que uno haya dibujado sí tiene prioridad, y en modo
       Completar campos tampoco se interfiere.
+- [x] **La forma convertida se dibuja debajo de la página, y eso vive en el modelo** (15/08/2026).
+      En el PDF estaba debajo del texto, así que al convertirla tiene que seguir ahí o tapa el
+      renglón que estaba encima. Se logra con `globalCompositeOperation: 'destination-over'`, pero
+      **la marca la lleva el elemento** (`debajoDeLaPagina`), no el objeto de Fabric: el objeto se
+      reconstruye al deshacer, al cambiar de hoja y al recargar, y con la marca solo ahí la forma
+      saltaba al frente en cualquiera de esos tres casos. Verificado midiendo píxeles: 565 oscuros
+      en la banda antes de recargar, 562 después.
 - [ ] Curvas, paths compuestos y formas rotadas quedan afuera: no se detectan y no se tocan.
+
+**Repaso de diseño de la fase (15/08/2026).** Además de lo de arriba salieron tres cosas menores,
+ya corregidas: claves de idioma huérfanas de la conversión masiva que se descartó (18 líneas en
+ES/EN/PT), dos exportaciones sin ningún uso (`quitarFormasDelPdf`, `formasDelPdfActual`) y lógica
+del motor metida en el cableado de `main.ts` — el armado del elemento a partir de una forma se mudó
+a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimiento sobre formas.
 
 ## Fase 4 — Avanzado
 

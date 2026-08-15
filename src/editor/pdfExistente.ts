@@ -13,7 +13,7 @@
 
 import { borrarPdfBase, guardarPdfBase, leerPdfBase } from './almacenPdf';
 import { FAMILIAS_BASE, FAMILIAS_WEB } from './fuentes';
-import { borrarFormaDelPdf, borrarFormasDelPdf, formaEn, formasDelPdf, type FormaDelPdf } from './formasPdf';
+import { borrarFormaDelPdf, formaEn, formasDelPdf, type FormaDelPdf } from './formasPdf';
 
 /** Un texto encontrado en el PDF, en coordenadas de la hoja (Y desde arriba, como el lienzo). */
 export interface TextoDelPdf {
@@ -112,16 +112,17 @@ export function formaEnPunto(x: number, y: number): FormaDelPdf | undefined {
   return formaEn(formas, x, y);
 }
 
-/**
- * Saca una forma del contenido del PDF —de verdad, no la tapa— y devuelve el fondo actualizado.
- * Es el paso equivalente a `borrarTextoDelPdf`, para poder reemplazarla por un elemento del diseño.
- */
 /** Cómo se reconoce una forma entre dos lecturas del mismo PDF. */
 function huella(f: FormaDelPdf): string {
   const n = (v: number) => Math.round(v * 100);
   return `${f.clase}|${n(f.x)}|${n(f.y)}|${n(f.w)}|${n(f.h)}|${f.color}|${f.relleno}`;
 }
 
+/**
+ * Saca una forma del contenido del PDF —de verdad, no la tapa— y devuelve el fondo actualizado
+ * junto con **todas** las que se fueron: la redacción se lleva el dibujo que quede completamente
+ * cubierto, así que sacar un recuadro grande arrastra las líneas de adentro.
+ */
 export async function quitarFormaDelPdf(objetivo: FormaDelPdf): Promise<{ fondo: string; quitadas: FormaDelPdf[] }> {
   if (!bytesActuales) throw new Error('No hay ningún PDF abierto.');
 
@@ -146,15 +147,6 @@ export async function quitarFormaDelPdf(objetivo: FormaDelPdf): Promise<{ fondo:
   return { fondo: (await rasterizar()).fondo, quitadas };
 }
 
-/**
- * Saca de una sola vez todas las formas indicadas. Es lo que hace falta para convertirlas en
- * bloque: guardar el PDF por cada una tardaría muchísimo con las 556 de una plantilla real.
- */
-export async function quitarFormasDelPdf(objetivos: FormaDelPdf[]): Promise<string> {
-  if (!bytesActuales) throw new Error('No hay ningún PDF abierto.');
-  await asentarPdf(await borrarFormasDelPdf(bytesActuales, paginaElegida, objetivos));
-  return (await rasterizar()).fondo;
-}
 
 /** En qué página del PDF se está trabajando, contando desde 0. */
 export function paginaDelPdf(): number {

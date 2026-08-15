@@ -36,7 +36,10 @@ contra una referencia y encuentran lo que falta; usar la app de verdad encuentra
 
 **Fase 3 (formas preexistentes): retomada** (15/08/2026) — la pausa se había decidido midiendo solo
 PDFs de ReciboMail, que son todos plantillas de formulario. Sobre 60 PDF de otras fuentes, 45
-tienen formas editables en su contenido. Ver el punto 3.
+tienen formas editables en su contenido. Ver el punto 3. **Cerrada con un repaso de diseño** que
+encontró un bug real: la forma convertida se dibuja debajo de la página, y esa marca vivía solo en
+el objeto de Fabric, así que se perdía al deshacer, al cambiar de hoja y al recargar. Ahora la
+lleva el modelo (`debajoDeLaPagina`) — lección 42 de CLAUDE.md.
 
 **Fase 4 — Multipágina real: hecha** (15/08/2026, ver el punto 4). Un documento del editor ahora
 puede tener varias hojas, con su propia tira de pestañas para agregar, duplicar, borrar y

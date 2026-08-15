@@ -13,6 +13,8 @@
  * fuera de alcance: no se ofrecen para editar.
  */
 
+import { crearElemento, type Elemento } from './elemento';
+
 /** Una forma del contenido, en coordenadas de la hoja (Y desde arriba, como el lienzo). */
 export interface FormaDelPdf {
   /** Orden en que la dibuja el PDF, desde 0. Sirve para identificarla mientras está a la vista. */
@@ -170,6 +172,28 @@ export async function borrarFormasDelPdf(bytes: Uint8Array, pagina: number, obje
 /** Saca una sola forma. Es el caso del doble clic. */
 export async function borrarFormaDelPdf(bytes: Uint8Array, pagina: number, forma: { x: number; y: number; w: number; h: number }): Promise<Uint8Array> {
   return borrarFormasDelPdf(bytes, pagina, [forma]);
+}
+
+/**
+ * Convierte una forma del PDF en un elemento del diseño, con su misma posición, medidas y color.
+ * Un relleno macizo se reconstruye como recuadro relleno sin borde; uno de contorno, al revés.
+ * Queda marcado como `debajoDeLaPagina` porque en el PDF estaba debajo del texto y ahí tiene que
+ * seguir; el modelo lo lleva para que sobreviva a deshacer, cambiar de hoja y recargar.
+ */
+export function elementoDesdeForma(forma: FormaDelPdf): Elemento {
+  const elemento = crearElemento(forma.clase) as Elemento & { clase: 'rect' | 'linea' };
+  elemento.x = forma.x;
+  elemento.y = forma.y;
+  elemento.w = forma.w;
+  elemento.h = forma.h;
+  elemento.color = forma.color;
+  elemento.debajoDeLaPagina = true;
+  if (elemento.clase === 'rect') {
+    elemento.conRelleno = forma.relleno;
+    elemento.rellenoColor = forma.color;
+    elemento.grosor = forma.relleno ? 0 : Math.max(0.5, forma.grosor);
+  }
+  return elemento;
 }
 
 /** La forma que cae bajo un punto de la hoja. Se prueba de adelante hacia atrás: gana la de arriba. */

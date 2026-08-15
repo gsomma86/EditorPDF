@@ -436,3 +436,10 @@ validada — ver la sección Fase 0 del roadmap.
     justo lo contrario de lo que dicen si se los deja llamar directo a `bringObjectToFront` y
     `sendObjectToBack`. Por eso existe `moverEnLaPila()` en `objetosFabric.ts`, que invierte cuando
     hace falta; usarla siempre en vez de las de Fabric.
+42. **Cómo se dibuja un elemento es parte del modelo, no del objeto de Fabric.** Las formas que se
+    sacan de un PDF van *debajo* de la página (`destination-over`). Dejar esa marca solo en el
+    objeto de Fabric parece que anda —se ve bien recién convertida— pero el objeto se reconstruye
+    al deshacer, al cambiar de hoja y al recargar, y en los tres casos la forma saltaba al frente y
+    tapaba el texto. Por eso `debajoDeLaPagina` vive en `Elemento` y `crearObjetoFabric` la lee.
+    Regla general: **si algo tiene que sobrevivir a deshacer, a cambiar de hoja o a recargar, tiene
+    que estar en el modelo**; el objeto de Fabric es una vista descartable.

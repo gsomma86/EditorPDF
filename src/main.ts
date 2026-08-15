@@ -729,33 +729,16 @@ lienzo.on('mouse:dblclick', async (e) => {
     const { fondo, quitadas } = await quitarFormaDelPdf(forma);
     cambiarPagina({ fondo });
 
+    const { elementoDesdeForma } = await import('./editor/formasPdf');
     let elegido: FabricObject | undefined;
-    // En el orden en que las dibujaba el PDF, mandando cada una al fondo. Ojo con el orden final:
-    // como se dibujan con 'destination-over' —cada objeto va detrás de lo ya dibujado— el apilado
-    // que se ve es el inverso del orden del arreglo. Recorriendo así, la última que pintaba el PDF
-    // queda primera en el arreglo y por lo tanto arriba de todo, como estaba. Al revés, una banda
-    // gris terminaba tapando las líneas que tenía adentro.
-    for (const salida of quitadas) {
-      const elemento = crearElemento(salida.clase) as Elemento & { clase: 'rect' | 'linea' };
-      elemento.x = salida.x;
-      elemento.y = salida.y;
-      elemento.w = salida.w;
-      elemento.h = salida.h;
-      elemento.color = salida.color;
-      if (elemento.clase === 'rect') {
-        // Un relleno macizo se reconstruye como recuadro relleno sin borde; uno de contorno, al revés.
-        elemento.conRelleno = salida.relleno;
-        elemento.rellenoColor = salida.color;
-        elemento.grosor = salida.relleno ? 0 : Math.max(0.5, salida.grosor);
-      }
 
-      const nuevo = await agregarAlLienzo(lienzo, elemento);
-      // Estas formas no son elementos nuevos: ya estaban en el PDF y tienen que quedar donde
-      // estaban, debajo del texto y de las líneas que tenían encima. Se logra con dos cosas: al
-      // fondo de los elementos, y dibujadas *por debajo* de lo ya dibujado —incluida la imagen de
-      // la página— con 'destination-over'. Al frente taparían el texto que el PDF dibujaba encima.
+    // En el orden en que las dibujaba el PDF, mandando cada una al fondo. Ojo con el orden final:
+    // estas formas se dibujan por debajo de lo ya dibujado, así que el apilado que se ve es el
+    // inverso del orden del arreglo. Recorriendo así, la última que pintaba el PDF queda primera y
+    // por lo tanto arriba, como estaba. Al revés, una banda gris tapa sus propias líneas.
+    for (const salida of quitadas) {
+      const nuevo = await agregarAlLienzo(lienzo, elementoDesdeForma(salida));
       lienzo.sendObjectToBack(nuevo);
-      nuevo.set({ globalCompositeOperation: 'destination-over' });
       if (salida === forma) elegido = nuevo;
     }
 
