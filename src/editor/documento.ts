@@ -77,6 +77,11 @@ export function paginaDeLaHoja(indice = hojaVigente): number | null {
   return hojas[indice]?.paginaPdf ?? null;
 }
 
+/** El tamaño de una hoja por su número. Lo usa la tira: cada miniatura tiene la forma de la suya. */
+export function medidasDeLaHoja(indice = hojaVigente): { ancho: number; alto: number } {
+  return dimensionesDeHoja(hojas[indice] ?? hojas[0]);
+}
+
 /** La imagen de fondo propia de la hoja (solo la tienen las que no vienen de un PDF). */
 export function fondoDeLaHoja(indice = hojaVigente): string | null {
   return hojas[indice]?.fondo ?? null;

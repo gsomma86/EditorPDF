@@ -14,7 +14,7 @@ import { cablearAyuda } from './ui/ayuda';
 import { montarColumnas } from './ui/columnas';
 import { deshacer, inicializarHistorial, puedeDeshacer, puedeRehacer, registrarSnapshot, rehacer } from './editor/historial';
 import { alCambiarIdioma, aplicarIdioma, t, type ClaveI18n } from './ui/i18n';
-import { agregarHoja, aplicarConfigPagina, cantidadDeHojas, configActual, eliminarHoja, establecerFondoDeLaHoja, fondoDeLaHoja, establecerHojas, hojaActual, hojaEnBlanco, hojasDesdePdf, irAHoja, miniaturaDeHoja, moverHoja, olvidarPaginasDibujadas, paginaDeLaHoja, refrescarPaginaDibujada } from './editor/documento';
+import { agregarHoja, aplicarConfigPagina, cantidadDeHojas, configActual, eliminarHoja, establecerFondoDeLaHoja, fondoDeLaHoja, establecerHojas, hojaActual, hojaEnBlanco, hojasDesdePdf, irAHoja, medidasDeLaHoja, miniaturaDeHoja, moverHoja, olvidarPaginasDibujadas, paginaDeLaHoja, refrescarPaginaDibujada } from './editor/documento';
 import { activarVista, configurarVista, establecerZoom, vistaActual } from './editor/vista';
 import { configPorDefecto, dimensionesDe, type Orientacion, type TamanoPagina } from './editor/pagina';
 import { cargarProyecto, descargarProyecto, leerProyecto, serializarProyecto } from './editor/proyecto';
@@ -526,7 +526,7 @@ function reflejarHojas(): void {
     Array.from(
       { length: total },
       (_, i) => `
-    <div class="ed-hoja ${i === actual ? 'activa' : ''}" draggable="true" data-hoja="${i}" title="${t('shell.hojas.etiqueta', { n: i + 1 })}">
+    <div class="ed-hoja ${i === actual ? 'activa' : ''}" draggable="true" data-hoja="${i}" title="${t('shell.hojas.etiqueta', { n: i + 1 })}" style="--relacion-hoja: ${relacionDeLaHoja(i)}">
       <div class="ed-hoja-papel">
         <img alt="" data-mini="${i}" hidden>
         <div class="ed-hoja-acciones">
@@ -577,6 +577,17 @@ function reflejarHojas(): void {
     boton.addEventListener('click', () => void duplicarHoja(Number(boton.dataset.duplicar)));
   });
   document.getElementById('ed-hoja-agregar')!.addEventListener('click', () => void nuevaHoja(cantidadDeHojas() - 1));
+}
+
+/**
+ * La forma de la miniatura, hoja por hoja. Va en el estilo de cada tarjeta y no una sola vez en la
+ * raíz: con el tamaño por hoja, una sola proporción para toda la tira dibujaba todas las
+ * miniaturas con la forma de la hoja que estuviera abierta —una A4 vertical se veía apaisada solo
+ * porque la hoja de al lado lo era—.
+ */
+function relacionDeLaHoja(indice: number): number {
+  const { ancho, alto } = medidasDeLaHoja(indice);
+  return ancho / alto;
 }
 
 /**
