@@ -61,6 +61,47 @@ export function dimensionesDeHoja(hoja: Hoja): { ancho: number; alto: number } {
   return dimensionesDe({ ...config, tamano: hoja.tamano, orientacion: hoja.orientacion, medidas: hoja.medidas });
 }
 
+/**
+ * Una capa del documento. Son **del documento y no de cada hoja**: "Datos" o "Plantilla" son las
+ * mismas en todas, y cada elemento dice a cuál pertenece. Al revés habría que rearmarlas hoja por
+ * hoja, que es justo lo que nadie quiere hacer.
+ */
+export interface Capa {
+  id: string;
+  nombre: string;
+  visible: boolean;
+  bloqueada: boolean;
+}
+
+/** Siempre hay al menos una: un elemento sin capa pertenece a la primera y nunca queda huérfano. */
+let capas: Capa[] = [{ id: 'base', nombre: 'Capa 1', visible: true, bloqueada: false }];
+
+export function capasDelDocumento(): Capa[] {
+  return capas;
+}
+
+export function establecerCapas(nuevas: Capa[]): void {
+  capas = nuevas.length ? nuevas : [{ id: 'base', nombre: 'Capa 1', visible: true, bloqueada: false }];
+}
+
+/** La capa de un elemento, resolviendo el caso de los que no tienen ninguna anotada. */
+export function capaDe(elemento: Elemento): Capa {
+  return capas.find((c) => c.id === elemento.capa) ?? capas[0];
+}
+
+/**
+ * Si un elemento se ve, mirando también su capa: una capa apagada apaga todo lo suyo. Lo usan el
+ * lienzo y la exportación, así que lo que se esconde tampoco sale en el PDF.
+ */
+export function elementoVisible(elemento: Elemento): boolean {
+  return !elemento.oculto && capaDe(elemento).visible;
+}
+
+/** Si un elemento se puede tocar. Una capa bloqueada bloquea todo lo suyo. */
+export function elementoBloqueado(elemento: Elemento): boolean {
+  return !!elemento.bloqueado || capaDe(elemento).bloqueada;
+}
+
 let hojas: Hoja[] = [hojaEnBlanco()];
 let hojaVigente = 0;
 

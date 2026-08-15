@@ -1,6 +1,7 @@
 import { cache, FabricImage, FabricObject, FabricText, Group, Rect, Textbox, type Canvas } from 'fabric';
 import QRCode from 'qrcode';
 import { alturaRenglonFabric, PASO_RENGLON, type Elemento, type ElementoQr } from './elemento';
+import { elementoBloqueado, elementoVisible } from './documento';
 import { asegurarFuenteCargada } from './fuentes';
 import { TablaObjeto } from './tablaObjeto';
 import { LineaObjeto } from './lineaObjeto';
@@ -158,7 +159,21 @@ export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObjec
   // Con los campos apagados, los que nazcan después también tienen que nacer apagados: se crean al
   // cambiar de hoja, al deshacer y al colocar uno nuevo.
   if (elemento.clase === 'campo' && camposApagados) aplicarVisibilidadDeCampo(objeto);
+  aplicarMarcas(objeto, elemento);
   return objeto;
+}
+
+/**
+ * Lleva al objeto lo que dice el modelo sobre su capa: si se ve y si se puede tocar. Se aplica acá,
+ * donde se arma cada objeto, para que valga también al deshacer, cambiar de hoja y recargar.
+ */
+export function aplicarMarcas(objeto: FabricObject, elemento: Elemento): void {
+  const bloqueado = elementoBloqueado(elemento);
+  objeto.set({
+    visible: elementoVisible(elemento),
+    selectable: !bloqueado,
+    evented: !bloqueado,
+  });
 }
 
 async function construirObjeto(elemento: Elemento): Promise<FabricObject> {

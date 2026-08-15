@@ -160,7 +160,26 @@ export interface ElementoCampo {
   fondoColor: string;
 }
 
-export type Elemento = ElementoTexto | ElementoLinea | ElementoRect | ElementoQr | ElementoTabla | ElementoImagen | ElementoCampo;
+/**
+ * Lo que todo elemento tiene además de su forma: a qué capa pertenece, si se ve y si se puede
+ * tocar, y con qué nombre aparece en la lista de objetos.
+ *
+ * Vive en el modelo y no en el objeto de Fabric porque el objeto se reconstruye al deshacer, al
+ * cambiar de hoja y al recargar (ver la lección 42 de CLAUDE.md).
+ */
+export interface Marcas {
+  /** Id de la capa. Sin capa, el elemento pertenece a la primera: nunca queda huérfano. */
+  capa?: string;
+  /** Apagado: no se ve en el lienzo **y no sale en el PDF**. */
+  oculto?: boolean;
+  /** No se puede seleccionar ni mover en el lienzo. */
+  bloqueado?: boolean;
+  /** Nombre puesto a mano; si no hay, la lista arma uno con el tipo y el contenido. */
+  nombre?: string;
+}
+
+export type Elemento = (ElementoTexto | ElementoLinea | ElementoRect | ElementoQr | ElementoTabla | ElementoImagen | ElementoCampo) &
+  Marcas;
 export type ClaseDibujo = Elemento['clase'];
 export type ClaseSimple = 'texto' | 'linea' | 'rect' | 'qr';
 

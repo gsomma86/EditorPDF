@@ -13,7 +13,7 @@ import {
   type ElementoTabla,
   type EstiloLinea,
 } from './elemento';
-import { dimensionesDeHoja, hojasDelDocumento } from './documento';
+import { dimensionesDeHoja, elementoVisible, hojasDelDocumento } from './documento';
 import { bytesDeFuente } from './fuentes';
 import { bytesDelPdf } from './pdfExistente';
 import { generarQr } from './objetosFabric';
@@ -220,6 +220,10 @@ async function dibujarHoja(
   const altoPagina = pagina.getHeight();
 
   for (const el of elementos) {
+    // Un elemento apagado —o de una capa apagada— no llega al PDF: lo que se ve es lo que se
+    // obtiene. Es la diferencia con "Ocultar campos" del menú Campos, que es solo una vista.
+    if (!elementoVisible(el)) continue;
+
     const ubi = ubicador(el, altoPagina);
 
     switch (el.clase) {

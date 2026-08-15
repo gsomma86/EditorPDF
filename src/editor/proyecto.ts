@@ -1,7 +1,7 @@
 import type { Canvas } from 'fabric';
 import { reservarIds, type Elemento } from './elemento';
 
-import { aplicarConfigPagina, configActual, establecerHojas, hojaActual, hojasDelDocumento, type Hoja } from './documento';
+import { aplicarConfigPagina, capasDelDocumento, configActual, establecerCapas, establecerHojas, hojaActual, hojasDelDocumento, type Capa, type Hoja } from './documento';
 import { configPorDefecto, type ConfigPagina } from './pagina';
 import { asentarPdf, bytesDelPdf, cerrarPdf } from './pdfExistente';
 
@@ -31,6 +31,8 @@ export interface Proyecto {
    * página— pero se sigue leyendo para abrir proyectos hechos antes de ese cambio.
    */
   pdfPagina?: number;
+  /** Las capas del documento. Un proyecto anterior a capas no las trae y se abre con una sola. */
+  capas?: Capa[];
 }
 
 function aBase64(bytes: Uint8Array): string {
@@ -61,6 +63,7 @@ export function serializarProyecto(lienzo: Canvas, campos: string[], conPdf = fa
     elementos: hojas[0]?.elementos ?? [],
     hoja: hojaActual(),
     campos: [...campos],
+    capas: JSON.parse(JSON.stringify(capasDelDocumento())),
     pdfBase: pdf ? aBase64(pdf) : null,
   };
 }
@@ -128,6 +131,7 @@ export function leerProyecto(texto: string): Proyecto {
     elementos: hojas[0].elementos,
     hoja: Math.min(Math.max(0, datos.hoja ?? 0), hojas.length - 1),
     campos: Array.isArray(datos.campos) ? datos.campos : [],
+    capas: Array.isArray(datos.capas) && datos.capas.length ? datos.capas : undefined,
     pdfBase: datos.pdfBase ?? null,
     pdfPagina: datos.pdfPagina ?? 0,
   };
@@ -141,6 +145,8 @@ export function leerProyecto(texto: string): Proyecto {
  */
 export async function cargarProyecto(lienzo: Canvas, proyecto: Proyecto, conservarPdf = false): Promise<void> {
   aplicarConfigPagina(lienzo, proyecto.pagina);
+  // Antes de las hojas: los objetos se dibujan mirando si su capa esta visible o bloqueada.
+  establecerCapas(proyecto.capas ?? []);
   // `leerProyecto` ya dejó las hojas con su forma nueva; el `?? []` es para quien arme un Proyecto
   // a mano (los arneses de prueba) sin pasar por él.
   const deLaPagina = { tamano: proyecto.pagina.tamano, orientacion: proyecto.pagina.orientacion, medidas: proyecto.pagina.medidas };

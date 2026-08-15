@@ -9,7 +9,7 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { StaticCanvas } from 'fabric';
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { agregarHoja, cantidadDeHojas, eliminarHoja, establecerHojas, hojaActual, hojaEnBlanco, hojasDelDocumento, insertarPdf, irAHoja, moverHoja } from '../src/editor/documento';
+import { agregarHoja, cantidadDeHojas, eliminarHoja, establecerHojas, hojaActual, establecerCapas, hojaEnBlanco, hojasDelDocumento, insertarPdf, irAHoja, moverHoja } from '../src/editor/documento';
 import { inicializarHistorial, deshacer, registrarSnapshot, rehacer } from '../src/editor/historial';
 import { agregarAlLienzo } from '../src/editor/objetosFabric';
 import { exportarPdf } from '../src/editor/exportarPdf';
@@ -279,6 +279,33 @@ comparar(
   [[420, 595], [595, 842], [842, 595]],
   mixto.getPages().map((p) => [Math.round(p.getWidth()), Math.round(p.getHeight())])
 );
+
+// ---------- Capas: lo apagado no sale en el PDF ----------
+
+// Es la diferencia con "Ocultar campos", que es solo una vista: acá lo que se ve es lo que se
+// obtiene, así que un elemento apagado —o de una capa apagada— no llega al archivo.
+cerrarPdf();
+establecerCapas([
+  { id: 'base', nombre: 'Capa 1', visible: true, bloqueada: false },
+  { id: 'oculta', nombre: 'Apagada', visible: false, bloqueada: false },
+]);
+await establecerHojas(lienzo, [hojaEnBlanco()], 0);
+await ponerTexto(lienzo, 'SE VE');
+await ponerTexto(lienzo, 'APAGADO POR SI MISMO');
+await ponerTexto(lienzo, 'APAGADO POR SU CAPA');
+
+const enLaHoja = hojasDelDocumento(lienzo)[0].elementos;
+enLaHoja[1].oculto = true;
+enLaHoja[2].capa = 'oculta';
+
+const conCapas = await exportarPdf(lienzo, { conFormulario: true });
+const leidoCapas = mupdf.PDFDocument.openDocument(conCapas, 'application/pdf');
+const textoConCapas = JSON.parse((leidoCapas.loadPage(0) as any).toStructuredText('preserve-whitespace').asJSON())
+  .blocks.flatMap((b: any) => (b.lines ?? []).map((l: any) => l.text))
+  .join(' ')
+  .trim();
+comparar('capas', 'solo sale lo que se ve', 'SE VE', textoConCapas);
+comparar('capas', 'los tres siguen en el modelo', 3, hojasDelDocumento(lienzo)[0].elementos.length);
 
 console.log(filas.join('\n'));
 console.log(`\nPDF en ${SALIDA}multipagina.pdf`);
