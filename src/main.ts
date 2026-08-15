@@ -590,6 +590,13 @@ selFondo.addEventListener('change', () => {
     cambiarPagina({ fondo: null });
     return;
   }
+  // Un PDF de fondo es lo mismo que abrirlo: además de verse de fondo queda de base al exportar,
+  // así que lo que ya traía sigue siendo vectorial en vez de una foto. Por eso se reusa ese
+  // camino entero, con su aviso previo si hay algo dibujado.
+  if (selFondo.value === 'pdf') {
+    document.getElementById('ed-abrir-pdf')!.click();
+    return;
+  }
   inputFondo.value = '';
   inputFondo.click();
 });
