@@ -1,6 +1,6 @@
 # Traspaso — dónde retomar
 
-Estado al cerrar el 14/08/2026. Todo commiteado en
+Estado al cerrar el 15/08/2026. Todo commiteado en
 [gsomma86/EditorPDF](https://github.com/gsomma86/EditorPDF) (rama `main`).
 
 **Antes de tocar nada, leer [CLAUDE.md](CLAUDE.md)**: ahí están la regla de alcance, las
@@ -37,6 +37,12 @@ contra una referencia y encuentran lo que falta; usar la app de verdad encuentra
 **Fase 3 (formas preexistentes): en pausa**, sin caso de uso en los PDF reales disponibles — ver
 el punto 3.
 
+**Fase 4 — Multipágina real: hecha** (15/08/2026, ver el punto 4). Un documento del editor ahora
+puede tener varias hojas, con su propia tira de pestañas para agregar, duplicar, borrar y
+reordenar. No confundir con el selector de página de la fase 2, que elige qué página del **PDF de
+fondo** se ve — son dos cosas distintas que conviven: un documento con varias hojas propias puede
+además tener un PDF de varias páginas de fondo.
+
 ## Lo que falta
 
 1. ~~Multiidioma ES/EN/PT~~ — **hecho (14/08/2026)**, en `ui/i18n.ts` (mismo patrón que `i18n.js`
@@ -62,8 +68,15 @@ el punto 3.
    editables en su contenido, así que se pausa hasta que aparezca uno; mientras tanto, importar
    campos AcroForm (arriba) cubre el mismo caso de uso (una plantilla con "recuadros" que en
    realidad son campos).
-4. **Fases 4 y 5**: capas y multipágina real (de diseño, no solo de PDF de fondo), y empaquetado
-   con Tauri.
+4. ~~Multipágina real (fase 4)~~ — **hecho (15/08/2026)**. Un documento son varias hojas; tamaño,
+   orientación, márgenes y fondo son del documento entero, no de cada hoja (decisión a propósito).
+   Motor en `editor/documento.ts` (`irAHoja`/`agregarHoja`/`eliminarHoja`/`moverHoja`, ninguna
+   registra historial), historial/proyecto/autoguardado/preflight/exportación ya la cubren de punta
+   a punta. Interfaz: tira de pestañas entre el lienzo y la barra de estado, con agregar, duplicar,
+   borrar y reordenar arrastrando. Verificado con `npm run verificar-hojas`. Ver ROADMAP.md fase 4
+   para el detalle completo.
+5. **Fase 4 restante y fase 5**: capas, firma digital, más formas geométricas, y empaquetado con
+   Tauri.
 
 ## Cómo verificar
 

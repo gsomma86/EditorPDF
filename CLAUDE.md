@@ -337,6 +337,13 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
     verdad y editarla con mouse, no eventos sintéticos— encontró ambos en minutos, porque encuentra
     lo que *molesta* al usarlo. Antes de dar una función por probada, conviene además usarla de
     punta a punta con un caso real, no solo auditarla contra una referencia.
+33. **Hay dos navegadores de "página" en la interfaz y son cosas distintas, a propósito.** El
+    selector de la barra de estado (fase 2) elige qué página del **PDF de fondo** se ve —
+    `elegirPagina`/`paginaDelPdf` en `pdfExistente.ts`, 0-index como pdf.js/mupdf. La tira de
+    pestañas (fase 4) elige en qué **hoja del documento propio** se dibuja — `irAHoja`/`hojaActual`
+    en `documento.ts`, también 0-index pero un contador completamente aparte. Un documento con
+    varias hojas puede además tener un PDF de fondo de varias páginas: las dos cosas conviven sin
+    relación entre sí. No confundir una API con la otra al tocar cualquiera de las dos.
 
 ## Cómo verificar cambios
 

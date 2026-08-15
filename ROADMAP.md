@@ -199,7 +199,23 @@ Dos hallazgos técnicos que siguen valiendo si se retoma:
 ## Fase 4 — Avanzado
 
 - [ ] Capas
-- [ ] Multi-página real (insertar, reordenar, eliminar páginas)
+- [x] **Multi-página real (insertar, reordenar, eliminar páginas)** (15/08/2026). Un documento es
+      varias hojas y el lienzo muestra una por vez; el tamaño, la orientación, los márgenes y el
+      fondo son del documento entero, no de cada hoja (una decisión a propósito: hojas de distinto
+      tamaño no tienen sentido para lo que hace este editor, y evitarlo saca de encima muchos casos
+      raros). API en `editor/documento.ts` — `cantidadDeHojas()`/`hojaActual()` (0-index),
+      `irAHoja`, `agregarHoja` (con copia opcional), `eliminarHoja` (nunca la última),
+      `moverHoja` — ninguna registra el historial ni toca la interfaz, eso lo hace quien la llama.
+      El historial guarda el documento entero (deshacer recupera una hoja borrada con su
+      contenido); proyecto y autoguardado guardan todas las hojas y en cuál se estaba, los
+      proyectos viejos se siguen abriendo como hoja única; Verificar revisa todas y dice en cuál
+      está cada problema; al exportar cada hoja sale como una página del PDF.
+      **Interfaz**: tira de pestañas entre el lienzo y la barra de estado (`shell.ts`/`main.ts`) —
+      clic para cambiar de hoja, "+"/"⧉" para agregar o duplicar, la `×` de cada pestaña para
+      borrar (oculta si solo queda una), arrastrar para reordenar (drag and drop nativo).
+      Verificado con `npm run verificar-hojas` (arma tres hojas, confirma que ir y volver no
+      mezcla nada, que reordenar mantiene la hoja a la vista, que deshacer recupera una borrada,
+      que la última no se puede borrar, y que el PDF sale con una página por hoja).
 - [ ] Firma digital
 - [ ] Más formas geométricas
 
