@@ -13,6 +13,7 @@
 
 import { borrarPdfBase, guardarPdfBase, leerPdfBase } from './almacenPdf';
 import { FAMILIAS_BASE, FAMILIAS_WEB } from './fuentes';
+import { borrarFormaDelPdf, formaEn, formasDelPdf, type FormaDelPdf } from './formasPdf';
 
 /** Un texto encontrado en el PDF, en coordenadas de la hoja (Y desde arriba, como el lienzo). */
 export interface TextoDelPdf {
@@ -83,6 +84,7 @@ export function familiaEquivalente(nombre: string, generica: string): string {
 
 let bytesActuales: Uint8Array | null = null;
 let textos: TextoDelPdf[] = [];
+let formas: FormaDelPdf[] = [];
 /** Sobre qué página del PDF se está trabajando. El editor maneja una por vez. */
 let paginaElegida = 0;
 
@@ -100,6 +102,26 @@ export function textosDelPdf(): TextoDelPdf[] {
   return textos;
 }
 
+/** Las líneas y recuadros que todavía tiene el PDF dibujados en su contenido. */
+export function formasDelPdfActual(): FormaDelPdf[] {
+  return formas;
+}
+
+/** La forma del PDF que cae bajo un punto de la hoja, si hay alguna. */
+export function formaEnPunto(x: number, y: number): FormaDelPdf | undefined {
+  return formaEn(formas, x, y);
+}
+
+/**
+ * Saca una forma del contenido del PDF —de verdad, no la tapa— y devuelve el fondo actualizado.
+ * Es el paso equivalente a `borrarTextoDelPdf`, para poder reemplazarla por un elemento del diseño.
+ */
+export async function quitarFormaDelPdf(objetivo: FormaDelPdf): Promise<string> {
+  if (!bytesActuales) throw new Error('No hay ningún PDF abierto.');
+  await asentarPdf(await borrarFormaDelPdf(bytesActuales, paginaElegida, objetivo.indice));
+  return (await rasterizar()).fondo;
+}
+
 /** En qué página del PDF se está trabajando, contando desde 0. */
 export function paginaDelPdf(): number {
   return paginaElegida;
@@ -108,6 +130,7 @@ export function paginaDelPdf(): number {
 export function cerrarPdf(): void {
   bytesActuales = null;
   textos = [];
+  formas = [];
   paginaElegida = 0;
   void borrarPdfBase();
 }
@@ -122,6 +145,7 @@ export async function asentarPdf(bytes: Uint8Array, pagina = paginaElegida): Pro
   const mupdf = await motor();
   const documento = mupdf.PDFDocument.openDocument(bytes.slice(), 'application/pdf') as InstanceType<typeof mupdf.PDFDocument>;
   textos = leerTextos(documento.loadPage(paginaElegida));
+  formas = await formasDelPdf(bytes, paginaElegida);
   await guardarPdfBase(bytes, paginaElegida);
 }
 

@@ -391,3 +391,11 @@ validada — ver la sección Fase 0 del roadmap.
     la propia empresa tiene 556 rectángulos y ninguna forma compleja. La medición anterior no
     estaba mal hecha; estaba hecha sobre una muestra que no representaba el problema. **Antes de
     descartar una función por falta de casos de uso, revisar de dónde salieron los casos.**
+37. **Los campos importados de un PDF tapan casi la mitad de la hoja.** En una plantilla real
+    (`Template recibo Argentina Napsis.pdf`) los 179 campos cubren el 47% de la superficie. Eso
+    convierte en inútil cualquier interacción con el contenido del PDF que se corte al encontrar un
+    objeto encima: el doble clic para editar una forma no llegaba a la mitad de las líneas. La regla
+    que quedó: **un campo no bloquea el acceso al dibujo del PDF** —los dos vienen del mismo
+    archivo y la caja del campo es un marcador, no un dibujo—, pero lo que el usuario dibujó sí
+    tiene prioridad. Vale la pena tenerlo en cuenta antes de agregar cualquier gesto sobre el
+    lienzo que dependa de "si hay un objeto abajo".

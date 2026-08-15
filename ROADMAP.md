@@ -238,8 +238,14 @@ Hallazgos técnicos que siguen valiendo:
       operador que pinta, y se reemplaza por espacios el camino de la forma elegida junto con su
       operador. Se la ubica **por posición** —el enésimo relleno del recorrido es el enésimo del
       stream— porque comparar coordenadas no serviría: los CTM no son la identidad.
-- [ ] Doble clic sobre una forma la convierte en un `RectObjeto`/`LineaObjeto` del diseño, como ya
-      hace el texto en la fase 2, y se borra la original del contenido.
+- [x] **Doble clic sobre una forma la convierte en elemento del diseño** (15/08/2026), igual que
+      el texto en la fase 2: se saca del contenido del PDF y queda un recuadro o una línea común,
+      con su panel, su deshacer y su exportación. Un relleno macizo se reconstruye como recuadro
+      relleno sin borde; uno de contorno, al revés.
+      **Los campos importados no bloquean el doble clic**: en una plantilla real tapan el 47% de la
+      hoja, así que si mandaran ellos, la mitad de las líneas quedaría inalcanzable. La caja de un
+      campo es un marcador, no un dibujo; lo que uno haya dibujado sí tiene prioridad, y en modo
+      Completar campos tampoco se interfiere.
 - [ ] Curvas, paths compuestos y formas rotadas quedan afuera: no se detectan y no se tocan.
 
 ## Fase 4 — Avanzado

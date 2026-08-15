@@ -2,7 +2,7 @@ import './style.css';
 import { montarEspacioTrabajo } from './ui/shell';
 import { crearLienzo } from './editor/lienzo';
 import { crearElemento, crearElementoCampo, crearElementoImagen, crearElementoTabla, duplicarElemento, type ClaseSimple, type Elemento } from './editor/elemento';
-import { activarModoCompletar, agregarAlLienzo, elementoDe, reconstruirLienzo, sincronizarGeometria } from './editor/objetosFabric';
+import { activarModoCompletar, agregarAlLienzo, elementoDe, enModoCompletar, reconstruirLienzo, sincronizarGeometria } from './editor/objetosFabric';
 import { escapeHtml, mostrarMultiSeleccion, mostrarPropiedades, mostrarSinSeleccion } from './ui/panelPropiedades';
 import { ActiveSelection, type FabricObject } from 'fabric';
 import { borrarAutoguardado, hayAutoguardado, programarAutoguardado, restaurarAutoguardado } from './editor/autoguardado';
@@ -703,12 +703,46 @@ inputPdf.addEventListener('change', async () => {
  * es un texto común, con todo lo que eso trae (panel, deshacer, exportación).
  */
 lienzo.on('mouse:dblclick', async (e) => {
-  const { hayPdfAbierto, textoEn, borrarTextoDelPdf } = await import('./editor/pdfExistente');
-  if (!hayPdfAbierto() || e.target) return; // si cayó sobre un objeto, manda el objeto
+  const { hayPdfAbierto, textoEn, borrarTextoDelPdf, formaEnPunto, quitarFormaDelPdf } = await import('./editor/pdfExistente');
+  if (!hayPdfAbierto()) return;
+
+  // Si el doble clic cayó sobre un objeto, manda el objeto... salvo que sea un campo importado del
+  // mismo PDF. Los campos de una plantilla real tapan casi la mitad de la hoja, así que si
+  // bloquearan el paso, la mitad de las líneas y recuadros del PDF quedarían inalcanzables. La
+  // caja de un campo es un marcador, no un dibujo; lo que uno haya dibujado sí tiene prioridad.
+  const encima = e.target ? elementoDe(e.target) : undefined;
+  if (e.target && (encima?.clase !== 'campo' || enModoCompletar())) return;
 
   const punto = lienzo.getScenePoint(e.e);
   const original = textoEn(punto.x, punto.y);
-  if (!original) return;
+
+  // Sin texto abajo, se prueba con las formas: las líneas y recuadros que el PDF trae dibujados.
+  // El texto tiene prioridad porque suele estar encima de ellas y es lo que más se edita.
+  if (!original) {
+    const forma = formaEnPunto(punto.x, punto.y);
+    if (!forma) return;
+
+    cambiarPagina({ fondo: await quitarFormaDelPdf(forma) });
+
+    const elemento = crearElemento(forma.clase) as Elemento & { clase: 'rect' | 'linea' };
+    elemento.x = forma.x;
+    elemento.y = forma.y;
+    elemento.w = forma.w;
+    elemento.h = forma.h;
+    elemento.color = forma.color;
+    if (elemento.clase === 'rect') {
+      // Un relleno macizo se reconstruye como recuadro relleno sin borde; uno de contorno, al revés.
+      elemento.conRelleno = forma.relleno;
+      elemento.rellenoColor = forma.color;
+      elemento.grosor = forma.relleno ? 0 : Math.max(0.5, forma.grosor);
+    }
+
+    const nuevo = await agregarAlLienzo(lienzo, elemento);
+    mostrarPropiedades(espacio.panelPropiedades, lienzo, nuevo);
+    registrarSnapshot(lienzo);
+    guardar();
+    return;
+  }
 
   const fondo = await borrarTextoDelPdf(original);
   cambiarPagina({ fondo });
