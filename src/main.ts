@@ -13,7 +13,7 @@ import { montarPanelCampos } from './ui/panelCampos';
 import { cablearAyuda } from './ui/ayuda';
 import { montarColumnas } from './ui/columnas';
 import { deshacer, inicializarHistorial, puedeDeshacer, puedeRehacer, registrarSnapshot, rehacer } from './editor/historial';
-import { t, type ClaveI18n } from './ui/i18n';
+import { alCambiarIdioma, t, type ClaveI18n } from './ui/i18n';
 import { agregarHoja, aplicarConfigPagina, cantidadDeHojas, configActual, eliminarHoja, establecerHojas, hojaActual, irAHoja, moverHoja } from './editor/documento';
 import { activarVista, configurarVista, establecerZoom, vistaActual } from './editor/vista';
 import { configPorDefecto, tamanoParecido, type Orientacion, type TamanoPagina } from './editor/pagina';
@@ -60,29 +60,55 @@ for (const evento of ['input', 'change', 'click']) {
 let temporizadorPeso: number | undefined;
 let generacionPeso = 0;
 
+/** Lo último que se supo del peso, para poder reescribirlo si cambia el idioma. */
+let estadoPeso: { clave: ClaveI18n; peso?: string } = { clave: 'shell.status.pesoCalculando' };
+
+function mostrarPeso(): void {
+  const boton = document.getElementById('ed-peso-btn');
+  if (!boton) return;
+  // Se saca data-i18n: el texto pasa a tener un valor calculado (o un error) que ese atributo no
+  // puede representar, así que de acá en más lo mantiene este código y no el barrido de idioma.
+  boton.removeAttribute('data-i18n');
+  boton.textContent = t(estadoPeso.clave, estadoPeso.peso ? { peso: estadoPeso.peso } : undefined);
+}
+
 /**
  * Recalcula el peso del PDF después de cada cambio, pero con un respiro como el autoguardado:
  * generarlo de verdad no es gratis y en una ráfaga de cambios solo interesa el último. El
  * contador de generación descarta las respuestas que llegan fuera de orden.
  */
 function programarPeso(): void {
-  const boton = document.getElementById('ed-peso-btn');
-  if (!boton) return;
-  // Se saca data-i18n: el texto pasa a tener un valor calculado (o un error) que ese atributo no
-  // puede representar, así que de acá en más lo mantiene este código y no el barrido de idioma.
-  boton.removeAttribute('data-i18n');
   clearTimeout(temporizadorPeso);
-  boton.textContent = t('shell.status.pesoCalculando');
+  estadoPeso = { clave: 'shell.status.pesoCalculando' };
+  mostrarPeso();
   temporizadorPeso = window.setTimeout(async () => {
     const generacion = ++generacionPeso;
     try {
       const peso = formatearPeso(await pesoDelPdf(lienzo));
-      if (generacion === generacionPeso) boton.textContent = t('shell.status.pesoValor', { peso });
+      if (generacion !== generacionPeso) return;
+      estadoPeso = { clave: 'shell.status.pesoValor', peso };
     } catch {
-      if (generacion === generacionPeso) boton.textContent = t('shell.status.pesoError');
+      if (generacion !== generacionPeso) return;
+      estadoPeso = { clave: 'shell.status.pesoError' };
     }
+    mostrarPeso();
   }, 800);
 }
+
+/**
+ * Al cambiar de idioma, el barrido de `data-i18n` traduce lo que está escrito en el HTML, pero no
+ * lo que arma el código: las pestañas de hojas, el peso y el panel de propiedades —que se dibuja
+ * al seleccionar y se queda como estaba hasta la próxima selección—. Se vuelven a dibujar acá.
+ */
+alCambiarIdioma(() => {
+  reflejarHojas();
+  mostrarPeso();
+  const activo = lienzo.getActiveObject();
+  const varios = activo instanceof ActiveSelection ? activo.getObjects() : activo ? [activo] : [];
+  if (varios.length > 1) mostrarMultiSeleccion(espacio.panelPropiedades, lienzo, varios, reseleccionar);
+  else if (varios[0] && elementoDe(varios[0])) mostrarPropiedades(espacio.panelPropiedades, lienzo, varios[0]);
+  else mostrarSinSeleccion(espacio.panelPropiedades);
+});
 
 /** Vuelve a seleccionar un conjunto tras una acción de grupo, o limpia si quedó vacío. */
 function reseleccionar(objetos: FabricObject[]): void {

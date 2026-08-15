@@ -835,6 +835,17 @@ export function t(clave: ClaveI18n, vars?: Record<string, string | number>): str
   return texto;
 }
 
+/**
+ * Avisos para lo que no puede traducir el barrido de `data-i18n`: los textos que arma el código,
+ * como las pestañas de hojas o el peso del PDF. Sin esto quedan en el idioma anterior hasta que
+ * algo los vuelva a dibujar, que puede no pasar nunca.
+ */
+const oyentes: (() => void)[] = [];
+
+export function alCambiarIdioma(fn: () => void): void {
+  oyentes.push(fn);
+}
+
 export function cambiarIdioma(idioma: Idioma): void {
   actual = idioma;
   try {
@@ -843,6 +854,7 @@ export function cambiarIdioma(idioma: Idioma): void {
     /* localStorage bloqueado: el cambio no sobrevive a un recargo, pero funciona en la sesión */
   }
   aplicarIdioma();
+  for (const oyente of oyentes) oyente();
 }
 
 /**
