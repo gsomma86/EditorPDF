@@ -39,6 +39,7 @@ export function borrarAutoguardado(): void {
 export async function restaurarAutoguardado(lienzo: Canvas): Promise<Proyecto | null> {
   const proyecto = leerAutoguardado();
   if (!proyecto) return null;
-  await cargarProyecto(lienzo, proyecto);
+  // Conservando el PDF: el suyo está guardado aparte y se recupera después, con su página.
+  await cargarProyecto(lienzo, proyecto, true);
   return proyecto;
 }

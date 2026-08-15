@@ -3,13 +3,13 @@
  * Node. Lo que se prueba es el recorrido de importar y exportar, no la persistencia, así que
  * alcanza con recordarlo en memoria.
  */
-let guardado: Uint8Array | null = null;
+let guardado: { bytes: Uint8Array; pagina: number } | null = null;
 
-export async function guardarPdfBase(bytes: Uint8Array): Promise<void> {
-  guardado = bytes;
+export async function guardarPdfBase(bytes: Uint8Array, pagina: number): Promise<void> {
+  guardado = { bytes, pagina };
 }
 
-export async function leerPdfBase(): Promise<Uint8Array | null> {
+export async function leerPdfBase(): Promise<{ bytes: Uint8Array; pagina: number } | null> {
   return guardado;
 }
 

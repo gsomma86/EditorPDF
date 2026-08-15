@@ -36,13 +36,22 @@ async function conAlmacen<T>(modo: IDBTransactionMode, accion: (almacen: IDBObje
   }
 }
 
-export async function guardarPdfBase(bytes: Uint8Array): Promise<void> {
-  await conAlmacen('readwrite', (almacen) => almacen.put(bytes, CLAVE));
+export interface PdfGuardado {
+  bytes: Uint8Array;
+  /** Sobre qué página se estaba trabajando: sin esto, al recargar se volvía siempre a la primera. */
+  pagina: number;
 }
 
-export async function leerPdfBase(): Promise<Uint8Array | null> {
-  const guardado = await conAlmacen<Uint8Array>('readonly', (almacen) => almacen.get(CLAVE));
-  return guardado ? new Uint8Array(guardado) : null;
+export async function guardarPdfBase(bytes: Uint8Array, pagina: number): Promise<void> {
+  await conAlmacen('readwrite', (almacen) => almacen.put({ bytes, pagina }, CLAVE));
+}
+
+export async function leerPdfBase(): Promise<PdfGuardado | null> {
+  const guardado = await conAlmacen<PdfGuardado | Uint8Array>('readonly', (almacen) => almacen.get(CLAVE));
+  if (!guardado) return null;
+  // Las sesiones anteriores guardaban solo los bytes, sin la página.
+  if (guardado instanceof Uint8Array) return { bytes: guardado, pagina: 0 };
+  return { bytes: new Uint8Array(guardado.bytes), pagina: guardado.pagina ?? 0 };
 }
 
 export async function borrarPdfBase(): Promise<void> {

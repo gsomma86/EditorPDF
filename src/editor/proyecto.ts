@@ -3,7 +3,7 @@ import { reservarIds, type Elemento } from './elemento';
 import { elementoDe, reconstruirLienzo } from './objetosFabric';
 import { aplicarConfigPagina, configActual } from './documento';
 import { configPorDefecto, type ConfigPagina } from './pagina';
-import { asentarPdf, bytesDelPdf, cerrarPdf } from './pdfExistente';
+import { asentarPdf, bytesDelPdf, cerrarPdf, paginaDelPdf } from './pdfExistente';
 
 /** Formato del archivo .json. La versión permite migrar proyectos viejos más adelante. */
 export interface Proyecto {
@@ -17,6 +17,8 @@ export interface Proyecto {
    * lo incluye, porque localStorage no aguanta un PDF (ver `almacenPdf.ts`).
    */
   pdfBase?: string | null;
+  /** Sobre qué página del PDF estaba puesto el diseño. */
+  pdfPagina?: number;
 }
 
 function aBase64(bytes: Uint8Array): string {
@@ -49,6 +51,7 @@ export function serializarProyecto(lienzo: Canvas, campos: string[], conPdf = fa
     elementos: JSON.parse(JSON.stringify(elementos)),
     campos: [...campos],
     pdfBase: pdf ? aBase64(pdf) : null,
+    pdfPagina: paginaDelPdf(),
   };
 }
 
@@ -84,19 +87,24 @@ export function leerProyecto(texto: string): Proyecto {
     })),
     campos: Array.isArray(datos.campos) ? datos.campos : [],
     pdfBase: datos.pdfBase ?? null,
+    pdfPagina: datos.pdfPagina ?? 0,
   };
 }
 
-export async function cargarProyecto(lienzo: Canvas, proyecto: Proyecto): Promise<void> {
+/**
+ * `conservarPdf` es para el autoguardado: su proyecto nunca trae el PDF —vive aparte, en
+ * IndexedDB, porque localStorage no lo aguanta— así que soltarlo ahí lo borraría justo antes de
+ * recuperarlo. Al importar un `.json`, en cambio, sí corresponde soltar el que hubiera abierto:
+ * era de otro trabajo.
+ */
+export async function cargarProyecto(lienzo: Canvas, proyecto: Proyecto, conservarPdf = false): Promise<void> {
   aplicarConfigPagina(lienzo, proyecto.pagina);
   reservarIds(proyecto.elementos);
   await reconstruirLienzo(lienzo, proyecto.elementos);
 
-  // Si el archivo trae el PDF de base, vuelve a quedar como base editable y exportable; si no
-  // trae, se suelta el que hubiera abierto, que era de otro trabajo.
   if (proyecto.pdfBase) {
-    await asentarPdf(desdeBase64(proyecto.pdfBase));
-  } else {
+    await asentarPdf(desdeBase64(proyecto.pdfBase), proyecto.pdfPagina ?? 0);
+  } else if (!conservarPdf) {
     cerrarPdf();
   }
 }

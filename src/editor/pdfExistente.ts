@@ -112,13 +112,17 @@ export function cerrarPdf(): void {
   void borrarPdfBase();
 }
 
-/** Deja el PDF vigente en memoria y guardado, y relee sus textos editables. */
-export async function asentarPdf(bytes: Uint8Array): Promise<void> {
+/**
+ * Deja el PDF vigente en memoria y guardado, y relee sus textos editables. `pagina` sirve para
+ * retomar un proyecto sobre la misma página en la que se estaba; sin ella se queda en la vigente.
+ */
+export async function asentarPdf(bytes: Uint8Array, pagina = paginaElegida): Promise<void> {
+  paginaElegida = Math.max(0, pagina);
   bytesActuales = bytes;
   const mupdf = await motor();
   const documento = mupdf.PDFDocument.openDocument(bytes.slice(), 'application/pdf') as InstanceType<typeof mupdf.PDFDocument>;
   textos = leerTextos(documento.loadPage(paginaElegida));
-  await guardarPdfBase(bytes);
+  await guardarPdfBase(bytes, paginaElegida);
 }
 
 /**
@@ -129,7 +133,12 @@ export async function asentarPdf(bytes: Uint8Array): Promise<void> {
 export async function recuperarPdfGuardado(): Promise<boolean> {
   const guardado = await leerPdfBase();
   if (!guardado) return false;
-  await asentarPdf(guardado);
+  // Se recupera también sobre qué página se estaba: el diseño restaurado estaba puesto sobre esa,
+  // así que volver a la primera dejaría los elementos sobre una página que no les corresponde.
+  // Alcanza con dejarla anotada: el fondo ya viene restaurado con el proyecto, no hay que
+  // rasterizar de nuevo (y hacerlo acá pisaría lo que se acaba de restaurar).
+  paginaElegida = guardado.pagina;
+  await asentarPdf(guardado.bytes);
   return true;
 }
 
