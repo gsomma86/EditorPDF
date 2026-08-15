@@ -1,7 +1,7 @@
 import type { Canvas } from 'fabric';
 import { reservarIds, type Elemento } from './elemento';
-import { elementoDe, reconstruirLienzo } from './objetosFabric';
-import { aplicarConfigPagina, configActual } from './documento';
+
+import { aplicarConfigPagina, configActual, establecerHojas, hojaActual, hojasDelDocumento } from './documento';
 import { configPorDefecto, type ConfigPagina } from './pagina';
 import { asentarPdf, bytesDelPdf, cerrarPdf, paginaDelPdf } from './pdfExistente';
 
@@ -9,7 +9,15 @@ import { asentarPdf, bytesDelPdf, cerrarPdf, paginaDelPdf } from './pdfExistente
 export interface Proyecto {
   version: 1;
   pagina: ConfigPagina;
+  /**
+   * Las hojas del documento, cada una con sus elementos. Los proyectos anteriores a multipágina
+   * traen solo `elementos`: al leerlos, eso se convierte en una hoja única.
+   */
+  hojas?: Elemento[][];
+  /** La primera hoja. Se sigue escribiendo para que un proyecto nuevo se pueda abrir en una version anterior. */
   elementos: Elemento[];
+  /** En que hoja se estaba trabajando. */
+  hoja?: number;
   campos: string[];
   /**
    * El PDF sobre el que se está trabajando, en base64. Solo viaja en el archivo que se descarga,
@@ -38,17 +46,16 @@ function desdeBase64(texto: string): Uint8Array {
 }
 
 export function serializarProyecto(lienzo: Canvas, campos: string[], conPdf = false): Proyecto {
-  const elementos = lienzo
-    .getObjects()
-    .map((o) => elementoDe(o))
-    .filter((e): e is Elemento => !!e);
-
+  // `hojasDelDocumento` vuelca primero lo que hay en el lienzo, que es la hoja que se está editando.
+  const hojas: Elemento[][] = JSON.parse(JSON.stringify(hojasDelDocumento(lienzo)));
   const pdf = conPdf ? bytesDelPdf() : null;
 
   return {
     version: 1,
     pagina: JSON.parse(JSON.stringify(configActual())),
-    elementos: JSON.parse(JSON.stringify(elementos)),
+    hojas,
+    elementos: hojas[0] ?? [],
+    hoja: hojaActual(),
     campos: [...campos],
     pdfBase: pdf ? aBase64(pdf) : null,
     pdfPagina: paginaDelPdf(),
@@ -66,25 +73,36 @@ export function descargarProyecto(proyecto: Proyecto, nombre: string): void {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * Completa las propiedades que se fueron sumando al modelo después de las primeras versiones: un
+ * proyecto viejo no las trae y sin esto quedarían en undefined, que Fabric interpreta como NaN y
+ * hace desaparecer el objeto. Al agregar una propiedad nueva al modelo, completarla también acá.
+ */
+function alDia(elemento: Elemento): Elemento {
+  return {
+    ...elemento,
+    angulo: elemento.angulo ?? 0,
+    ...(elemento.clase === 'texto' ? { vertical: elemento.vertical ?? false, separacion: elemento.separacion ?? 0, multilinea: elemento.multilinea ?? false } : {}),
+    ...(elemento.clase === 'campo'
+      ? { multilinea: elemento.multilinea ?? false, repComodin: elemento.repComodin ?? '#', repFilas: elemento.repFilas ?? 1, repSep: elemento.repSep ?? 0 }
+      : {}),
+  };
+}
+
 export function leerProyecto(texto: string): Proyecto {
   const datos = JSON.parse(texto) as Partial<Proyecto>;
-  if (!Array.isArray(datos.elementos)) {
+  if (!Array.isArray(datos.elementos) && !Array.isArray(datos.hojas)) {
     throw new Error('El archivo no parece un proyecto de EditorPDF: no tiene elementos.');
   }
+  // Un proyecto anterior a multipágina trae una sola lista de elementos: es su hoja única.
+  const hojas = (Array.isArray(datos.hojas) && datos.hojas.length ? datos.hojas : [datos.elementos ?? []]).map((hoja) => hoja.map(alDia));
+
   return {
     version: 1,
     pagina: datos.pagina ?? configPorDefecto(),
-    // Propiedades que se sumaron después de las primeras versiones: un proyecto viejo no las trae
-    // y sin esto quedarían en undefined, que Fabric interpreta como NaN y hace desaparecer el
-    // objeto. Al agregar una propiedad nueva al modelo, completarla también acá.
-    elementos: datos.elementos.map((elemento) => ({
-      ...elemento,
-      angulo: elemento.angulo ?? 0,
-      ...(elemento.clase === 'texto' ? { vertical: elemento.vertical ?? false, separacion: elemento.separacion ?? 0, multilinea: elemento.multilinea ?? false } : {}),
-      ...(elemento.clase === 'campo'
-        ? { multilinea: elemento.multilinea ?? false, repComodin: elemento.repComodin ?? '#', repFilas: elemento.repFilas ?? 1, repSep: elemento.repSep ?? 0 }
-        : {}),
-    })),
+    hojas,
+    elementos: hojas[0],
+    hoja: Math.min(Math.max(0, datos.hoja ?? 0), hojas.length - 1),
     campos: Array.isArray(datos.campos) ? datos.campos : [],
     pdfBase: datos.pdfBase ?? null,
     pdfPagina: datos.pdfPagina ?? 0,
@@ -99,8 +117,9 @@ export function leerProyecto(texto: string): Proyecto {
  */
 export async function cargarProyecto(lienzo: Canvas, proyecto: Proyecto, conservarPdf = false): Promise<void> {
   aplicarConfigPagina(lienzo, proyecto.pagina);
-  reservarIds(proyecto.elementos);
-  await reconstruirLienzo(lienzo, proyecto.elementos);
+  const hojas = proyecto.hojas ?? [proyecto.elementos];
+  reservarIds(hojas.flat());
+  await establecerHojas(lienzo, hojas, proyecto.hoja ?? 0);
 
   if (proyecto.pdfBase) {
     await asentarPdf(desdeBase64(proyecto.pdfBase), proyecto.pdfPagina ?? 0);

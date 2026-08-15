@@ -13,8 +13,7 @@ import {
   type ElementoTabla,
   type EstiloLinea,
 } from './elemento';
-import { elementoDe } from './objetosFabric';
-import { configActual } from './documento';
+import { configActual, hojasDelDocumento } from './documento';
 import { dimensionesDe } from './pagina';
 import { bytesDeFuente } from './fuentes';
 import { bytesDelPdf, paginaDelPdf } from './pdfExistente';
@@ -205,41 +204,21 @@ async function dibujarImagen(doc: PDFDocument, pagina: PDFPage, dataUrl: string,
   pagina.drawImage(imagen, { ...ancla, width: ancho, height: alto, opacity: opacidad, rotate: ubi.grados });
 }
 
-export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): Promise<Uint8Array> {
-  const config = configActual();
-
-  // Si hay un PDF abierto, es la base: se dibuja el diseño encima de su contenido real, que sigue
-  // siendo vectorial. Usar de fondo la imagen que se ve en pantalla lo dejaría como una foto.
-  const base = bytesDelPdf();
-  const doc = base ? await PDFDocument.load(base.slice()) : await PDFDocument.create();
-  doc.registerFontkit(fontkit);
-
-  // Con un PDF de base se dibuja sobre la página que se está editando; las demás quedan intactas.
-  const pagina = base ? doc.getPage(paginaDelPdf()) : doc.addPage([dimensionesDe(config).ancho, dimensionesDe(config).alto]);
-  const { width: anchoPagina, height: altoPagina } = pagina.getSize();
-  const obtenerFuente = creadorDeFuentes(doc);
-  const formulario = doc.getForm();
-  const camposCreados = new Map<string, PDFTextField>();
-
-  // Los campos que ya trae el PDF de base se sacan antes de escribir los del diseño: al abrirlo se
-  // importaron a la hoja, así que el diseño es el que manda —incluidos los que se hayan movido o
-  // borrado—. Sin esto, crear uno con el mismo nombre choca y la exportación falla entera.
-  if (base) {
-    for (const campo of formulario.getFields()) formulario.removeField(campo);
-  }
-
-  // El fondo va primero, estirado a toda la hoja, para que todo lo demás quede encima. Con un PDF
-  // de base no corresponde: su propio contenido ya es el fondo, y en mejor calidad.
-  if (config.fondo && !base) {
-    const bytes = await fetch(config.fondo).then((r) => r.arrayBuffer());
-    const imagen = config.fondo.startsWith('data:image/png') ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
-    pagina.drawImage(imagen, { x: 0, y: 0, width: anchoPagina, height: altoPagina });
-  }
-
-  const elementos = lienzo
-    .getObjects()
-    .map((o) => elementoDe(o))
-    .filter((e): e is Elemento => !!e);
+/**
+ * Dibuja los elementos de una hoja sobre una página del PDF. Está aparte porque un documento
+ * puede tener varias hojas y cada una va a su página, pero todas comparten el mismo documento de
+ * pdf-lib: las fuentes y los campos se resuelven una sola vez para todo el archivo.
+ */
+async function dibujarHoja(
+  doc: PDFDocument,
+  pagina: PDFPage,
+  elementos: Elemento[],
+  obtenerFuente: (familia: string, negrita: boolean, cursiva: boolean) => Promise<PDFFont>,
+  formulario: ReturnType<PDFDocument["getForm"]>,
+  camposCreados: Map<string, PDFTextField>,
+  opciones: OpcionesExportar
+): Promise<void> {
+  const altoPagina = pagina.getHeight();
 
   for (const el of elementos) {
     const ubi = ubicador(el, altoPagina);
@@ -375,6 +354,50 @@ export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): P
         break;
       }
     }
+  }
+}
+
+export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): Promise<Uint8Array> {
+  const config = configActual();
+
+  // Si hay un PDF abierto, es la base: se dibuja el diseño encima de su contenido real, que sigue
+  // siendo vectorial. Usar de fondo la imagen que se ve en pantalla lo dejaría como una foto.
+  const base = bytesDelPdf();
+  const doc = base ? await PDFDocument.load(base.slice()) : await PDFDocument.create();
+  doc.registerFontkit(fontkit);
+
+  const obtenerFuente = creadorDeFuentes(doc);
+  const formulario = doc.getForm();
+  const camposCreados = new Map<string, PDFTextField>();
+
+  // Los campos que ya trae el PDF de base se sacan antes de escribir los del diseño: al abrirlo se
+  // importaron a la hoja, así que el diseño es el que manda —incluidos los que se hayan movido o
+  // borrado—. Sin esto, crear uno con el mismo nombre choca y la exportación falla entera.
+  if (base) {
+    for (const campo of formulario.getFields()) formulario.removeField(campo);
+  }
+
+  const medidas = dimensionesDe(config);
+  const hojas = hojasDelDocumento(lienzo);
+
+  for (const [indice, elementos] of hojas.entries()) {
+    // Con un PDF de base, la primera hoja va sobre la página que se está editando y las siguientes
+    // sobre las que vienen después, sin tocar el resto del archivo. Si el diseño tiene más hojas
+    // que páginas el PDF, las que faltan se agregan en blanco al final.
+    const numeroEnElPdf = paginaDelPdf() + indice;
+    const pagina =
+      base && numeroEnElPdf < doc.getPageCount() ? doc.getPage(numeroEnElPdf) : doc.addPage([medidas.ancho, medidas.alto]);
+
+    // El fondo va primero, estirado a toda la hoja, para que todo lo demás quede encima. Con un PDF
+    // de base no corresponde: su propio contenido ya es el fondo, y en mejor calidad.
+    if (config.fondo && !base) {
+      const bytes = await fetch(config.fondo).then((r) => r.arrayBuffer());
+      const imagen = config.fondo.startsWith('data:image/png') ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
+      const { width, height } = pagina.getSize();
+      pagina.drawImage(imagen, { x: 0, y: 0, width, height });
+    }
+
+    await dibujarHoja(doc, pagina, elementos, obtenerFuente, formulario, camposCreados, opciones);
   }
 
   if (opciones.sinApariencias) {

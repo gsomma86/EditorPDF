@@ -1,7 +1,6 @@
 import type { Canvas } from 'fabric';
 import { anchoTotalTabla, altoTotalTabla, nombresDeCampo, pasoRepeticion, type Elemento } from './elemento';
-import { elementoDe } from './objetosFabric';
-import { configActual } from './documento';
+import { configActual, hojasDelDocumento } from './documento';
 import { dimensionesDe } from './pagina';
 import { caracteresNoRepresentables } from './fuentes';
 
@@ -28,12 +27,19 @@ function nombreDe(el: Elemento): string {
   return etiquetas[el.clase] ?? 'un elemento';
 }
 
-/** Revisión previa a exportar: errores bloquean, advertencias son recomendaciones. */
+/**
+ * Revisión previa a exportar: errores bloquean, advertencias son recomendaciones.
+ *
+ * Mira **todas** las hojas y no solo la que está a la vista: se exporta el documento entero, y un
+ * problema en otra hoja se descubriría recién con el PDF hecho. Cuando hay más de una, el aviso
+ * dice en cuál está.
+ */
 export function verificarDiseno(lienzo: Canvas): Hallazgo[] {
-  const elementos = lienzo
-    .getObjects()
-    .map((o) => elementoDe(o))
-    .filter((e): e is Elemento => !!e);
+  const hojas = hojasDelDocumento(lienzo);
+  const elementos = hojas.flat();
+  // Con una sola hoja no se aclara nada: seria ruido en todos los mensajes.
+  const enHoja = (el: Elemento): string =>
+    hojas.length > 1 ? `${nombreDe(el)} (hoja ${hojas.findIndex((h) => h.includes(el)) + 1})` : nombreDe(el);
 
   const hallazgos: Hallazgo[] = [];
   const config = configActual();
@@ -72,21 +78,21 @@ export function verificarDiseno(lienzo: Canvas): Hallazgo[] {
     if (campo.angulo % 90 !== 0) {
       hallazgos.push({
         gravedad: 'advertencia',
-        mensaje: `${nombreDe(campo)} está rotado ${campo.angulo}°. Un campo de formulario solo puede rotar en múltiplos de 90°: al exportar con campos editables va a quedar en ${Math.round(campo.angulo / 90) * 90}°.`,
+        mensaje: `${enHoja(campo)} está rotado ${campo.angulo}°. Un campo de formulario solo puede rotar en múltiplos de 90°: al exportar con campos editables va a quedar en ${Math.round(campo.angulo / 90) * 90}°.`,
       });
     }
     if (campo.repFilas > 1) {
       if (!campo.name.includes(campo.repComodin)) {
         hallazgos.push({
           gravedad: 'error',
-          mensaje: `${nombreDe(campo)} se repite ${campo.repFilas} veces pero su ID no tiene el comodín "${campo.repComodin}": las filas quedarían todas con el mismo nombre y serían un solo campo.`,
+          mensaje: `${enHoja(campo)} se repite ${campo.repFilas} veces pero su ID no tiene el comodín "${campo.repComodin}": las filas quedarían todas con el mismo nombre y serían un solo campo.`,
         });
       }
       const ultimaFila = campo.y + (campo.repFilas - 1) * pasoRepeticion(campo) + campo.h;
       if (ultimaFila > altoPagina) {
         hallazgos.push({
           gravedad: 'error',
-          mensaje: `${nombreDe(campo)} se repite ${campo.repFilas} veces y las últimas filas caen fuera de la hoja (llegan hasta ${Math.round(ultimaFila)} pt de ${altoPagina}).`,
+          mensaje: `${enHoja(campo)} se repite ${campo.repFilas} veces y las últimas filas caen fuera de la hoja (llegan hasta ${Math.round(ultimaFila)} pt de ${altoPagina}).`,
         });
       }
     }
@@ -108,13 +114,13 @@ export function verificarDiseno(lienzo: Canvas): Hallazgo[] {
     const { ancho, alto } = medidas(el);
 
     if (el.x < 0 || el.y < 0 || el.x + ancho > anchoPagina || el.y + alto > altoPagina) {
-      hallazgos.push({ gravedad: 'error', mensaje: `${nombreDe(el)} se sale de la hoja y va a quedar cortado.` });
+      hallazgos.push({ gravedad: 'error', mensaje: `${enHoja(el)} se sale de la hoja y va a quedar cortado.` });
     } else if (el.x < m.izquierda || el.y < m.arriba || el.x + ancho > anchoPagina - m.derecha || el.y + alto > altoPagina - m.abajo) {
-      hallazgos.push({ gravedad: 'advertencia', mensaje: `${nombreDe(el)} queda fuera de los márgenes.` });
+      hallazgos.push({ gravedad: 'advertencia', mensaje: `${enHoja(el)} queda fuera de los márgenes.` });
     }
 
     if ((el.clase === 'campo' || el.clase === 'rect' || el.clase === 'qr' || el.clase === 'imagen') && (el.w < 4 || el.h < 4)) {
-      hallazgos.push({ gravedad: 'advertencia', mensaje: `${nombreDe(el)} es muy chico (${Math.round(el.w)}×${Math.round(el.h)} pt) y puede no verse.` });
+      hallazgos.push({ gravedad: 'advertencia', mensaje: `${enHoja(el)} es muy chico (${Math.round(el.w)}×${Math.round(el.h)} pt) y puede no verse.` });
     }
 
     if (el.clase === 'qr' && !el.texto.trim()) {

@@ -14,7 +14,7 @@ import { cablearAyuda } from './ui/ayuda';
 import { montarColumnas } from './ui/columnas';
 import { deshacer, inicializarHistorial, puedeDeshacer, puedeRehacer, registrarSnapshot, rehacer } from './editor/historial';
 import { t, type ClaveI18n } from './ui/i18n';
-import { aplicarConfigPagina, configActual } from './editor/documento';
+import { aplicarConfigPagina, configActual, establecerHojas } from './editor/documento';
 import { activarVista, configurarVista, establecerZoom, vistaActual } from './editor/vista';
 import { configPorDefecto, tamanoParecido, type Orientacion, type TamanoPagina } from './editor/pagina';
 import { cargarProyecto, descargarProyecto, leerProyecto, serializarProyecto } from './editor/proyecto';
@@ -731,7 +731,9 @@ document.getElementById('ed-nuevo')!.addEventListener('click', async () => {
   const config = await pedirNuevoProyecto(configActual());
   if (!config) return;
   aplicarConfigPagina(lienzo, config);
-  await reconstruirLienzo(lienzo, []);
+  // Una sola hoja vacía: vaciar el lienzo no alcanza, porque las otras hojas viven en el modelo
+  // y seguirían saliendo en el PDF.
+  await establecerHojas(lienzo, [[]], 0);
   panelCampos.establecerCatalogo([]);
   mostrarSinSeleccion(espacio.panelPropiedades);
   reflejarPagina();

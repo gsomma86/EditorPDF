@@ -9,6 +9,12 @@ export function elementoDe(objeto: { __el?: Elemento }): Elemento | undefined {
   return objeto?.__el;
 }
 
+/**
+ * `documento` la usa para cambiar de hoja. Estos arneses trabajan con un lienzo de mentira y una
+ * sola hoja, así que no hay nada que reconstruir.
+ */
+export async function reconstruirLienzo(): Promise<void> {}
+
 export function generarQr(elemento: ElementoQr): Promise<string> {
   return QRCode.toDataURL(elemento.texto || ' ', {
     margin: 0,

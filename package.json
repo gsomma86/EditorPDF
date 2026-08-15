@@ -10,7 +10,8 @@
     "verificar-export": "vite build --config pruebas/vite.fabric.config.ts && node pruebas/dist-fabric/arnesFabric.js && vite build --config pruebas/vite.ssr.config.ts && node pruebas/dist/arnes.js",
     "verificar-pdf": "vite build --config pruebas/vite.fabric.config.ts --ssr pruebas/arnesPdfExistente.ts --outDir pruebas/dist-pdf && node pruebas/dist-pdf/arnesPdfExistente.js",
     "medir-rendimiento": "vite build --config pruebas/vite.fabric.config.ts --ssr pruebas/rendimiento.ts --outDir pruebas/dist-rend && node pruebas/dist-rend/rendimiento.js",
-    "verificar-campos": "vite build --config pruebas/vite.campos.config.ts && node pruebas/dist-campos/arnesCampos.js"
+    "verificar-campos": "vite build --config pruebas/vite.campos.config.ts && node pruebas/dist-campos/arnesCampos.js",
+    "verificar-hojas": "vite build --config pruebas/vite.hojas.config.ts && node pruebas/dist-hojas/arnesHojas.js"
   },
   "devDependencies": {
     "@types/qrcode": "^1.5.6",
