@@ -14,7 +14,7 @@ import { cablearAyuda } from './ui/ayuda';
 import { montarColumnas } from './ui/columnas';
 import { deshacer, inicializarHistorial, puedeDeshacer, puedeRehacer, registrarSnapshot, rehacer } from './editor/historial';
 import { t, type ClaveI18n } from './ui/i18n';
-import { aplicarConfigPagina, configActual, establecerHojas } from './editor/documento';
+import { agregarHoja, aplicarConfigPagina, cantidadDeHojas, configActual, eliminarHoja, establecerHojas, hojaActual, irAHoja, moverHoja } from './editor/documento';
 import { activarVista, configurarVista, establecerZoom, vistaActual } from './editor/vista';
 import { configPorDefecto, tamanoParecido, type Orientacion, type TamanoPagina } from './editor/pagina';
 import { cargarProyecto, descargarProyecto, leerProyecto, serializarProyecto } from './editor/proyecto';
@@ -226,12 +226,14 @@ async function accionDeshacer(): Promise<void> {
   if (!puedeDeshacer()) return;
   await deshacer(lienzo);
   mostrarSinSeleccion(espacio.panelPropiedades);
+  reflejarHojas();
 }
 
 async function accionRehacer(): Promise<void> {
   if (!puedeRehacer()) return;
   await rehacer(lienzo);
   mostrarSinSeleccion(espacio.panelPropiedades);
+  reflejarHojas();
 }
 
 document.getElementById('ed-undo')?.addEventListener('click', accionDeshacer);
@@ -472,6 +474,85 @@ function cambiarPagina(cambio: Partial<ReturnType<typeof configActual>>): void {
   reflejarPagina();
   guardar();
 }
+
+// ---------- Hojas del documento ----------
+
+const hojasLista = document.getElementById('ed-hojas-lista')!;
+
+/**
+ * Redibuja la tira de pestañas de hojas. Se llama después de cualquier operación que agregue,
+ * saque, reordene o cambie de hoja —incluidos deshacer/rehacer y cargar un proyecto—, porque
+ * ninguna de esas funciones toca la interfaz por su cuenta.
+ */
+function reflejarHojas(): void {
+  const total = cantidadDeHojas();
+  const actual = hojaActual();
+
+  hojasLista.innerHTML = Array.from(
+    { length: total },
+    (_, i) => `
+    <div class="ed-hoja-tab ${i === actual ? 'activa' : ''}" draggable="true" data-hoja="${i}">
+      <span>${t('shell.hojas.etiqueta', { n: i + 1 })}</span>
+      ${total > 1 ? `<button type="button" class="ed-hoja-cerrar" data-cerrar="${i}" title="${t('shell.hojas.cerrarTt')}">×</button>` : ''}
+    </div>`
+  ).join('');
+
+  hojasLista.querySelectorAll<HTMLElement>('.ed-hoja-tab').forEach((tab) => {
+    const indice = Number(tab.dataset.hoja);
+
+    tab.addEventListener('click', async (e) => {
+      if ((e.target as HTMLElement).closest('[data-cerrar]')) return;
+      await irAHoja(lienzo, indice);
+      mostrarSinSeleccion(espacio.panelPropiedades);
+      reflejarHojas();
+      guardar();
+    });
+
+    // Reordenar arrastrando: HTML5 drag and drop nativo, alcanza para una tira corta de pestañas.
+    tab.addEventListener('dragstart', (e) => {
+      e.dataTransfer?.setData('text/plain', String(indice));
+    });
+    tab.addEventListener('dragover', (e) => e.preventDefault());
+    tab.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      const desde = Number(e.dataTransfer?.getData('text/plain'));
+      if (Number.isNaN(desde) || desde === indice) return;
+      await moverHoja(lienzo, desde, indice);
+      registrarSnapshot(lienzo);
+      reflejarHojas();
+      guardar();
+    });
+  });
+
+  hojasLista.querySelectorAll<HTMLButtonElement>('[data-cerrar]').forEach((boton) => {
+    boton.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await eliminarHoja(lienzo, Number(boton.dataset.cerrar));
+      mostrarSinSeleccion(espacio.panelPropiedades);
+      registrarSnapshot(lienzo);
+      reflejarHojas();
+      guardar();
+    });
+  });
+}
+
+document.getElementById('ed-hoja-agregar')!.addEventListener('click', async () => {
+  await agregarHoja(lienzo, false);
+  mostrarSinSeleccion(espacio.panelPropiedades);
+  registrarSnapshot(lienzo);
+  reflejarHojas();
+  guardar();
+});
+
+document.getElementById('ed-hoja-duplicar')!.addEventListener('click', async () => {
+  await agregarHoja(lienzo, true);
+  mostrarSinSeleccion(espacio.panelPropiedades);
+  registrarSnapshot(lienzo);
+  reflejarHojas();
+  guardar();
+});
+
+reflejarHojas();
 
 // ---------- Fondo de la hoja ----------
 
@@ -737,6 +818,7 @@ document.getElementById('ed-nuevo')!.addEventListener('click', async () => {
   panelCampos.establecerCatalogo([]);
   mostrarSinSeleccion(espacio.panelPropiedades);
   reflejarPagina();
+  reflejarHojas();
   inicializarHistorial(lienzo);
 });
 
@@ -806,6 +888,7 @@ inputProyecto.addEventListener('change', async () => {
     panelCampos.establecerCatalogo(proyecto.campos);
     mostrarSinSeleccion(espacio.panelPropiedades);
     reflejarPagina();
+    reflejarHojas();
     inicializarHistorial(lienzo);
   } catch (error) {
     await confirmar(
@@ -840,6 +923,7 @@ if (hayAutoguardado()) {
     if (proyecto) {
       panelCampos.establecerCatalogo(proyecto.campos);
       reflejarPagina();
+      reflejarHojas();
       inicializarHistorial(lienzo);
     }
     // El PDF de base va aparte del diseño: no entra en el autoguardado (no es texto y es

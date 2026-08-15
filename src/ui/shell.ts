@@ -156,6 +156,12 @@ export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
       </aside>
     </div>
 
+    <div class="ed-hojas" id="ed-hojas">
+      <div class="ed-hojas-lista" id="ed-hojas-lista"></div>
+      <button type="button" class="ed-hojas-boton" id="ed-hoja-duplicar" data-i18n-title="shell.hojas.duplicarTt">⧉</button>
+      <button type="button" class="ed-hojas-boton" id="ed-hoja-agregar" data-i18n-title="shell.hojas.agregarTt">+</button>
+    </div>
+
     <div class="ed-status">
       <div class="ed-status-izq" data-i18n="shell.status.autoguardado"></div>
       <div class="ed-status-der">

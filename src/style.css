@@ -551,6 +551,71 @@ button {
   color: var(--err-texto);
 }
 
+/* ---------- Hojas del documento ---------- */
+.ed-hojas {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: var(--fondo-suave);
+  border-top: 1px solid var(--borde);
+  flex-shrink: 0;
+}
+.ed-hojas-lista {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  flex: 1;
+  min-width: 0;
+}
+.ed-hoja-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--borde-fuerte);
+  background: #fff;
+  color: var(--texto);
+  font-size: 11.5px;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ed-hoja-tab.activa {
+  background: var(--acento);
+  border-color: var(--acento);
+  color: #fff;
+}
+.ed-hoja-cerrar {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0 1px;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.ed-hoja-cerrar:hover {
+  opacity: 1;
+}
+.ed-hojas-boton {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: 5px;
+  background: #fff;
+  color: var(--texto-2);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.ed-hojas-boton:hover {
+  background: var(--card-1);
+}
+
 /* ---------- Barra de estado ---------- */
 .ed-status {
   display: flex;
