@@ -96,47 +96,46 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
 - [ ] Manejo de fuentes subseteadas (fallback cuando falta un glifo)
 - [x] Que el PDF de base no se pierda: se guarda en IndexedDB para sobrevivir a una recarga y
       viaja dentro del `.json` al guardar el proyecto, para poder seguirlo en otra computadora.
+- [ ] **Importar los campos AcroForm de un PDF abierto** (nuevo, 14/08/2026 — reemplaza a la fase 3
+      de v1, ver más abajo por qué). Al hacer Archivo → Abrir PDF, además del fondo se leen sus
+      campos de formulario (nombre, posición, tamaño, tipo) y entran como elementos 'campo' del
+      editor, listos para editar en un paso — sin esto, una plantilla real con campos AcroForm hoy
+      se abre solo como fondo, sin ellos. Repartido igual que el resto: la lectura en
+      `pdfExistente.ts` es de `editor/**`, el cableado (colocarlos en el lienzo y en el catálogo del
+      panel izquierdo) es de `ui/**`/`main.ts`.
 
-## Fase 3 — Edición real de formas preexistentes
+## Fase 3 — Edición real de formas preexistentes (en pausa)
 
-Bosquejo (14/08/2026, sin codear todavía): la interacción calca la de fase 2 con el texto —mismo
-doble clic sobre el fondo, mismo destino (un elemento nativo con panel propio)—, pero la manera de
-sacar el original **no es la misma**: `Redact`/`applyRedactions` de mupdf está pensado para texto e
-imágenes dentro de un rectángulo, no para una forma vectorial. Esa parte hay que construirla de cero
-(no reusa el código de `borrarTextoDelPdf`).
+**En pausa (14/08/2026): validada contra 8 PDF reales y no tiene caso de uso hoy.** El bosquejo se
+corrigió una vez (rellenos → trazos, ver historia abajo) y al medir bien —separando el contenido
+real de la página de las anotaciones con `page.run()` vs. `runPageContents`— los 59 trazos que
+parecían recuadros de plantilla resultaron ser **bordes de campos de formulario (AcroForm)**, no
+contenido de la página. Con esa medición correcta, ninguna plantilla de ReciboMail tiene formas en
+su contenido (`/Contents` ni siquiera existe en varias); el único PDF con algo son 680 rellenos de
+una marca de agua rotada 30°, que tampoco son rectángulos. Construir la detección ahora sería una
+función que, contra los archivos disponibles, no encuentra nada que editar. Se retoma si aparece un
+PDF real con formas de verdad en su contenido — mientras tanto, ver la fase 2 de arriba: **importar
+los campos AcroForm** es el reemplazo de valor real para el mismo caso (una plantilla con
+recuadros que en realidad son campos).
 
-**Alcance de v1 corregido tras validar contra PDFs reales (14/08/2026):** el bosquejo original
-apuntaba a rectángulos *rellenos* (`re` + `f`), el caso del spike de fase 0. Verificado contra 8 PDF
-reales (un recibo real y las plantillas de ReciboMail), el caso que existe de verdad es otro: las
-plantillas dibujan sus recuadros con **trazo** (`S`), 59 rectángulos rectos en una sola plantilla, y
-**ninguna usa el operador `re`** — arman las formas con `m`/`l`/`h` (moveto/lineto/closepath). Los
-rellenos rectangulares rectos no aparecen casi nunca (1 por documento: el fondo de hoja); los únicos
-rellenos abundantes vistos (680, en el recibo real) son la marca de agua, rotada 30° y no
-rectangular. **v1 pasa a ser: rectángulos y líneas con trazo**, dejando los rellenos para más
-adelante. Detalles que le sirven a quien toque la detección:
+<details>
+<summary>Historia del bosquejo (por si sirve el día que se retome)</summary>
+
+Primer intento: rectángulos *rellenos* (`re` + `f`), el caso validado en el spike de fase 0.
+Corregido tras medir 8 PDF reales: ninguno usa `re` — arman las formas con `m`/`l`/`h`
+(moveto/lineto/closepath) — y lo que sí abundaba eran trazos (`S`), no rellenos. Esa segunda medición
+resultó estar contaminada por incluir las anotaciones (`page.run()` sin separar contenido de
+widgets); al corregirla, los trazos también resultaron ser campos, no formas de página.
+
+Dos hallazgos técnicos que siguen valiendo si se retoma:
 - El recorrido de mupdf entrega rellenos/trazos en el mismo orden que los operadores del stream, así
   que el enésimo clic se mapea al enésimo operador **por posición**, no comparando coordenadas (los
   CTM no son la identidad).
 - `Contents` puede ser un arreglo de streams, no siempre uno solo.
-
-Repartido:
-
-- [ ] **Detección + reemplazo en el content stream** (`editor/**`, mupdf) — v1: rectángulos y
-      líneas con trazo (`S`), ejes rectos, mapeo por posición contra el recorrido de mupdf. Rellenos
-      y paths/curvas compuestas quedan afuera (ver el ítem de abajo). Expone algo como
-      `formasDelPdf()` / `formaEn(x, y)` en `pdfExistente.ts`, análogo a `textosDelPdf`/`textoEn`.
-- [ ] **UI de selección/edición** (`ui/**`, `main.ts`) — una vez que existe `formaEn`, el doble
-      clic convierte la forma detectada en un `RectObjeto` o `LineaObjeto` común (según el caso):
-      entra al modelo con sus mismos campos (color, estilo de trazo, grosor, posición, tamaño) y usa
-      el panel de propiedades que ya existe hoy para 'rect'/'linea', sin UI nueva. Mueve,
-      redimensiona, recolorea, cambia grosor/estilo y borra porque eso ya lo tiene cualquier rect o
-      línea del lienzo.
-- [ ] Sin affordance de hover para v1 (a propósito): el texto de fase 2 tampoco lo tiene hoy —el
-      usuario prueba el doble clic a ciegas—, así que las formas heredan la misma UX por
-      consistencia. Si en algún momento se agrega una marca visual al pasar el mouse, conviene
-      hacerlo para texto y formas a la vez, no por separado.
-- [ ] Rellenos rectangulares (el caso originalmente bosquejado) — queda para después de v1
-- [ ] Evaluar el caso general de paths/curvas complejas (mayor riesgo, no confirmado)
+- La interacción planeada calcaba la de fase 2 (doble clic → elemento nativo con panel propio), y
+  el borrado del original no puede reusar `Redact`/`applyRedactions` de mupdf —pensado para texto e
+  imágenes, no formas vectoriales— así que esa parte se construye de cero.
+</details>
 
 ## Fase 4 — Avanzado
 

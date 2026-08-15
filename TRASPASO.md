@@ -38,16 +38,18 @@ nuevo como texto extraíble, y el viejo ya no está.
    - Fuentes subseteadas: fallback cuando falta un glifo.
    - Solo se abre la primera página.
 3. **Fondo de hoja de tipo PDF** — la otra puerta de entrada de la fase 2.
-4. **Fase 3 (formas preexistentes)** — bosquejada (14/08/2026, ver ROADMAP.md), sin codear. El
-   borrado del original no puede reusar `Redact`/`applyRedactions` de mupdf (es para texto/imagen,
-   no para una forma vectorial). **El alcance de v1 cambió tras validar contra 8 PDF reales**: no
-   son rectángulos rellenos (el caso del spike de fase 0) sino rectángulos y líneas con **trazo**
-   — las plantillas de ReciboMail no usan el operador `re` en absoluto, dibujan con `m`/`l`/`h`, y
-   los rellenos abundantes que sí aparecen (la marca de agua de un recibo real) están rotados 30°
-   y no son rectangulares. El truco de detección: el recorrido de mupdf entrega las formas en el
-   mismo orden que los operadores del stream, así que el clic se mapea por posición, no por
-   coordenadas. Repartido entre los dos agentes por archivo, igual que el resto.
-5. **Fases 4 y 5**: capas y multipágina real, y empaquetado con Tauri.
+4. **Importar campos AcroForm de un PDF abierto** (nuevo, 14/08/2026) — el reemplazo de valor real
+   de la fase 3 (ver el punto 5). Al abrir un PDF, leer sus campos de formulario (nombre, posición,
+   tamaño, tipo) y entrarlos como elementos 'campo' del editor, listos para editar en un paso.
+   Repartido igual que el resto: lectura en `pdfExistente.ts` de quien toque `editor/**`, cableado
+   de quien toque `ui/**`/`main.ts`.
+5. **Fase 3 (formas preexistentes) — en pausa.** Bosquejada y validada dos veces contra PDFs
+   reales (14/08/2026, ver ROADMAP.md para la historia completa): primero se corrigió de rellenos a
+   trazos, y al medir bien esos trazos —separando contenido real de anotaciones— resultaron ser
+   bordes de campos de formulario, no formas de página. Ningún PDF real disponible tiene formas
+   editables en su contenido, así que se pausa hasta que aparezca uno; mientras tanto, el punto 4
+   de arriba cubre el mismo caso de uso (una plantilla con "recuadros" que en realidad son campos).
+6. **Fases 4 y 5**: capas y multipágina real, y empaquetado con Tauri.
 
 ## Cómo verificar
 
