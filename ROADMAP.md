@@ -33,7 +33,12 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
 - [x] Shell de la app: encabezado, barra de menús, layout de paneles, barra de estado
 - [x] Lienzo en blanco (Fabric.js) con tamaño de página real en puntos
 - [x] Herramientas de dibujo: Texto, Línea, Recuadro, QR (crear, seleccionar, editar propiedades, eliminar)
-- [x] Herramientas de dibujo: Tabla, Imagen
+- [x] Herramientas de dibujo: Tabla, Imagen. Al importar una imagen (`editor/imagen.ts`,
+      14/08/2026): se comprueba el formato de verdad por la firma del archivo, no por la extensión
+      —un archivo que dice ser PNG y no lo es entraba sin avisar y reventaba recién al exportar—, y
+      se achica a 1600 px de lado mayor si hace falta, porque una foto de teléfono entera alcanzaba
+      para que el autoguardado (~5 MB en localStorage) dejara de guardar en silencio. Los PNG que
+      ya entran quedan intactos, para no perder transparencia.
 - [x] Campos AcroForm (panel izquierdo: catálogo de IDs, colocar como campo interactivo en la hoja) — falta el modo "repetible" (comodín #, expansión en filas)
 - [x] Deshacer / rehacer (Ctrl+Z / Ctrl+Y)
 - [x] Modal Nuevo proyecto (tamaño, orientación, márgenes)
@@ -74,6 +79,12 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
 - [x] Multiidioma ES/EN/PT — `ui/i18n.ts` (diccionario + `data-i18n*` + selector en el encabezado),
       cableado en `shell.ts`, `modales.ts`, `panelPropiedades.ts`, `panelCampos.ts`, `main.ts` y los
       textos largos de `ayuda.ts`. Falta: probar el selector en el navegador (no se probó todavía)
+- [x] **Auditoría del panel de propiedades contra el editor público** (14/08/2026), control por
+      control. Faltaban 3, todos de imagen: el botón "Reemplazar imagen…" (cambia el `src` sin
+      tocar posición ni tamaño, a diferencia de borrar y volver a colocarla), la miniatura de la
+      imagen en el panel, y la miniatura del QR. El resto de los controles del original existen
+      todos (con nombres distintos) y hay varios de más (ángulo, texto vertical, separación entre
+      renglones, varias líneas, color interno de tabla).
 
 ## Fase 2 — Edición real de texto preexistente
 

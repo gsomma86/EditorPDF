@@ -9,7 +9,11 @@ convenciones y las lecciones de bugs ya resueltos, que conviene no volver a trop
 ## Dónde está el proyecto
 
 **Fase 1 (MVP): completa**, incluido el multiidioma ES/EN/PT (`ui/i18n.ts`, ver el punto 1 de
-abajo). Todo lo demás está hecho y probado en el navegador por Germán: dibujo, campos AcroForm con
+abajo) y una auditoría del panel de propiedades control por control contra el editor público
+(14/08/2026): faltaban el botón "Reemplazar imagen…", y las miniaturas de imagen y QR en el panel,
+ya resueltos; de paso se encontró que importar una imagen no validaba nada (un archivo que decía
+ser PNG y no lo era entraba sin avisar y reventaba al exportar), corregido en `editor/imagen.ts`.
+Todo lo demás está hecho y probado en el navegador por Germán: dibujo, campos AcroForm con
 repetibles, rotación, texto vertical y de varias líneas, completar campos, deshacer/rehacer,
 guardar/importar proyecto, exportar PDF, fondo de hoja (imagen y PDF), ayuda, atajos, y paneles
 colapsables de ancho ajustable.
