@@ -303,7 +303,7 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
       Verificado con `npm run verificar-hojas`: sobre un PDF de 4 páginas, borrar la segunda y
       mover la última al principio da un exportado de 3 páginas en el orden D, A, C; y duplicar la
       primera deja 5 páginas con la copia al lado del original.
-- [ ] **Insertar (mergear) otro PDF en una posición** — decidido el 15/08/2026, sin empezar.
+- [x] **Insertar (mergear) otro PDF en una posición** (15/08/2026).
       Insertar las páginas de otro PDF dentro del documento, eligiendo dónde. **No** se hace
       sobrecargando "Abrir PDF" según dónde esté parado el cursor: esa acción reemplaza el
       documento y la nueva lo agranda, y compartir botón entre algo destructivo y algo aditivo
@@ -321,12 +321,12 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
       A tener en cuenta al implementarlo: campos AcroForm con el mismo nombre en los dos PDFs
       quedan como un solo campo con el mismo valor en las dos páginas, y el PDF de base pasa a
       pesar la suma de los dos (se nota en el autoguardado y en el `.json`).
-- [ ] **Tamaño y orientación por hoja** — decidido el 15/08/2026, sin empezar. Hoy son del
+- [x] **Tamaño y orientación por hoja** (15/08/2026). Hoy son del
       documento entero, una decisión a propósito de la fase 4 que el merge deja sin sostén. Cada
       hoja se acuerda de su tamaño y orientación y el lienzo cambia al pasar de una a otra; los
       márgenes siguen siendo del documento. Al insertar un PDF de otro tamaño se **avisa, sin
       bloquear**: el aviso es solo un aviso, la inserción se hace igual.
-- [ ] **Ocultar los campos de formulario en el lienzo** — decidido el 15/08/2026, sin empezar.
+- [x] **Ocultar los campos de formulario en el lienzo** (15/08/2026).
       Un interruptor en el menú Ver para mirar el documento sin sus campos. **Es una vista y nada
       más**: no toca el modelo, no entra al historial, no se autoguarda como un cambio del diseño y
       no afecta la exportación — los campos siguen ahí y salen en el PDF. Ojo con eso, porque el
@@ -348,7 +348,7 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
         de una sola vez.
       Efecto secundario bueno: los campos de una plantilla real tapan el 47% de la hoja, y con
       ellos apagados el doble clic para editar textos y formas del PDF llega a todos lados.
-- [ ] **Paneles laterales flotantes y reubicables** — decidido el 15/08/2026, sin empezar. Botón
+- [x] **Paneles laterales flotantes y reubicables** (15/08/2026). Botón
       para desacoplar un panel: pasa a ser una ventana suelta por encima del lienzo, se arrastra de
       su cabecera, se redimensiona, y al acercarla a un borde se acopla de ese lado. **Es el más
       grande de los pendientes anotados hoy.**
@@ -373,6 +373,22 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
       Se evaluó hacer primero un botón "mover al otro lado" —una tarde de trabajo, resuelve cambiar
       de lado sin ventanas ni arrastre— y se decidió ir directo a lo flotante completo.
       Al implementarlo, mockup antes de codear, como el resto de la interfaz.
+      **Lo que apareció al probarlo**: colapsada a un costado quedan 32 px y los botones no entran
+      en fila, así que se apilan; ocultar con `display:none` el separador de un costado vacío corre
+      todas las columnas del grid y el panel del otro lado quedaba en 5 px; y la barra de
+      Herramientas suma **cerrar**, con el menú Ver como única forma de recuperarla —de ahí la
+      sección "Barras" y "Restaurar barras".
+- [x] **Atajos de teclado en todas las opciones de menú** (15/08/2026). Cada uno hace clic en su
+      opción, así la acción tiene una sola implementación y el atajo no puede quedar desfasado del
+      menú. Qué combinación se puede usar no es cuestión de gusto: `Ctrl+N`, `Ctrl+T` y `Ctrl+W` se
+      los queda el navegador y no llegan nunca; `Ctrl+R` y `F5` son recargar; y en un teclado
+      latinoamericano **AltGr es Ctrl+Alt**, así que se evitan las letras que ahí producen un
+      carácter. Se muestran al lado de cada opción —uno que no se ve no lo usa nadie— y la ventana
+      de Atajos se arma sola desde una lista, porque a mano en tres idiomas se desfasa enseguida.
+- [x] **La barra de Herramientas, con secciones plegables** (15/08/2026). Antes se llamaba "campos"
+      y solo tenía el catálogo AcroForm; ahora suma arriba la sección **Dibujo** con las seis
+      herramientas del menú Campos. Las dos se pliegan: con una plantilla real el catálogo tiene
+      cientos de campos, y sin plegarlo las herramientas quedan fuera de la vista.
 - [ ] Capas
 - [x] **Multi-página real (insertar, reordenar, eliminar páginas)** (15/08/2026). Un documento es
       varias hojas y el lienzo muestra una por vez; el tamaño, la orientación, los márgenes y el

@@ -51,9 +51,14 @@ adelante se diseñaba a ciegas. Ahora cada hoja se acuerda de qué página viene
 páginas arma N hojas, borrar una hoja saca esa página del archivo exportado, y la tira es de
 miniaturas. El selector "Página" ya no existe. Ver el punto 4 del ROADMAP.
 
-**Lo próximo, ya decidido y sin empezar**: insertar (mergear) otro PDF en una posición, y antes de
-eso tamaño y orientación **por hoja** — hoy son del documento entero, y sin eso no se puede meter
-un anexo A4 en un recibo A5 sin mentir en pantalla. Los dos están detallados en el ROADMAP.
+**Los cuatro puntos que seguían a eso están hechos** (15/08/2026): tamaño y orientación por hoja,
+insertar (mergear) otro PDF en una posición, ocultar los campos en el lienzo, y las barras
+flotantes y reubicables. Más lo que salió en el camino: atajos de teclado en todas las opciones de
+menú, la barra de Herramientas con secciones plegables, y el zoom hasta 400 %. Todo detallado en la
+fase 4 del ROADMAP.
+
+**Lo próximo es la fase 5 — empaquetado con Tauri**, salvo que aparezca algo antes. De la fase 4
+quedan sin empezar Capas, Firma digital y Más formas geométricas.
 
 ## Lo que falta
 

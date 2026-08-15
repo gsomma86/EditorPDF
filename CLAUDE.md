@@ -457,3 +457,17 @@ validada — ver la sección Fase 0 del roadmap.
     una caja sin contenido y sin ancho de referencia no da nada: las hojas en blanco salían como una
     línea fina mientras las que tenían imagen se veían bien, porque el ancho se lo daba la imagen.
     El ancho de la miniatura sale del alto de la tira por la proporción de la hoja.
+46. **Renombrar una clase de CSS deja huérfanas las reglas que la usan como ancestro.** Al pasar
+    `.ed-panel` a `.ed-pieza` se renombraron las reglas propias pero no `.ed-panel select` ni
+    `.ed-panel input`, y todos los controles de los paneles se quedaron sin ancho: se veía en un
+    solo lugar (el campo de ID salido de la barra) pero estaba roto en todo el panel de
+    propiedades. Al renombrar, buscar la clase **con espacio detrás**, no solo pegada.
+47. **En un grid de columnas fijas, ocultar una con `display:none` corre todas las demás.** El
+    separador de un costado vacío se ocultaba así y el panel del otro lado terminaba midiendo 5 px
+    —el ancho de la columna del separador—. Para que el grid no se corra, el elemento se queda y
+    solo se vuelve inerte.
+48. **Qué atajo de teclado se puede usar no es cuestión de gusto.** `Ctrl+N`, `Ctrl+T` y `Ctrl+W`
+    se los queda el navegador y no llegan nunca; `Ctrl+R` y `F5` son recargar y pelearles es
+    perder; y en un teclado latinoamericano **AltGr es Ctrl+Alt**, así que `Ctrl+Alt+letra` choca
+    con las letras que ahí producen un carácter (Q, E, 2…). Antes de elegir uno, probarlo en el
+    navegador: que llegue se comprueba mirando si el evento queda `defaultPrevented`.
