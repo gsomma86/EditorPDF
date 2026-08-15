@@ -374,7 +374,10 @@ async function rasterizar(): Promise<{ fondo: string; ancho: number; alto: numbe
   lienzo.height = Math.ceil(vista.height);
   const contexto = lienzo.getContext('2d');
   if (!contexto) throw new Error('El navegador no pudo preparar el dibujo de la página.');
-  await pagina.render({ canvas: lienzo, canvasContext: contexto, viewport: vista }).promise;
+  // Sin anotaciones: los campos de formulario del PDF se importan como elementos del diseño, así
+  // que si además vinieran dibujados en el fondo se verían dos veces —el del fondo con su valor y
+  // el nuestro encima— y al borrar un campo reaparecería el de abajo, como si no se hubiera ido.
+  await pagina.render({ canvas: lienzo, canvasContext: contexto, viewport: vista, annotationMode: pdfjs.AnnotationMode.DISABLE }).promise;
 
   return {
     fondo: lienzo.toDataURL('image/png'),
