@@ -244,17 +244,27 @@ export async function camposDelPdf(): Promise<CamposImportados> {
       const apariencia = widget.getAppearanceCharacteristics();
       const fondo = apariencia?.getBackgroundColor();
       const borde = apariencia?.getBorderColor();
-      const grosor = widget.getBorderStyle()?.getWidth();
+      const grosorBorde = borde?.length ? (widget.getBorderStyle()?.getWidth() ?? 1) : 0;
       const da = widget.getDefaultAppearance() ?? campo.acroField.getDefaultAppearance() ?? '';
       const estilo = leerDA(da, h);
 
+      // El rectángulo del PDF incluye el borde, pero al exportar pdf-lib lo agrega por fuera de la
+      // caja que se le pide (medio grosor por lado). Sin descontarlo acá, cada vuelta de importar
+      // y exportar agrandaría el campo un grosor, y el error se iría acumulando.
+      const caja = {
+        x: x + grosorBorde / 2,
+        y: alturaPagina - yPdf - h + grosorBorde / 2,
+        w: Math.max(1, w - grosorBorde),
+        h: Math.max(1, h - grosorBorde),
+      };
+
       campos.push({
         name: campo.getName(),
-        x: Math.round(x * 100) / 100,
-        // El PDF mide desde abajo y el lienzo desde arriba.
-        y: Math.round((alturaPagina - yPdf - h) * 100) / 100,
-        w: Math.round(w * 100) / 100,
-        h: Math.round(h * 100) / 100,
+        // La Y ya viene dada vuelta: el PDF mide desde abajo y el lienzo desde arriba.
+        x: Math.round(caja.x * 100) / 100,
+        y: Math.round(caja.y * 100) / 100,
+        w: Math.round(caja.w * 100) / 100,
+        h: Math.round(caja.h * 100) / 100,
         size: estilo.size,
         familia: estilo.familia,
         negrita: estilo.negrita,
@@ -264,7 +274,7 @@ export async function camposDelPdf(): Promise<CamposImportados> {
         readonly: campo.isReadOnly(),
         multilinea: campo.isMultiline(),
         defaultValue: campo.getText() ?? '',
-        bordeGrosor: borde?.length ? (grosor ?? 1) : 0,
+        bordeGrosor: grosorBorde,
         bordeColor: borde?.length ? hex(borde) : '#000000',
         conFondo: !!fondo?.length,
         fondoColor: fondo?.length ? hex(fondo) : '#ffffff',

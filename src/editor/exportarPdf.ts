@@ -220,6 +220,13 @@ export async function exportarPdf(lienzo: Canvas, opciones: OpcionesExportar): P
   const formulario = doc.getForm();
   const camposCreados = new Map<string, PDFTextField>();
 
+  // Los campos que ya trae el PDF de base se sacan antes de escribir los del diseño: al abrirlo se
+  // importaron a la hoja, así que el diseño es el que manda —incluidos los que se hayan movido o
+  // borrado—. Sin esto, crear uno con el mismo nombre choca y la exportación falla entera.
+  if (base) {
+    for (const campo of formulario.getFields()) formulario.removeField(campo);
+  }
+
   // El fondo va primero, estirado a toda la hoja, para que todo lo demás quede encima. Con un PDF
   // de base no corresponde: su propio contenido ya es el fondo, y en mejor calidad.
   if (config.fondo && !base) {
