@@ -512,6 +512,26 @@ export async function abrirPdf(archivo: File, pagina = 0): Promise<PdfAbierto> {
  * El diseño que ya esté en la hoja no se toca: es responsabilidad de quien llama decidir qué
  * hacer con él, porque los elementos estaban puestos sobre la página anterior.
  */
+/**
+ * Mete en el PDF una copia de una página, justo después de ella, y deja el documento asentado.
+ *
+ * Es lo que hace falta para duplicar una hoja: sin esto las dos hojas apuntarían a la misma página
+ * y editar su contenido —borrar un texto, sacar una forma— se vería en las dos, porque la cirugía
+ * es sobre el PDF y no sobre la hoja. Con la copia, cada hoja tiene su propia página y se editan
+ * por separado. Quien llama tiene que correr un lugar las páginas de las hojas que venían después.
+ */
+export async function duplicarPaginaDelPdf(indice: number): Promise<void> {
+  if (!bytesActuales) return;
+
+  const { PDFDocument } = await import('@cantoo/pdf-lib');
+  const documento = await PDFDocument.load(bytesActuales.slice());
+  if (indice < 0 || indice >= documento.getPageCount()) return;
+
+  const [copia] = await documento.copyPages(documento, [indice]);
+  documento.insertPage(indice + 1, copia);
+  await asentarPdf(new Uint8Array(await documento.save()), indice + 1);
+}
+
 export async function usarPagina(indice: number): Promise<void> {
   if (!bytesActuales || indice === paginaElegida) return;
   // Relee los textos y las formas: son los de la página nueva, y son lo que ofrece el doble clic.

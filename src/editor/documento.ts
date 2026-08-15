@@ -100,6 +100,25 @@ export async function irAHoja(lienzo: Canvas, indice: number): Promise<void> {
 export async function agregarHoja(lienzo: Canvas, copiarLaActual = false): Promise<void> {
   asentarHoja(lienzo);
   const nueva: Hoja = copiarLaActual ? JSON.parse(JSON.stringify(hojas[hojaVigente])) : hojaEnBlanco();
+  const origen = nueva.paginaPdf;
+
+  // Duplicar una hoja que viene de un PDF duplica también su página, y las de más adelante se
+  // corren un lugar. Si las dos hojas compartieran página, editar el contenido de una —borrar un
+  // texto, sacar una forma— se vería en las dos: la cirugía es sobre el PDF, no sobre la hoja.
+  if (copiarLaActual && origen !== null) {
+    const { duplicarPaginaDelPdf, hayPdfAbierto } = await import('./pdfExistente');
+    if (hayPdfAbierto()) {
+      await duplicarPaginaDelPdf(origen);
+      for (const hoja of hojas) {
+        if (hoja.paginaPdf !== null && hoja.paginaPdf > origen) hoja.paginaPdf += 1;
+      }
+      nueva.paginaPdf = origen + 1;
+      // Las páginas se corrieron de número: lo dibujado hasta ahora está guardado con el índice
+      // viejo y mostraría la página equivocada.
+      olvidarPaginasDibujadas();
+    }
+  }
+
   hojas.splice(hojaVigente + 1, 0, nueva);
   hojaVigente += 1;
   await reconstruirLienzo(lienzo, hojas[hojaVigente].elementos);

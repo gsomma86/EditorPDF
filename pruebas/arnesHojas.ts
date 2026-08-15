@@ -172,6 +172,32 @@ const textoBase = (i: number) =>
 comparar('PDF de base', 'páginas exportadas', 3, (await PDFDocument.load(conBase)).getPageCount());
 comparar('PDF de base', 'la borrada no sale y el orden es el de la tira', ['PAGINA D', 'PAGINA A', 'PAGINA C'], [0, 1, 2].map(textoBase));
 
+// ---------- Duplicar una hoja duplica su página ----------
+
+// Si las dos hojas compartieran página, editar el contenido de una se vería en la otra: la cirugía
+// (borrar un texto, sacar una forma) es sobre el PDF, no sobre la hoja.
+await asentarPdf(bytesPartida);
+await establecerHojas(lienzo, [0, 1, 2, 3].map((p) => ({ elementos: [], paginaPdf: p, fondo: null })), 0);
+await agregarHoja(lienzo, true);
+
+const { bytesDelPdf } = await import('../src/editor/pdfExistente');
+const conCopia = await PDFDocument.load(bytesDelPdf()!.slice());
+comparar('duplicar hoja', 'el PDF tiene una página más', 5, conCopia.getPageCount());
+comparar(
+  'duplicar hoja',
+  'cada hoja con su propia página',
+  [0, 1, 2, 3, 4],
+  hojasDelDocumento(lienzo).map((h) => h.paginaPdf)
+);
+
+const leidoCopia = mupdf.PDFDocument.openDocument(bytesDelPdf()!.slice(), 'application/pdf');
+const textoCopia = (i: number) =>
+  JSON.parse((leidoCopia.loadPage(i) as any).toStructuredText('preserve-whitespace').asJSON())
+    .blocks.flatMap((b: any) => (b.lines ?? []).map((l: any) => l.text))
+    .join(' ')
+    .trim();
+comparar('duplicar hoja', 'la copia quedó al lado del original', ['PAGINA A', 'PAGINA A', 'PAGINA B'], [0, 1, 2].map(textoCopia));
+
 cerrarPdf();
 
 console.log(filas.join('\n'));
