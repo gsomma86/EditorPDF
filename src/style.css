@@ -730,6 +730,14 @@ button {
   color: var(--texto-2);
   font-weight: 700;
 }
+/* Los campos apagados desaparecen de la vista: sin este aviso es facil creer que se perdieron. */
+.ed-status-campos {
+  background: var(--err-fondo);
+  color: var(--err-texto);
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-weight: 600;
+}
 .ed-status-divisor {
   width: 1px;
   height: 14px;

@@ -37,6 +37,7 @@ const ES = {
   'shell.hojas.moverIzq': 'Mover a la izquierda',
   'shell.hojas.moverDer': 'Mover a la derecha',
   'shell.status.paginas': 'Se exportan {n} páginas',
+  'shell.status.camposOcultos': 'Campos ocultos',
   'shell.zoom.alejarTt': 'Alejar',
   'shell.zoom.acercarTt': 'Acercar',
   'shell.zoom.tt': 'Zoom',
@@ -62,6 +63,7 @@ const ES = {
   'menu.ver.pasoTt': 'Separación (pt)',
   'menu.ver.reglas': 'Reglas',
   'menu.ver.alineacion': 'Alineación',
+  'menu.ver.ocultarCampos': 'Ocultar campos de formulario',
 
   'menu.pagina': 'Página',
   'menu.pagina.tamano': 'Tamaño',
@@ -314,6 +316,7 @@ const EN: Record<ClaveI18n, string> = {
   'shell.hojas.moverIzq': 'Move left',
   'shell.hojas.moverDer': 'Move right',
   'shell.status.paginas': '{n} pages will be exported',
+  'shell.status.camposOcultos': 'Fields hidden',
   'shell.zoom.alejarTt': 'Zoom out',
   'shell.zoom.acercarTt': 'Zoom in',
   'shell.zoom.tt': 'Zoom',
@@ -339,6 +342,7 @@ const EN: Record<ClaveI18n, string> = {
   'menu.ver.pasoTt': 'Spacing (pt)',
   'menu.ver.reglas': 'Rulers',
   'menu.ver.alineacion': 'Alignment',
+  'menu.ver.ocultarCampos': 'Hide form fields',
 
   'menu.pagina': 'Page',
   'menu.pagina.tamano': 'Size',
@@ -589,6 +593,7 @@ const PT: Record<ClaveI18n, string> = {
   'shell.hojas.moverIzq': 'Mover para a esquerda',
   'shell.hojas.moverDer': 'Mover para a direita',
   'shell.status.paginas': 'Serão exportadas {n} páginas',
+  'shell.status.camposOcultos': 'Campos ocultos',
   'shell.zoom.alejarTt': 'Diminuir zoom',
   'shell.zoom.acercarTt': 'Aumentar zoom',
   'shell.zoom.tt': 'Zoom',
@@ -614,6 +619,7 @@ const PT: Record<ClaveI18n, string> = {
   'menu.ver.pasoTt': 'Espaçamento (pt)',
   'menu.ver.reglas': 'Réguas',
   'menu.ver.alineacion': 'Alinhamento',
+  'menu.ver.ocultarCampos': 'Ocultar campos de formulário',
 
   'menu.pagina': 'Página',
   'menu.pagina.tamano': 'Tamanho',

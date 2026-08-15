@@ -27,6 +27,8 @@ const MENU_VER = `
   </div>
   <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-reglas" /> <span data-i18n="menu.ver.reglas"></span></label>
   <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-guias" checked /> <span data-i18n="menu.ver.alineacion"></span></label>
+  <div class="ed-dd-sep"></div>
+  <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-ocultar-campos" /> <span data-i18n="menu.ver.ocultarCampos"></span></label>
 `;
 
 const MENU_PAGINA = `
@@ -168,6 +170,7 @@ export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
       <div class="ed-status-der">
         <span class="ed-status-vista"><b id="ed-status-tam">A4</b> · <span id="ed-status-orient" data-i18n="pagina.orientacion.vertical"></span></span>
         <div class="ed-status-divisor"></div>
+        <span class="ed-status-campos" id="ed-status-campos" data-i18n="shell.status.camposOcultos" hidden></span>
         <span class="ed-status-paginas" id="ed-status-paginas" hidden></span>
         <div class="ed-status-divisor" id="ed-status-divisor-paginas" hidden></div>
         <button type="button" class="ed-status-peso" id="ed-peso-btn" data-i18n="shell.status.peso"></button>

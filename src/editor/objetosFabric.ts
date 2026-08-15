@@ -1,4 +1,4 @@
-import { cache, FabricImage, FabricObject, FabricText, Group, Rect, Textbox } from 'fabric';
+import { cache, FabricImage, FabricObject, FabricText, Group, Rect, Textbox, type Canvas } from 'fabric';
 import QRCode from 'qrcode';
 import { alturaRenglonFabric, PASO_RENGLON, type Elemento, type ElementoQr } from './elemento';
 import { asegurarFuenteCargada } from './fuentes';
@@ -32,6 +32,40 @@ export function activarModoCompletar(valor: boolean): void {
 
 export function enModoCompletar(): boolean {
   return modoCompletar;
+}
+
+/**
+ * Campos apagados: se dejan de ver en el lienzo para mirar el documento sin ellos.
+ *
+ * Es **solo una vista**. Los objetos quedan invisibles pero presentes: el editor autoguarda
+ * leyendo el lienzo (`asentarHoja`), así que sacarlos se llevaría los campos puestos. Tampoco
+ * entra al historial ni cambia la exportación: los campos siguen saliendo en el PDF.
+ *
+ * Vive acá, junto al modo Completar, porque se aplica **donde se arma cada objeto**: cambiar de
+ * hoja reconstruye el lienzo y un campo nuevo nace visible, así que un barrido de una sola vez se
+ * quedaría corto.
+ */
+let camposApagados = false;
+
+export function camposEstanOcultos(): boolean {
+  return camposApagados;
+}
+
+/** Prende o apaga los campos y lo aplica a lo que ya está en el lienzo. */
+export function ocultarCampos(lienzo: Canvas, valor: boolean): void {
+  camposApagados = valor;
+  if (valor) lienzo.discardActiveObject();
+  for (const objeto of lienzo.getObjects()) {
+    if (elementoDe(objeto)?.clase === 'campo') aplicarVisibilidadDeCampo(objeto);
+  }
+  lienzo.requestRenderAll();
+}
+
+/**
+ * Un campo apagado además no se puede seleccionar: si no, se termina arrastrando algo que no se ve.
+ */
+function aplicarVisibilidadDeCampo(objeto: FabricObject): void {
+  objeto.set({ visible: !camposApagados, selectable: !camposApagados, evented: !camposApagados });
 }
 
 export function elementoDe(objeto: FabricObject): Elemento | undefined {
@@ -121,6 +155,9 @@ export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObjec
   const debajo = (elemento.clase === 'rect' || elemento.clase === 'linea') && elemento.debajoDeLaPagina;
   const objeto = await construirObjeto(elemento);
   if (debajo) objeto.set({ globalCompositeOperation: 'destination-over' });
+  // Con los campos apagados, los que nazcan después también tienen que nacer apagados: se crean al
+  // cambiar de hoja, al deshacer y al colocar uno nuevo.
+  if (elemento.clase === 'campo' && camposApagados) aplicarVisibilidadDeCampo(objeto);
   return objeto;
 }
 

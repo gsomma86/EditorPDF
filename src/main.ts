@@ -2,7 +2,7 @@ import './style.css';
 import { montarEspacioTrabajo } from './ui/shell';
 import { crearLienzo } from './editor/lienzo';
 import { crearElemento, crearElementoCampo, crearElementoImagen, crearElementoTabla, duplicarElemento, type ClaseSimple, type Elemento } from './editor/elemento';
-import { activarModoCompletar, agregarAlLienzo, elementoDe, enModoCompletar, reconstruirLienzo, sincronizarGeometria } from './editor/objetosFabric';
+import { activarModoCompletar, agregarAlLienzo, camposEstanOcultos, elementoDe, enModoCompletar, ocultarCampos, reconstruirLienzo, sincronizarGeometria } from './editor/objetosFabric';
 import { escapeHtml, mostrarMultiSeleccion, mostrarPropiedades, mostrarSinSeleccion } from './ui/panelPropiedades';
 import { ActiveSelection, type FabricObject } from 'fabric';
 import { borrarAutoguardado, hayAutoguardado, programarAutoguardado, restaurarAutoguardado } from './editor/autoguardado';
@@ -356,8 +356,39 @@ function elementosDelLienzo(): Elemento[] {
     .filter((el): el is Elemento => !!el);
 }
 
+const checkOcultarCampos = document.getElementById('ed-ocultar-campos') as HTMLInputElement;
+const avisoCampos = document.getElementById('ed-status-campos')!;
+
+/**
+ * Apaga o prende los campos en el lienzo. Es solo una vista: no toca el modelo, no entra al
+ * historial y no cambia lo que se exporta.
+ *
+ * El aviso en la barra de estado no es un adorno: apagados, los campos desaparecen de la vista y
+ * es fácil olvidarse y creer que se perdieron.
+ */
+function aplicarOcultarCampos(valor: boolean): void {
+  checkOcultarCampos.checked = valor;
+  ocultarCampos(lienzo, valor);
+  avisoCampos.hidden = !valor;
+  mostrarSinSeleccion(espacio.panelPropiedades);
+}
+
+checkOcultarCampos.addEventListener('change', () => {
+  const apagar = checkOcultarCampos.checked;
+  // Completar campos es el modo opuesto —ahí los campos son lo único que importa—, así que apagar
+  // los campos sale de ese modo sin preguntar.
+  if (apagar && enModoCompletar()) {
+    const completar = document.getElementById('ed-completar') as HTMLInputElement;
+    completar.checked = false;
+    completar.dispatchEvent(new Event('change'));
+  }
+  aplicarOcultarCampos(apagar);
+});
+
 document.getElementById('ed-completar')!.addEventListener('change', async (e) => {
   const encendido = (e.target as HTMLInputElement).checked;
+  // Y al revés: entrar a Completar campos vuelve a prenderlos, o no habría nada que completar.
+  if (encendido && camposEstanOcultos()) aplicarOcultarCampos(false);
   activarModoCompletar(encendido);
   lienzo.discardActiveObject();
   await reconstruirLienzo(lienzo, elementosDelLienzo());
