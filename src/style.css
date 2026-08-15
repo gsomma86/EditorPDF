@@ -153,6 +153,7 @@ button {
   display: flex;
   align-items: center;
   gap: 7px;
+  white-space: nowrap;
   padding: 7px 9px;
   font-size: 12.5px;
   cursor: pointer;
@@ -163,6 +164,9 @@ button {
 }
 .ed-dd-check input {
   width: auto;
+  /* La marca va del lado derecho, alineada con el borde del menú: es donde se la busca. */
+  order: 2;
+  margin-left: auto;
 }
 .ed-dd-sep {
   height: 1px;
@@ -1197,4 +1201,31 @@ button {
 }
 .ed-flotantes > * {
   pointer-events: auto;
+}
+
+/* ---------- Cabecera de una pieza colapsada ---------- */
+
+/* Colapsada a un costado quedan 32 px de ancho: los botones no entran uno al lado del otro, así que
+   se apilan. El de colapsar va arriba —es el que se busca para volver a abrirla— y el resto debajo. */
+.ed-pieza.colapsado[data-lugar='izq'] .ed-pieza-head,
+.ed-pieza.colapsado[data-lugar='der'] .ed-pieza-head {
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+/* Abajo pasa al revés: sobra ancho y falta alto, así que los botones van en fila. */
+#ed-pieza-hojas.colapsado.horizontal .ed-pieza-head {
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+/* Colapsada, la tira no muestra miniaturas: en 26 px de alto saldrían recortadas. */
+.ed-pieza.colapsado .ed-hojas-lista {
+  display: none;
+}
+
+/* Acoplada abajo, las tarjetas se estiran a lo alto de la tira: sin esto una hoja en blanco —que no
+   tiene imagen que le dé altura— se dibujaba como una rayita. */
+#ed-pieza-hojas.horizontal .ed-hojas-lista {
+  align-items: stretch;
 }

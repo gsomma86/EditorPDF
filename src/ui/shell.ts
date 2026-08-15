@@ -21,12 +21,19 @@ const MENU_EDITAR = `
 `;
 
 const MENU_VER = `
+  <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-cuadricula" /> <span data-i18n="menu.ver.cuadricula"></span></label>
   <div class="ed-dd-item ed-dd-persistente">
-    <label class="ed-dd-check"><input type="checkbox" id="ed-cuadricula" /> <span data-i18n="menu.ver.cuadricula"></span></label>
+    <span data-i18n="menu.ver.paso"></span>
     <input type="number" id="ed-paso" value="5" min="2" max="50" data-i18n-title="menu.ver.pasoTt" />
   </div>
   <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-reglas" /> <span data-i18n="menu.ver.reglas"></span></label>
   <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-guias" checked /> <span data-i18n="menu.ver.alineacion"></span></label>
+  <div class="ed-dd-sep"></div>
+  <div class="ed-dd-nota" data-i18n="menu.ver.barras"></div>
+  <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" data-barra="campos" checked /> <span data-i18n="menu.ver.barraCampos"></span></label>
+  <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" data-barra="props" checked /> <span data-i18n="menu.ver.barraProps"></span></label>
+  <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" data-barra="hojas" checked /> <span data-i18n="menu.ver.barraHojas"></span></label>
+  <div class="ed-dd-item" id="ed-restaurar-barras" data-i18n="menu.ver.restaurarBarras"></div>
 `;
 
 const MENU_PAGINA = `
@@ -136,8 +143,9 @@ function htmlDePieza(nombre: string): string {
     <section class="ed-pieza" id="ed-pieza-${nombre}" data-pieza="${nombre}">
       <div class="ed-pieza-head">
         <span class="ed-pieza-tit" data-i18n="${pieza.titulo}"></span>
-        <button type="button" class="ed-pieza-btn" data-accion="desacoplar" data-i18n-title="shell.pieza.desacoplarTt">⧉</button>
         <button type="button" class="ed-pieza-btn" data-accion="colapsar" data-i18n-title="shell.panelToggleTt">‹</button>
+        <button type="button" class="ed-pieza-btn" data-accion="desacoplar" data-i18n-title="shell.pieza.desacoplarTt">⧉</button>
+        <button type="button" class="ed-pieza-btn" data-accion="cerrar" data-i18n-title="shell.pieza.cerrarTt">✕</button>
       </div>
       ${pieza.cuerpo}
     </section>`;

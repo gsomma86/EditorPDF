@@ -23,7 +23,7 @@ const MAXIMO_ABAJO = 320;
 /** A qué distancia del borde aparece la sombra de acople mientras se arrastra una ventana. */
 const IMAN = 70;
 
-export type Lugar = 'izq' | 'der' | 'abajo' | 'flotante';
+export type Lugar = 'izq' | 'der' | 'abajo' | 'flotante' | 'cerrado';
 type Nombre = 'campos' | 'props' | 'hojas';
 
 interface Pieza {
@@ -40,6 +40,9 @@ interface Pieza {
 }
 
 type Estado = Record<Nombre, Pieza>;
+
+/** Dónde nace cada barra, y a dónde vuelve al reabrirla o al restaurarlas. */
+const LUGAR_ORIGINAL: Record<Nombre, Lugar> = { campos: 'izq', props: 'der', hojas: 'abajo' };
 
 function piezaPorDefecto(lugar: Lugar): Pieza {
   return { lugar, colapsado: false, ancho: 210, alto: 105, x: 120, y: 120, anchoFlotante: 230, altoFlotante: 280 };
@@ -95,6 +98,8 @@ export function montarPaneles(raiz: HTMLElement): void {
       const destino = pieza.lugar === 'flotante' ? flotantes : ranura;
       if (destino && nodo.parentElement !== destino) destino.appendChild(nodo);
 
+      // Cerrada no se ve en ninguna parte; se vuelve a abrir desde el menú Ver.
+      nodo.hidden = pieza.lugar === 'cerrado';
       nodo.classList.toggle('flotante', pieza.lugar === 'flotante');
       nodo.classList.toggle('colapsado', pieza.colapsado && pieza.lugar !== 'flotante');
       nodo.classList.toggle('horizontal', pieza.lugar === 'abajo');
@@ -132,6 +137,12 @@ export function montarPaneles(raiz: HTMLElement): void {
     const sepAbajo = raiz.querySelector<HTMLElement>('#ed-separador-hojas')!;
     sepAbajo.classList.toggle('inerte', !abajo || estado[abajo].colapsado);
     sepAbajo.style.display = abajo ? '' : 'none';
+
+    // El menú Ver es la única forma de recuperar una barra cerrada, así que tiene que decir la
+    // verdad aunque se haya cerrado desde su propio botón.
+    for (const check of raiz.querySelectorAll<HTMLInputElement>('[data-barra]')) {
+      check.checked = estado[check.dataset.barra as Nombre].lugar !== 'cerrado';
+    }
 
     localStorage.setItem(CLAVE, JSON.stringify(estado));
   };
@@ -171,9 +182,40 @@ export function montarPaneles(raiz: HTMLElement): void {
       aplicar();
     });
 
+    nodo.querySelector('[data-accion="cerrar"]')!.addEventListener('click', () => {
+      estado[nombre].lugar = 'cerrado';
+      aplicar();
+    });
+
     arrastrarVentana(nombre, nodo);
     estirarVentana(nombre, nodo);
   }
+
+  // ---------- Menú Ver: mostrar, ocultar y restaurar las barras ----------
+
+  /** Devuelve una barra cerrada a su lugar de siempre, o a uno libre si ese está ocupado. */
+  function abrir(nombre: Nombre): void {
+    const suyo = LUGAR_ORIGINAL[nombre];
+    const destino = !quienEsta(suyo) ? suyo : (['izq', 'der', 'abajo'] as const).find((l) => !quienEsta(l));
+    estado[nombre].lugar = destino ?? 'flotante';
+    estado[nombre].colapsado = false;
+  }
+
+  for (const check of raiz.querySelectorAll<HTMLInputElement>('[data-barra]')) {
+    check.addEventListener('change', () => {
+      const nombre = check.dataset.barra as Nombre;
+      if (check.checked) abrir(nombre);
+      else estado[nombre].lugar = 'cerrado';
+      aplicar();
+    });
+  }
+
+  raiz.querySelector('#ed-restaurar-barras')!.addEventListener('click', () => {
+    for (const nombre of nombres) {
+      estado[nombre] = { ...piezaPorDefecto(LUGAR_ORIGINAL[nombre]), ancho: nombre === 'props' ? 230 : 210 };
+    }
+    aplicar();
+  });
 
   // ---------- Arrastrar una ventana suelta ----------
 
