@@ -181,7 +181,7 @@ export interface EspacioTrabajo {
 export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
   raiz.innerHTML = `
     <div class="ed-header">
-      <span class="ed-marca">EditorPDF</span>
+      <img class="ed-marca-ic" src="/avion.png" alt="" width="26" height="26"><span class="ed-marca">EditorPDF</span>
       <span class="relleno"></span>
       <div class="ed-idioma-wrap">
         <button class="ed-idioma-btn" type="button" id="ed-idioma-btn" data-i18n-title="shell.idiomaTt">${idiomaActual().toUpperCase()} ▾</button>

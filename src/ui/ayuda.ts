@@ -460,17 +460,14 @@ const ACERCA: Record<Idioma, string> = {
   el navegador.</p>
   <ul>
     <li>Versión 0.1.0 (en desarrollo)</li>
-    <li>Autor: Germán Somma</li>
-    <li>Licencia: <b>AGPL-3.0</b> — cualquiera que reciba este programa puede pedir su código
-    fuente completo.</li>
-    <li>Código: <code>github.com/gsomma86/EditorPDF</code></li>
+    <li>Autor: Germán Ezequiel Somma — <a href="mailto:sommagerman@gmail.com">sommagerman@gmail.com</a></li>
   </ul>
   <h4>Construido con</h4>
   <ul>
     <li><b>Fabric.js</b> para la superficie de edición</li>
     <li><b>pdf-lib</b> y <b>fontkit</b> para generar el PDF y sus formularios</li>
     <li><b>pdf.js</b> y <b>mupdf</b> para leer y editar PDFs existentes</li>
-    <li><b>qrcode</b> para los códigos QR, y tipografías de <b>Fontsource</b> con licencia OFL</li>
+    <li><b>qrcode</b> para los códigos QR, y tipografías de <b>Fontsource</b></li>
   </ul>
 `,
   en: `
@@ -478,17 +475,15 @@ const ACERCA: Record<Idioma, string> = {
   browser.</p>
   <ul>
     <li>Version 0.1.0 (in development)</li>
-    <li>Author: Germán Somma</li>
-    <li>License: <b>AGPL-3.0</b> — anyone who receives this program can request its full source
+    <li>Author: Germán Ezequiel Somma — <a href="mailto:sommagerman@gmail.com">sommagerman@gmail.com</a></li>
     code.</li>
-    <li>Code: <code>github.com/gsomma86/EditorPDF</code></li>
   </ul>
   <h4>Built with</h4>
   <ul>
     <li><b>Fabric.js</b> for the editing surface</li>
     <li><b>pdf-lib</b> and <b>fontkit</b> to generate the PDF and its forms</li>
     <li><b>pdf.js</b> and <b>mupdf</b> to read and edit existing PDFs</li>
-    <li><b>qrcode</b> for QR codes, and <b>Fontsource</b> typefaces under the OFL license</li>
+    <li><b>qrcode</b> for QR codes, and <b>Fontsource</b> typefaces</li>
   </ul>
 `,
   pt: `
@@ -496,17 +491,14 @@ const ACERCA: Record<Idioma, string> = {
   navegador.</p>
   <ul>
     <li>Versão 0.1.0 (em desenvolvimento)</li>
-    <li>Autor: Germán Somma</li>
-    <li>Licença: <b>AGPL-3.0</b> — qualquer pessoa que receba este programa pode solicitar seu
-    código-fonte completo.</li>
-    <li>Código: <code>github.com/gsomma86/EditorPDF</code></li>
+    <li>Autor: Germán Ezequiel Somma — <a href="mailto:sommagerman@gmail.com">sommagerman@gmail.com</a></li>
   </ul>
   <h4>Construído com</h4>
   <ul>
     <li><b>Fabric.js</b> para a superfície de edição</li>
     <li><b>pdf-lib</b> e <b>fontkit</b> para gerar o PDF e seus formulários</li>
     <li><b>pdf.js</b> e <b>mupdf</b> para ler e editar PDFs existentes</li>
-    <li><b>qrcode</b> para os códigos QR, e tipografias do <b>Fontsource</b> com licença OFL</li>
+    <li><b>qrcode</b> para os códigos QR, e tipografias do <b>Fontsource</b></li>
   </ul>
 `,
 };

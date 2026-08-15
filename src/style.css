@@ -1455,3 +1455,9 @@ button {
   pointer-events: auto;
   cursor: pointer;
 }
+
+/* El avión de ReciboMail en la barra: va sin recuadro porque el fondo ya es el azul de la marca. */
+.ed-marca-ic {
+  display: block;
+  flex-shrink: 0;
+}
