@@ -72,6 +72,33 @@ export function textoParaDibujar(elemento: Elemento & { clase: 'texto' }): strin
   return elemento.vertical ? [...elemento.text].join('\n') : elemento.text;
 }
 
+/**
+ * Recorta el ID que muestra un campo para que entre en su caja, con puntos suspensivos.
+ *
+ * Hace falta con los campos angostos: el ID suele ser más largo que el ancho del campo y, al
+ * dibujarlo entero, se sale de su caja y se monta sobre la etiqueta del campo de al lado. Con una
+ * plantilla real —una grilla de conceptos con varios campos por fila— el bloque entero queda
+ * ilegible. El editor público no lo sufre porque ahí la etiqueta es HTML y el navegador la recorta.
+ */
+function recortarAlAncho(texto: string, campo: { w: number; size: number; familia: string; negrita: boolean; cursiva: boolean }): string {
+  const disponible = campo.w - 8;
+  if (disponible <= 0) return '';
+
+  const medir = (t: string) =>
+    new FabricText(t, {
+      fontSize: campo.size,
+      fontFamily: campo.familia,
+      fontWeight: campo.negrita ? '700' : '400',
+      fontStyle: campo.cursiva ? 'italic' : 'normal',
+    }).width;
+
+  if (medir(texto) <= disponible) return texto;
+
+  let corto = texto;
+  while (corto.length > 1 && medir(`${corto}…`) > disponible) corto = corto.slice(0, -1);
+  return `${corto}…`;
+}
+
 export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObject> {
   switch (elemento.clase) {
     case 'texto': {
@@ -168,7 +195,7 @@ export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObjec
         strokeWidth: 1,
         strokeDashArray: esInvisible ? [4, 3] : undefined,
       });
-      const etiqueta = new FabricText(elemento.name, {
+      const etiqueta = new FabricText(recortarAlAncho(elemento.name, elemento), {
         // La etiqueta se ancla en el lado que marca la alineación del campo, para que se vea en
         // pantalla dónde va a quedar el texto. `textAlign` no alcanza: solo reparte los renglones
         // dentro de la caja del texto, que acá mide lo mismo que la etiqueta.
