@@ -426,3 +426,9 @@ validada — ver la sección Fase 0 del roadmap.
     `quitarFormaDelPdf` devuelve **todas** las que se fueron (compara la lista de formas antes y
     después) y quien llama las convierte a todas. Vale para cualquier operación futura sobre el
     contenido: **comparar antes y después, y no dar por sentado que se fue solo lo que se pidió**.
+41. **Con `destination-over` el apilado que se ve es el inverso del orden del arreglo.** Cada objeto
+    se dibuja detrás de lo ya dibujado, así que el primero del arreglo termina *arriba* de los
+    siguientes. Al convertir varias formas de un PDF de una vez hay que recorrerlas **en el orden en
+    que las pintaba el PDF** mandando cada una al fondo: así la última pintada queda primera en el
+    arreglo y, por lo tanto, arriba — como estaba. Haciéndolo al revés (que es lo intuitivo) una
+    banda gris termina tapando las líneas que tenía adentro, y parece que se hubieran borrado.

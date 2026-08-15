@@ -730,9 +730,12 @@ lienzo.on('mouse:dblclick', async (e) => {
     cambiarPagina({ fondo });
 
     let elegido: FabricObject | undefined;
-    // De atrás para adelante: cada una se manda al fondo, así al final quedan en el orden en que
-    // las dibujaba el PDF.
-    for (const salida of [...quitadas].reverse()) {
+    // En el orden en que las dibujaba el PDF, mandando cada una al fondo. Ojo con el orden final:
+    // como se dibujan con 'destination-over' —cada objeto va detrás de lo ya dibujado— el apilado
+    // que se ve es el inverso del orden del arreglo. Recorriendo así, la última que pintaba el PDF
+    // queda primera en el arreglo y por lo tanto arriba de todo, como estaba. Al revés, una banda
+    // gris terminaba tapando las líneas que tenía adentro.
+    for (const salida of quitadas) {
       const elemento = crearElemento(salida.clase) as Elemento & { clase: 'rect' | 'linea' };
       elemento.x = salida.x;
       elemento.y = salida.y;
