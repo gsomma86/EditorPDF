@@ -571,7 +571,7 @@ inputPdf.addEventListener('change', async () => {
        ${
          cuantos
            ? `<p>${cuantos === 1 ? t('ayuda.pdfAbierto.textoUno') : t('ayuda.pdfAbierto.textoVarios', { n: cuantos })}${t('ayuda.pdfAbierto.textoResto')}</p>`
-           : `<p>${t('ayuda.pdfAbierto.sinTexto')}</p>`
+           : `<p>${t(pdf.contenido === 'vacia' ? 'ayuda.pdfAbierto.vacia' : 'ayuda.pdfAbierto.sinTexto')}</p>`
        }
        ${
          campos.length
