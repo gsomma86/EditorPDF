@@ -18,6 +18,7 @@ import { aplicarConfigPagina, configActual } from './editor/documento';
 import { activarVista, configurarVista, establecerZoom, vistaActual } from './editor/vista';
 import { configPorDefecto, tamanoParecido, type Orientacion, type TamanoPagina } from './editor/pagina';
 import { cargarProyecto, descargarProyecto, leerProyecto, serializarProyecto } from './editor/proyecto';
+import { hayPdfAbierto } from './editor/pdfExistente';
 
 const raiz = document.querySelector<HTMLDivElement>('#app')!;
 const espacio = montarEspacioTrabajo(raiz);
@@ -414,11 +415,47 @@ const estadoOrient = document.getElementById('ed-status-orient')!;
 
 const selFondo = document.getElementById('ed-fondo-modo') as HTMLSelectElement;
 
+const pagDivisor = document.getElementById('ed-status-divisor-pagina')!;
+const pagCont = document.getElementById('ed-status-pagina')!;
+const pagSelect = document.getElementById('ed-pagina-select') as HTMLSelectElement;
+
+/** Muestra el selector de página solo si el PDF de fondo tiene más de una; lo arma con 1..N. */
+function reflejarSelectorPagina(paginas: number, indice: number): void {
+  const visible = paginas > 1;
+  pagDivisor.hidden = !visible;
+  pagCont.hidden = !visible;
+  if (!visible) return;
+  pagSelect.innerHTML = Array.from({ length: paginas }, (_, i) => `<option value="${i}">${i + 1}</option>`).join('');
+  pagSelect.value = String(indice);
+}
+
+pagSelect.addEventListener('change', async () => {
+  const { elegirPagina, paginaDelPdf } = await import('./editor/pdfExistente');
+  const destino = Number(pagSelect.value);
+
+  // El diseño que ya esté en la hoja quedó puesto sobre la página actual: elegirPagina() no lo
+  // toca, así que conviene avisar antes de cambiar el fondo debajo suyo.
+  if (
+    lienzo.getObjects().length &&
+    !(await confirmar(t('confirmar.cambiarPagina.titulo'), t('confirmar.cambiarPagina.mensaje'), t('confirmar.cambiarPagina.aceptar')))
+  ) {
+    pagSelect.value = String(paginaDelPdf());
+    return;
+  }
+
+  const pdf = await elegirPagina(destino);
+  cambiarPagina({ fondo: pdf.fondo, medidas: { ancho: pdf.ancho, alto: pdf.alto }, ...tamanoParecido(pdf.ancho, pdf.alto) });
+  reflejarSelectorPagina(pdf.paginas, destino);
+});
+
 function reflejarPagina(): void {
   const config = configActual();
   selTamano.value = config.tamano;
   selOrient.value = config.orientacion;
-  selFondo.value = config.fondo ? 'imagen' : 'blanco';
+  // Un fondo de PDF también viaja como data URL en config.fondo, igual que uno de imagen: sin
+  // preguntarle al módulo si hay un PDF de base, el selector quedaría mostrando "Imagen" después
+  // de elegir "PDF".
+  selFondo.value = hayPdfAbierto() ? 'pdf' : config.fondo ? 'imagen' : 'blanco';
   // Se guarda la clave en data-i18n (no solo el texto ya traducido): así, si más tarde se cambia
   // de idioma sin volver a tocar la página, el barrido de aplicarIdioma() sabe qué re-traducir.
   estadoTam.dataset.i18n = `pagina.tamano.${config.tamano}`;
@@ -484,6 +521,8 @@ inputPdf.addEventListener('change', async () => {
 
     // La hoja toma las medidas del PDF, que puede no ser de ningún tamaño del catálogo.
     cambiarPagina({ fondo: pdf.fondo, medidas: { ancho: pdf.ancho, alto: pdf.alto }, ...tamanoParecido(pdf.ancho, pdf.alto) });
+    // abrirPdf() siempre arranca en la página 0; el selector recién se muestra si hay más de una.
+    reflejarSelectorPagina(pdf.paginas, 0);
 
     // Los campos AcroForm entran ya colocados en la hoja, con sus mismas coordenadas, tipografía
     // y color: quedan listos para editar en un paso, en vez de que haya que rearmar la plantilla
@@ -778,6 +817,7 @@ document.getElementById('ed-nuevo')!.addEventListener('click', async () => {
   borrarAutoguardado();
   // Empezar de cero también suelta el PDF de base, o quedaría de fondo de un diseño nuevo.
   (await import('./editor/pdfExistente')).cerrarPdf();
+  reflejarSelectorPagina(0, 0);
 });
 
 // Al abrir, ofrecer seguir donde se dejó. Se pregunta en vez de restaurar solo, para no

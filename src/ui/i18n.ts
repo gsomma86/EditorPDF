@@ -26,6 +26,7 @@ const ES = {
   'shell.status.pesoValor': 'Peso: {peso}',
   'shell.status.pesoError': 'Peso: no se pudo calcular',
   'shell.status.verificar': 'Verificar',
+  'shell.status.paginaLbl': 'Página',
   'shell.zoom.alejarTt': 'Alejar',
   'shell.zoom.acercarTt': 'Acercar',
   'shell.zoom.tt': 'Zoom',
@@ -64,6 +65,7 @@ const ES = {
   'menu.pagina.fondo': 'Fondo',
   'pagina.fondo.blanco': 'Hoja en blanco',
   'pagina.fondo.imagen': 'Imagen…',
+  'pagina.fondo.pdf': 'PDF',
   'menu.pagina.margenes': 'Configurar márgenes…',
 
   'menu.campos': 'Campos',
@@ -263,6 +265,9 @@ const ES = {
   'confirmar.continuarDondeDejaste.aceptar': 'Retomar',
   'shell.status.pdfRecuperado': 'PDF de base recuperado',
   'shell.status.pdfRecuperadoTextos': ' — {n} textos editables con doble clic',
+  'confirmar.cambiarPagina.titulo': 'Cambiar de página',
+  'confirmar.cambiarPagina.mensaje': 'Lo que hay dibujado en la hoja quedó puesto sobre esta página. Al cambiar, el fondo pasa a ser el de la otra página, pero el diseño no se mueve. ¿Continuar?',
+  'confirmar.cambiarPagina.aceptar': 'Cambiar',
 } as const;
 
 export type ClaveI18n = keyof typeof ES;
@@ -282,6 +287,7 @@ const EN: Record<ClaveI18n, string> = {
   'shell.status.pesoValor': 'Size: {peso}',
   'shell.status.pesoError': 'Size: could not be calculated',
   'shell.status.verificar': 'Verify',
+  'shell.status.paginaLbl': 'Page',
   'shell.zoom.alejarTt': 'Zoom out',
   'shell.zoom.acercarTt': 'Zoom in',
   'shell.zoom.tt': 'Zoom',
@@ -320,6 +326,7 @@ const EN: Record<ClaveI18n, string> = {
   'menu.pagina.fondo': 'Background',
   'pagina.fondo.blanco': 'Blank sheet',
   'pagina.fondo.imagen': 'Image…',
+  'pagina.fondo.pdf': 'PDF',
   'menu.pagina.margenes': 'Set up margins…',
 
   'menu.campos': 'Fields',
@@ -519,6 +526,9 @@ const EN: Record<ClaveI18n, string> = {
   'confirmar.continuarDondeDejaste.aceptar': 'Resume',
   'shell.status.pdfRecuperado': 'Base PDF recovered',
   'shell.status.pdfRecuperadoTextos': ' — {n} editable texts with a double-click',
+  'confirmar.cambiarPagina.titulo': 'Change page',
+  'confirmar.cambiarPagina.mensaje': 'What’s drawn on the sheet was placed over this page. Switching changes the background to the other page, but the design doesn’t move. Continue?',
+  'confirmar.cambiarPagina.aceptar': 'Change',
 };
 
 const PT: Record<ClaveI18n, string> = {
@@ -536,6 +546,7 @@ const PT: Record<ClaveI18n, string> = {
   'shell.status.pesoValor': 'Tamanho: {peso}',
   'shell.status.pesoError': 'Tamanho: não foi possível calcular',
   'shell.status.verificar': 'Verificar',
+  'shell.status.paginaLbl': 'Página',
   'shell.zoom.alejarTt': 'Diminuir zoom',
   'shell.zoom.acercarTt': 'Aumentar zoom',
   'shell.zoom.tt': 'Zoom',
@@ -574,6 +585,7 @@ const PT: Record<ClaveI18n, string> = {
   'menu.pagina.fondo': 'Fundo',
   'pagina.fondo.blanco': 'Folha em branco',
   'pagina.fondo.imagen': 'Imagem…',
+  'pagina.fondo.pdf': 'PDF',
   'menu.pagina.margenes': 'Configurar margens…',
 
   'menu.campos': 'Campos',
@@ -773,6 +785,9 @@ const PT: Record<ClaveI18n, string> = {
   'confirmar.continuarDondeDejaste.aceptar': 'Retomar',
   'shell.status.pdfRecuperado': 'PDF de base recuperado',
   'shell.status.pdfRecuperadoTextos': ' — {n} textos editáveis com duplo clique',
+  'confirmar.cambiarPagina.titulo': 'Mudar de página',
+  'confirmar.cambiarPagina.mensaje': 'O que está desenhado na folha foi colocado sobre esta página. Ao mudar, o fundo passa a ser o da outra página, mas o modelo não se move. Continuar?',
+  'confirmar.cambiarPagina.aceptar': 'Mudar',
 };
 
 const D: Record<Idioma, Record<ClaveI18n, string>> = { es: ES, en: EN, pt: PT };

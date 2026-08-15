@@ -51,6 +51,7 @@ const MENU_PAGINA = `
     <select id="ed-fondo-modo">
       <option value="blanco" data-i18n="pagina.fondo.blanco"></option>
       <option value="imagen" data-i18n="pagina.fondo.imagen"></option>
+      <option value="pdf" data-i18n="pagina.fondo.pdf"></option>
     </select>
   </div>
   <div class="ed-dd-sep"></div>
@@ -159,6 +160,11 @@ export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
       <div class="ed-status-izq" data-i18n="shell.status.autoguardado"></div>
       <div class="ed-status-der">
         <span class="ed-status-vista"><b id="ed-status-tam">A4</b> · <span id="ed-status-orient" data-i18n="pagina.orientacion.vertical"></span></span>
+        <div class="ed-status-divisor" id="ed-status-divisor-pagina" hidden></div>
+        <span class="ed-status-pagina" id="ed-status-pagina" hidden>
+          <span data-i18n="shell.status.paginaLbl"></span>
+          <select id="ed-pagina-select"></select>
+        </span>
         <div class="ed-status-divisor"></div>
         <button type="button" class="ed-status-peso" id="ed-peso-btn" data-i18n="shell.status.peso"></button>
         <div class="ed-status-divisor"></div>
