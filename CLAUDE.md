@@ -75,6 +75,7 @@ npm run build            # build de producción
 npx tsc --noEmit         # chequeo de tipos (correr siempre antes de commitear)
 npm run verificar-export # compara el PDF exportado contra lo que dibuja el lienzo (headless)
 npm run verificar-pdf    # borra un texto de un PDF real y comprueba que no quedó tapado
+npm run verificar-campos # importa los campos de una plantilla real, exporta y compara que vuelvan iguales
 npm run medir-rendimiento # cuánto tarda el lienzo con 50, 200, 500 y 1000 elementos
 ```
 
@@ -84,6 +85,12 @@ en un lienzo de Fabric en Node, exporta el mismo caso a PDF, rasteriza los dos a
 1 píxel) y compara las cajas de tinta: responde la única pregunta que importa al exportar, que es
 si el PDF se ve donde se ve en pantalla. Vive en `pruebas/` (los casos, en `pruebas/casos.ts`).
 El texto se compara con holgura porque en Node no están las fuentes reales y los glifos cambian.
+
+`verificar-campos` es la red de fase 2: importa los campos AcroForm de una plantilla real
+(`camposDelPdf`), los exporta de nuevo y compara que vuelvan idénticos. Encontró en su momento un
+bug de campos duplicados al exportar y un crecimiento de medio punto por vuelta — bugs que antes
+solo aparecían probando a mano. **Conviene correrlo antes de tocar el exportador o la importación
+de campos**, sobre todo con más de un agente cambiando ese código a la vez.
 
 ## Estructura
 

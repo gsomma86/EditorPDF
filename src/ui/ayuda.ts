@@ -170,8 +170,10 @@ const FAQ: Record<Idioma, string> = {
   editables</b> para que en lugar de campos se dibuje su valor por defecto, y el PDF quede fijo.</p>
 
   <h4>¿Puedo abrir un PDF hecho en otra herramienta y editarlo?</h4>
-  <p>Todavía no. Es el objetivo del proyecto y está en desarrollo: hoy el editor genera PDFs
-  propios, pero no modifica el contenido de uno existente.</p>
+  <p>Sí. <b>Archivo → Abrir PDF</b> lo trae de fondo con sus campos AcroForm ya importados, listos
+  para editar. Con <b>doble clic</b> sobre cualquier texto del PDF, el original se borra del
+  contenido real —no se tapa— y en su lugar queda un texto del diseño, con la misma tipografía y
+  tamaño. Si tiene varias páginas, un selector en la barra de estado deja elegir cuál.</p>
 
   <h4>¿Por qué el texto que exporto no se ve igual que en pantalla?</h4>
   <p>Las tipografías web se incrustan en el PDF, así que deberían verse iguales. Si algo no cuadra,
@@ -181,6 +183,11 @@ const FAQ: Record<Idioma, string> = {
   <h4>¿Qué pasa si un elemento se sale de la hoja?</h4>
   <p><b>Verificar</b> lo marca como error. Fuera de los márgenes es solo una advertencia: entra en
   el PDF igual.</p>
+
+  <h4>¿Funciona con cualquier alfabeto?</h4>
+  <p>El editor trabaja con alfabeto latino. Un carácter que ninguna de sus tipografías sabe
+  dibujar —cirílico, chino, árabe…— sale como <code>?</code> en el PDF; <b>Verificar</b> avisa
+  antes de exportar cuáles caracteres no se van a poder dibujar.</p>
 `,
   en: `
   <h4>Does anything get uploaded to a server?</h4>
@@ -196,8 +203,10 @@ const FAQ: Record<Idioma, string> = {
   editable</b> so their default value is drawn in place of the fields, and the PDF stays fixed.</p>
 
   <h4>Can I open a PDF made in another tool and edit it?</h4>
-  <p>Not yet. That's the project's goal and it's under development: today the editor generates its
-  own PDFs, but doesn't modify the content of an existing one.</p>
+  <p>Yes. <b>File → Open PDF</b> brings it in as the background with its AcroForm fields already
+  imported, ready to edit. <b>Double-click</b> any text in the PDF and the original is removed from
+  the actual content —not covered up— replaced by a design text with the same font and size. If it
+  has several pages, a selector in the bottom bar lets you pick which one.</p>
 
   <h4>Why doesn't the exported text look the same as on screen?</h4>
   <p>Web fonts are embedded in the PDF, so they should look the same. If something's off,
@@ -207,6 +216,11 @@ const FAQ: Record<Idioma, string> = {
   <h4>What happens if an element falls outside the sheet?</h4>
   <p><b>Verify</b> flags it as an error. Outside the margins is only a warning: it still goes into
   the PDF.</p>
+
+  <h4>Does it work with any alphabet?</h4>
+  <p>The editor works with the Latin alphabet. A character none of its fonts can draw —Cyrillic,
+  Chinese, Arabic…— comes out as <code>?</code> in the PDF; <b>Verify</b> warns before exporting
+  which characters won't be drawable.</p>
 `,
   pt: `
   <h4>Alguma coisa é enviada para um servidor?</h4>
@@ -222,8 +236,10 @@ const FAQ: Record<Idioma, string> = {
   editáveis</b> para que, em vez de campos, seja desenhado o valor padrão, e o PDF fique fixo.</p>
 
   <h4>Posso abrir um PDF feito em outra ferramenta e editá-lo?</h4>
-  <p>Ainda não. É o objetivo do projeto e está em desenvolvimento: hoje o editor gera PDFs
-  próprios, mas não modifica o conteúdo de um já existente.</p>
+  <p>Sim. <b>Arquivo → Abrir PDF</b> traz ele como fundo com seus campos AcroForm já importados,
+  prontos para editar. Com <b>duplo clique</b> em qualquer texto do PDF, o original é removido do
+  conteúdo real —não é coberto— e em seu lugar fica um texto do modelo, com a mesma tipografia e
+  tamanho. Se tiver várias páginas, um seletor na barra de baixo permite escolher qual.</p>
 
   <h4>Por que o texto exportado não fica igual ao da tela?</h4>
   <p>As tipografias web são incorporadas ao PDF, então deveriam ficar iguais. Se algo não bater,
@@ -233,6 +249,11 @@ const FAQ: Record<Idioma, string> = {
   <h4>O que acontece se um elemento sair da folha?</h4>
   <p><b>Verificar</b> marca isso como erro. Fora das margens é apenas um aviso: entra no PDF do
   mesmo jeito.</p>
+
+  <h4>Funciona com qualquer alfabeto?</h4>
+  <p>O editor trabalha com o alfabeto latino. Um caractere que nenhuma das suas tipografias sabe
+  desenhar —cirílico, chinês, árabe…— sai como <code>?</code> no PDF; <b>Verificar</b> avisa antes
+  de exportar quais caracteres não vão poder ser desenhados.</p>
 `,
 };
 

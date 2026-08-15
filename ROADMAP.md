@@ -38,8 +38,10 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
 - [x] Deshacer / rehacer (Ctrl+Z / Ctrl+Y)
 - [x] Modal Nuevo proyecto (tamaño, orientación, márgenes)
 - [x] Cambiar tamaño/orientación de página desde el menú Página, y márgenes visibles en la hoja
-- [x] Fondo de página con **imagen**. El caso "PDF" queda para la fase 2: es en realidad su puerta
-      de entrada.
+- [x] Fondo de página con **imagen** y con **PDF** (14/08/2026). La opción "PDF" del selector de
+      fondo reusa entero el camino de Archivo → Abrir PDF, con su aviso previo si hay algo
+      dibujado: no es una copia más corta a propósito, porque un PDF de fondo además de verse
+      queda de base al exportar, así que lo que ya traía sigue siendo vectorial en vez de una foto.
 - [x] Guardar proyecto (.json) / Importar proyecto (.json)
 - [x] **Exportar PDF** con AcroForm real, vía `pdf-lib`. Opción de exportar aplanado. Verificado
       contra el lienzo con `npm run verificar-export`: texto, líneas (incluidas las rotadas),
@@ -78,7 +80,20 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
 - [x] **Abrir un PDF de otra herramienta y verlo.** Archivo → Abrir PDF: se lee con pdf.js, la hoja
       toma las medidas de su primera página y esa página queda de fondo, así que ya se puede
       dibujar y poner campos encima. Los bytes originales quedan en memoria (`pdfExistente.ts`),
-      que son la materia prima del paso siguiente. Falta: más de una página (hoy solo la primera).
+      que son la materia prima del paso siguiente.
+- [x] **Multipágina.** El motor trabaja sobre cualquier página, no solo la primera: la página 0
+      estaba escrita a mano en cinco lugares (rasterizado, lectura de textos, redacción, lectura de
+      campos, exportación) y ahora hay una sola página elegida (`paginaDelPdf()`) que usan todos.
+      `abrirPdf(archivo, pagina = 0)` (segundo parámetro nuevo y opcional) y `elegirPagina(i)`
+      cambian de página; el exportador dibuja sobre esa y no siempre la 0. Selector en la barra de
+      estado, al lado del tamaño de hoja, visible solo si el PDF tiene más de una; si hay algo
+      dibujado en la hoja, avisa antes de cambiar, porque `elegirPagina()` no toca el diseño a
+      propósito (quedó puesto sobre la página anterior). Verificado con un PDF de 33 páginas: abre
+      en la 1, elegir la 3 cambia fondo y textos, y al exportar la salida conserva las 33, con la
+      marca solo en la 3. **Ojo con la numeración**: pdf.js cuenta desde 1; mupdf, pdf-lib y el
+      módulo, desde 0. **Falta**: recuperar la página elegida al retomar una sesión —
+      `recuperarPdfGuardado()` no persiste `paginaElegida`, así que después de recargar vuelve a la
+      página 0 aunque el diseño (ya restaurado) haya quedado sobre otra.
 - [x] **Detectar y editar texto existente in-place.** Doble clic sobre un texto del PDF: se borra
       del contenido real con una redacción de mupdf —no se tapa, `npm run verificar-pdf` lo
       comprueba— y en su lugar queda un texto del diseño, editable como cualquier otro. Al
@@ -93,7 +108,10 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
       variante y el número (`OpenSans-Bold-9742`, `ABCDEF+TimesNewRoman,Bold`). Para las conocidas
       sin equivalente exacto: Arial/Verdana → Helvetica, Times New Roman/Georgia → Times, Courier
       New/Consolas → Courier. Verificado con 9 casos de nombre y en el navegador de punta a punta.
-- [ ] Manejo de fuentes subseteadas (fallback cuando falta un glifo)
+- [x] Manejo de fuentes subseteadas — resuelto distinto de lo previsto: no hay error al exportar,
+      los caracteres fuera del alfabeto latino salían como `?` en silencio. No se intenta sustituir
+      la tipografía (ninguna de las que trae el editor cubre otros alfabetos); en cambio,
+      **Verificar diseño** avisa antes de exportar cuáles caracteres no se pueden dibujar.
 - [x] Que el PDF de base no se pierda: se guarda en IndexedDB para sobrevivir a una recarga y
       viaja dentro del `.json` al guardar el proyecto, para poder seguirlo en otra computadora.
 - [x] **Importar los campos AcroForm de un PDF abierto** (nuevo, 14/08/2026 — reemplaza a la fase 3
