@@ -1004,7 +1004,18 @@ selFondo.addEventListener('change', async () => {
 // Elegir un tamaño del catálogo suelta las medidas propias: las hojas que vienen de un PDF las
 // tienen, y como mandan sobre el tamaño, sin esto elegir "Oficio" no cambiaba nada.
 selTamano.addEventListener('change', () => cambiarPagina({ tamano: selTamano.value as TamanoPagina, medidas: null }));
-selOrient.addEventListener('change', () => cambiarPagina({ orientacion: selOrient.value as Orientacion }));
+selOrient.addEventListener('change', () => {
+  const orientacion = selOrient.value as Orientacion;
+  const medidas = configActual().medidas;
+  // Con medidas propias —una hoja que viene de un PDF— la orientación las da vuelta, porque las
+  // medidas mandan sobre el tamaño y sin esto el control no hacía nada. Ojo: gira la hoja, no el
+  // contenido del PDF, que no tiene forma de rotarse sin mover también el diseño que tenga encima.
+  const giradas =
+    medidas && (orientacion === 'horizontal') !== medidas.ancho > medidas.alto
+      ? { ancho: medidas.alto, alto: medidas.ancho }
+      : medidas;
+  cambiarPagina({ orientacion, medidas: giradas });
+});
 
 document.getElementById('ed-margenes')!.addEventListener('click', async () => {
   const margenes = await pedirMargenes(configActual().margenes);
