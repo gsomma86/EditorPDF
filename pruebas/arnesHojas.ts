@@ -9,7 +9,7 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { StaticCanvas } from 'fabric';
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { agregarHoja, cantidadDeHojas, eliminarHoja, hojaActual, hojasDelDocumento, irAHoja, moverHoja } from '../src/editor/documento';
+import { agregarHoja, cantidadDeHojas, eliminarHoja, establecerHojas, hojaActual, hojasDelDocumento, irAHoja, moverHoja } from '../src/editor/documento';
 import { inicializarHistorial, deshacer, registrarSnapshot, rehacer } from '../src/editor/historial';
 import { agregarAlLienzo } from '../src/editor/objetosFabric';
 import { exportarPdf } from '../src/editor/exportarPdf';
@@ -135,6 +135,44 @@ const textoDePagina = (i: number) =>
     .trim();
 
 comparar('exportar', 'texto por página', ['HOJA UNO', 'HOJA DOS', 'HOJA TRES'], [0, 1, 2].map(textoDePagina));
+
+// ---------- Sobre un PDF de base: las hojas mandan sobre las páginas ----------
+
+// El caso que cambió en la fase 3: el documento son las hojas, no el archivo que se abrió. Lo que
+// se borre o se mueva acá tiene que borrarse o moverse en el PDF exportado.
+const partida = await PDFDocument.create();
+for (const letra of ['A', 'B', 'C', 'D']) {
+  partida.addPage([420, 595]).drawText(`PAGINA ${letra}`, { x: 50, y: 500, size: 20 });
+}
+const bytesPartida = new Uint8Array(await partida.save());
+await writeFile(`${SALIDA}hojas-partida.pdf`, bytesPartida);
+
+const { asentarPdf, cerrarPdf } = await import('../src/editor/pdfExistente');
+await asentarPdf(bytesPartida);
+
+// Una hoja por página, como al abrir un PDF desde el editor. `hojasDesdePdf` no sirve acá: dibuja
+// el fondo, y en Node no hay con qué rasterizar.
+await establecerHojas(lienzo, [0, 1, 2, 3].map((p) => ({ elementos: [], paginaPdf: p, fondo: null })), 0);
+comparar('PDF de base', 'una hoja por página', 4, cantidadDeHojas());
+
+// Se borra la segunda y se manda la última al principio.
+await eliminarHoja(lienzo, 1);
+await moverHoja(lienzo, 2, 0);
+
+const conBase = await exportarPdf(lienzo, { conFormulario: true });
+await writeFile(`${SALIDA}hojas-sobre-pdf.pdf`, conBase);
+
+const leidoBase = mupdf.PDFDocument.openDocument(conBase, 'application/pdf');
+const textoBase = (i: number) =>
+  JSON.parse((leidoBase.loadPage(i) as any).toStructuredText('preserve-whitespace').asJSON())
+    .blocks.flatMap((b: any) => (b.lines ?? []).map((l: any) => l.text))
+    .join(' ')
+    .trim();
+
+comparar('PDF de base', 'páginas exportadas', 3, (await PDFDocument.load(conBase)).getPageCount());
+comparar('PDF de base', 'la borrada no sale y el orden es el de la tira', ['PAGINA D', 'PAGINA A', 'PAGINA C'], [0, 1, 2].map(textoBase));
+
+cerrarPdf();
 
 console.log(filas.join('\n'));
 console.log(`\nPDF en ${SALIDA}multipagina.pdf`);

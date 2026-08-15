@@ -46,7 +46,10 @@ export function verificarDiseno(lienzo: Canvas): Hallazgo[] {
   const { ancho: anchoPagina, alto: altoPagina } = dimensionesDe(config);
   const m = config.margenes;
 
-  if (!elementos.length) {
+  // Vacío es no tener elementos **y** no tener páginas de un PDF de base. Con un PDF abierto, un
+  // documento sin elementos igual tiene qué exportar: sus páginas, en el orden en que hayan
+  // quedado. Sacar hojas es una edición aunque no se haya dibujado nada encima.
+  if (!elementos.length && !hojas.some((hoja) => hoja.paginaPdf !== null)) {
     hallazgos.push({ gravedad: 'error', mensaje: 'El diseño está vacío: no hay nada para exportar.' });
     return hallazgos;
   }
