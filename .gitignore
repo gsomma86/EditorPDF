@@ -5,6 +5,7 @@ dist/
 pruebas/dist/
 pruebas/dist-fabric/
 pruebas/dist-rend/
+pruebas/dist-campos/
 pruebas/salida/
 
 .env
