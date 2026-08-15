@@ -12,6 +12,7 @@
  */
 
 import { borrarPdfBase, guardarPdfBase, leerPdfBase } from './almacenPdf';
+import { FAMILIAS_BASE, FAMILIAS_WEB } from './fuentes';
 
 /** Un texto encontrado en el PDF, en coordenadas de la hoja (Y desde arriba, como el lienzo). */
 export interface TextoDelPdf {
@@ -25,6 +26,59 @@ export interface TextoDelPdf {
   size: number;
   negrita: boolean;
   cursiva: boolean;
+  /** La familia del editor que más se parece a la del PDF, para que el reemplazo no cambie de cara. */
+  familia: string;
+}
+
+/** Tipografías conocidas que no están en el editor, y con cuál de las nuestras se reemplazan. */
+const EQUIVALENCIAS: Record<string, string> = {
+  arial: 'Helvetica',
+  helvetica: 'Helvetica',
+  helveticaneue: 'Helvetica',
+  verdana: 'Helvetica',
+  tahoma: 'Helvetica',
+  calibri: 'Helvetica',
+  segoeui: 'Helvetica',
+  times: 'Times',
+  timesnewroman: 'Times',
+  georgia: 'Times',
+  garamond: 'Times',
+  cambria: 'Times',
+  bookantiqua: 'Times',
+  courier: 'Courier',
+  couriernew: 'Courier',
+  consolas: 'Courier',
+  monaco: 'Courier',
+};
+
+/**
+ * Con qué familia del editor se reemplaza la tipografía original.
+ *
+ * Manda el **nombre**, no la clasificación que da mupdf: para una Open Sans incrustada informa
+ * `family: "serif"`, que es falso. El nombre viene con adornos —un prefijo de subconjunto tipo
+ * `ABCDEF+`, la variante y un número de mupdf, como `OpenSans-Bold-9742`—, así que primero se pela.
+ */
+export function familiaEquivalente(nombre: string, generica: string): string {
+  const limpio = nombre
+    .replace(/^[A-Z]{6}\+/, '')
+    .replace(/[-_,]?\d+$/, '')
+    .replace(/[-_,]?(regular|bold|italic|oblique|medium|light|black|semibold|book|roman)/gi, '')
+    .replace(/[^a-z]/gi, '')
+    .toLowerCase();
+
+  // Una de las nuestras, escrita de cualquier forma ("Open Sans", "OpenSans", "open-sans").
+  const propia = [...FAMILIAS_BASE, ...FAMILIAS_WEB].find((f) => f.replace(/[^a-z]/gi, '').toLowerCase() === limpio);
+  if (propia) return propia;
+
+  if (EQUIVALENCIAS[limpio]) return EQUIVALENCIAS[limpio];
+
+  // Desconocida: se decide por lo que insinúe el nombre y, recién al final, por la clasificación.
+  if (/mono|consol|courier/.test(limpio)) return 'Courier';
+  if (/serif|times|georgia|garamond|roman|book/.test(limpio) && !/sans/.test(limpio)) return 'Times';
+  if (/sans|arial|helvet|grotesk/.test(limpio)) return 'Helvetica';
+  if (generica === 'monospace') return 'Courier';
+  if (generica === 'serif') return 'Times';
+  return 'Helvetica';
 }
 
 let bytesActuales: Uint8Array | null = null;
@@ -107,6 +161,7 @@ function leerTextos(pagina: any): TextoDelPdf[] {
         size: Math.round(linea.font?.size ?? 11),
         negrita: linea.font?.weight === 'bold',
         cursiva: linea.font?.style === 'italic',
+        familia: familiaEquivalente(linea.font?.name ?? '', linea.font?.family ?? ''),
       });
     }
   }

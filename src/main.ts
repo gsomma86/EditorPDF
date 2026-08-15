@@ -522,6 +522,7 @@ lienzo.on('mouse:dblclick', async (e) => {
   elemento.size = original.size;
   elemento.negrita = original.negrita;
   elemento.cursiva = original.cursiva;
+  elemento.familia = original.familia;
   elemento.x = Math.round(original.x);
   // El modelo mide desde el tope de la caja del texto y el PDF desde su línea de base, así que
   // hay que restar la ascendente. Se pide la de verdad —la misma que va a usar la exportación—
