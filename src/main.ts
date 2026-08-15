@@ -289,9 +289,79 @@ const FLECHAS: Record<string, [number, number]> = {
   ArrowDown: [0, 1],
 };
 
+/**
+ * Atajos de las opciones de menú. Cada uno hace clic en su opción, así cada acción sigue teniendo
+ * una sola implementación y el atajo no puede quedar desfasado de lo que hace el menú.
+ *
+ * Qué combinación se puede usar no es cuestión de gusto:
+ * - `Ctrl+N`, `Ctrl+T`, `Ctrl+W` y `Ctrl+Shift+N` se los queda el navegador y no llegan nunca.
+ * - `Ctrl+R` es recargar y `F5` también: usarlos sería pelearle a algo que el usuario espera.
+ * - En un teclado latinoamericano `AltGr` **es** `Ctrl+Alt`, así que se evitan las letras que ahí
+ *   producen un carácter (Q, E, 2…).
+ * Las teclas sueltas —T, L, R…— son las de cualquier editor gráfico, y no molestan porque el
+ * manejador ya se corta si el foco está en un campo de texto.
+ */
+const ATAJOS: { combo: string; donde: string }[] = [
+  { combo: 'ctrl+alt+n', donde: '#ed-nuevo' },
+  { combo: 'ctrl+o', donde: '#ed-abrir-pdf' },
+  { combo: 'ctrl+shift+o', donde: '#ed-importar-proyecto' },
+  { combo: 'ctrl+s', donde: '#ed-guardar-proyecto' },
+  { combo: 'ctrl+alt+v', donde: '#ed-verificar' },
+  { combo: 'ctrl+e', donde: '#ed-exportar-pdf' },
+  { combo: 'ctrl+alt+i', donde: '#ed-insertar-pdf' },
+  { combo: 'ctrl+alt+m', donde: '#ed-margenes' },
+  { combo: "ctrl+'", donde: '#ed-cuadricula' },
+  { combo: 'ctrl+alt+r', donde: '#ed-reglas' },
+  { combo: 'ctrl+;', donde: '#ed-guias' },
+  { combo: 'ctrl+alt+b', donde: '#ed-restaurar-barras' },
+  { combo: 't', donde: '[data-dib="texto"]' },
+  { combo: 'l', donde: '[data-dib="linea"]' },
+  { combo: 'r', donde: '[data-dib="rect"]' },
+  { combo: 'b', donde: '[data-dib="tabla"]' },
+  { combo: 'i', donde: '[data-dib="imagen"]' },
+  { combo: 'q', donde: '[data-dib="qr"]' },
+  { combo: 'ctrl+alt+c', donde: '#ed-csv-importar' },
+  { combo: 'ctrl+alt+x', donde: '#ed-csv-exportar' },
+  { combo: 'f2', donde: '#ed-completar' },
+  { combo: 'f4', donde: '#ed-ocultar-campos' },
+  { combo: 'f1', donde: '#ed-ayuda-guia' },
+];
+
+/** La combinación apretada, en el mismo formato que la tabla. */
+function comboDe(e: KeyboardEvent): string {
+  const partes: string[] = [];
+  if (e.ctrlKey || e.metaKey) partes.push('ctrl');
+  if (e.altKey) partes.push('alt');
+  if (e.shiftKey) partes.push('shift');
+  // Por posición y no por el carácter: con Alt apretado el navegador informa símbolos raros, y en
+  // un teclado que no sea el latino la letra de esa tecla sería otra.
+  const codigo = e.code.startsWith('Key') ? e.code.slice(3).toLowerCase() : e.code.startsWith('Digit') ? e.code.slice(5) : '';
+  partes.push(codigo || e.key.toLowerCase());
+  return partes.join('+');
+}
+
 document.addEventListener('keydown', (e) => {
   const enCampoDeTexto = ['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName);
   if (enCampoDeTexto) return;
+
+  const atajo = ATAJOS.find((a) => a.combo === comboDe(e));
+  if (atajo) {
+    const opcion = document.querySelector<HTMLElement>(atajo.donde);
+    if (opcion) {
+      e.preventDefault();
+      opcion.click();
+      return;
+    }
+  }
+
+  // Zoom, como en cualquier editor: el del navegador no sirve acá porque agranda la interfaz
+  // entera en vez de la hoja.
+  if (e.ctrlKey && ['Equal', 'Minus', 'Digit0'].includes(e.code)) {
+    e.preventDefault();
+    const actual = Math.round(vistaActual().zoom * 100);
+    aplicarZoom(e.code === 'Digit0' ? 100 : actual + (e.code === 'Equal' ? 10 : -10));
+    return;
+  }
 
   if (e.key === 'Delete' || e.key === 'Backspace') {
     const activo = lienzo.getActiveObject();

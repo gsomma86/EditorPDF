@@ -98,62 +98,64 @@ const GUIA: Record<Idioma, string> = {
 `,
 };
 
-const ATAJOS: Record<Idioma, string> = {
-  es: `
-  <table class="ed-atajos">
-    <tbody>
-      <tr><td><kbd>Ctrl</kbd> + <kbd>Z</kbd> / <kbd>Ctrl</kbd> + <kbd>Y</kbd></td><td>Deshacer / Rehacer</td></tr>
-      <tr><td><kbd>Ctrl</kbd> + <kbd>C</kbd> / <kbd>Ctrl</kbd> + <kbd>V</kbd></td><td>Copiar / Pegar</td></tr>
-      <tr><td><kbd>Ctrl</kbd> + <kbd>X</kbd></td><td>Cortar</td></tr>
-      <tr><td><kbd>Ctrl</kbd> + <kbd>A</kbd></td><td>Seleccionar todo lo que hay en la hoja</td></tr>
-      <tr><td><kbd>Supr</kbd> / <kbd>Delete</kbd></td><td>Borrar lo seleccionado</td></tr>
-      <tr><td><kbd>Flechas</kbd></td><td>Mover 1 pt</td></tr>
-      <tr><td><kbd>Shift</kbd> + <kbd>Flechas</kbd></td><td>Mover 10 pt</td></tr>
-      <tr><td><kbd>Ctrl</kbd> + rueda del mouse</td><td>Acercar / alejar</td></tr>
-      <tr><td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd></td><td>Rehacer (igual que Ctrl+Y)</td></tr>
-      <tr><td><kbd>Escape</kbd></td><td>Cerrar el cuadro que esté abierto</td></tr>
-    </tbody>
-  </table>
-  <p>Para seleccionar varios elementos: <kbd>Ctrl</kbd> o <kbd>Shift</kbd> mientras se hace clic, o
-  arrastrar un recuadro sobre la hoja.</p>
-`,
-  en: `
-  <table class="ed-atajos">
-    <tbody>
-      <tr><td><kbd>Ctrl</kbd> + <kbd>Z</kbd> / <kbd>Ctrl</kbd> + <kbd>Y</kbd></td><td>Undo / Redo</td></tr>
-      <tr><td><kbd>Ctrl</kbd> + <kbd>C</kbd> / <kbd>Ctrl</kbd> + <kbd>V</kbd></td><td>Copy / Paste</td></tr>
-      <tr><td><kbd>Ctrl</kbd> + <kbd>X</kbd></td><td>Cut</td></tr>
-      <tr><td><kbd>Ctrl</kbd> + <kbd>A</kbd></td><td>Select everything on the sheet</td></tr>
-      <tr><td><kbd>Supr</kbd> / <kbd>Delete</kbd></td><td>Delete the selection</td></tr>
-      <tr><td><kbd>Arrows</kbd></td><td>Move 1 pt</td></tr>
-      <tr><td><kbd>Shift</kbd> + <kbd>Arrows</kbd></td><td>Move 10 pt</td></tr>
-      <tr><td><kbd>Ctrl</kbd> + mouse wheel</td><td>Zoom in / out</td></tr>
-      <tr><td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd></td><td>Redo (same as Ctrl+Y)</td></tr>
-      <tr><td><kbd>Escape</kbd></td><td>Close whatever dialog is open</td></tr>
-    </tbody>
-  </table>
-  <p>To select several elements: <kbd>Ctrl</kbd> or <kbd>Shift</kbd> while clicking, or drag a box
-  over the sheet.</p>
-`,
-  pt: `
-  <table class="ed-atajos">
-    <tbody>
-      <tr><td><kbd>Ctrl</kbd> + <kbd>Z</kbd> / <kbd>Ctrl</kbd> + <kbd>Y</kbd></td><td>Desfazer / Refazer</td></tr>
-      <tr><td><kbd>Ctrl</kbd> + <kbd>C</kbd> / <kbd>Ctrl</kbd> + <kbd>V</kbd></td><td>Copiar / Colar</td></tr>
-      <tr><td><kbd>Ctrl</kbd> + <kbd>X</kbd></td><td>Recortar</td></tr>
-      <tr><td><kbd>Ctrl</kbd> + <kbd>A</kbd></td><td>Selecionar tudo o que há na folha</td></tr>
-      <tr><td><kbd>Supr</kbd> / <kbd>Delete</kbd></td><td>Excluir a seleção</td></tr>
-      <tr><td><kbd>Setas</kbd></td><td>Mover 1 pt</td></tr>
-      <tr><td><kbd>Shift</kbd> + <kbd>Setas</kbd></td><td>Mover 10 pt</td></tr>
-      <tr><td><kbd>Ctrl</kbd> + roda do mouse</td><td>Aproximar / afastar</td></tr>
-      <tr><td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd></td><td>Refazer (igual a Ctrl+Y)</td></tr>
-      <tr><td><kbd>Escape</kbd></td><td>Fechar a caixa que estiver aberta</td></tr>
-    </tbody>
-  </table>
-  <p>Para selecionar vários elementos: <kbd>Ctrl</kbd> ou <kbd>Shift</kbd> enquanto clica, ou
-  arraste um retângulo sobre a folha.</p>
-`,
+/**
+ * La tabla de atajos se arma sola desde esta lista: son muchos, y mantenerlos escritos a mano en
+ * tres idiomas se desfasa de la aplicación a la primera de cambio.
+ */
+const FILAS_ATAJOS: { teclas: string[]; que: Record<Idioma, string> }[] = [
+  { teclas: ['Ctrl', 'Alt', 'N'], que: { es: 'Nuevo proyecto', en: 'New project', pt: 'Novo projeto' } },
+  { teclas: ['Ctrl', 'O'], que: { es: 'Abrir PDF', en: 'Open PDF', pt: 'Abrir PDF' } },
+  { teclas: ['Ctrl', 'Shift', 'O'], que: { es: 'Importar proyecto', en: 'Import project', pt: 'Importar projeto' } },
+  { teclas: ['Ctrl', 'S'], que: { es: 'Guardar proyecto', en: 'Save project', pt: 'Salvar projeto' } },
+  { teclas: ['Ctrl', 'E'], que: { es: 'Exportar PDF', en: 'Export PDF', pt: 'Exportar PDF' } },
+  { teclas: ['Ctrl', 'Alt', 'V'], que: { es: 'Verificar diseño', en: 'Verify design', pt: 'Verificar design' } },
+  { teclas: ['Ctrl', 'Alt', 'I'], que: { es: 'Insertar PDF', en: 'Insert PDF', pt: 'Inserir PDF' } },
+  { teclas: ['Ctrl', 'Alt', 'M'], que: { es: 'Configurar márgenes', en: 'Set up margins', pt: 'Configurar margens' } },
+  { teclas: ['Ctrl', 'Z'], que: { es: 'Deshacer', en: 'Undo', pt: 'Desfazer' } },
+  { teclas: ['Ctrl', 'Y'], que: { es: 'Rehacer (también Ctrl+Shift+Z)', en: 'Redo (also Ctrl+Shift+Z)', pt: 'Refazer (também Ctrl+Shift+Z)' } },
+  { teclas: ['Ctrl', 'A'], que: { es: 'Seleccionar todo lo que hay en la hoja', en: 'Select everything on the sheet', pt: 'Selecionar tudo o que há na folha' } },
+  { teclas: ['Ctrl', 'X'], que: { es: 'Cortar', en: 'Cut', pt: 'Recortar' } },
+  { teclas: ['Ctrl', 'C'], que: { es: 'Copiar', en: 'Copy', pt: 'Copiar' } },
+  { teclas: ['Ctrl', 'V'], que: { es: 'Pegar', en: 'Paste', pt: 'Colar' } },
+  { teclas: ['Supr'], que: { es: 'Borrar lo seleccionado', en: 'Delete the selection', pt: 'Excluir a seleção' } },
+  { teclas: ['Flechas'], que: { es: 'Mover 1 pt', en: 'Move 1 pt', pt: 'Mover 1 pt' } },
+  { teclas: ['Shift', 'Flechas'], que: { es: 'Mover 10 pt', en: 'Move 10 pt', pt: 'Mover 10 pt' } },
+  { teclas: ['T'], que: { es: 'Dibujar un texto', en: 'Draw a text', pt: 'Desenhar um texto' } },
+  { teclas: ['L'], que: { es: 'Dibujar una línea', en: 'Draw a line', pt: 'Desenhar uma linha' } },
+  { teclas: ['R'], que: { es: 'Dibujar un recuadro', en: 'Draw a box', pt: 'Desenhar um retângulo' } },
+  { teclas: ['B'], que: { es: 'Dibujar una tabla', en: 'Draw a table', pt: 'Desenhar uma tabela' } },
+  { teclas: ['I'], que: { es: 'Insertar una imagen', en: 'Insert an image', pt: 'Inserir uma imagem' } },
+  { teclas: ['Q'], que: { es: 'Insertar un QR', en: 'Insert a QR code', pt: 'Inserir um QR' } },
+  { teclas: ['F2'], que: { es: 'Completar campos', en: 'Fill in fields', pt: 'Preencher campos' } },
+  { teclas: ['F4'], que: { es: 'Ocultar campos en el lienzo', en: 'Hide fields on the canvas', pt: 'Ocultar campos na tela' } },
+  { teclas: ['Ctrl', 'Alt', 'C'], que: { es: 'Importar campos (CSV)', en: 'Import fields (CSV)', pt: 'Importar campos (CSV)' } },
+  { teclas: ['Ctrl', 'Alt', 'X'], que: { es: 'Exportar campos (CSV)', en: 'Export fields (CSV)', pt: 'Exportar campos (CSV)' } },
+  { teclas: ['Ctrl', "'"], que: { es: 'Cuadrícula', en: 'Grid', pt: 'Grade' } },
+  { teclas: ['Ctrl', 'Alt', 'R'], que: { es: 'Reglas', en: 'Rulers', pt: 'Réguas' } },
+  { teclas: ['Ctrl', ';'], que: { es: 'Guías de alineación', en: 'Alignment guides', pt: 'Guias de alinhamento' } },
+  { teclas: ['Ctrl', 'Alt', 'B'], que: { es: 'Restaurar las barras', en: 'Reset the bars', pt: 'Restaurar as barras' } },
+  { teclas: ['Ctrl', '+'], que: { es: 'Acercar (también Ctrl + rueda del mouse)', en: 'Zoom in (also Ctrl + mouse wheel)', pt: 'Aproximar (também Ctrl + roda do mouse)' } },
+  { teclas: ['Ctrl', '−'], que: { es: 'Alejar', en: 'Zoom out', pt: 'Afastar' } },
+  { teclas: ['Ctrl', '0'], que: { es: 'Volver al 100 %', en: 'Back to 100%', pt: 'Voltar a 100 %' } },
+  { teclas: ['F1'], que: { es: 'Guía rápida', en: 'Quick guide', pt: 'Guia rápido' } },
+  { teclas: ['Ctrl', '/'], que: { es: 'Esta ventana', en: 'This window', pt: 'Esta janela' } },
+  { teclas: ['Escape'], que: { es: 'Cerrar el cuadro que esté abierto', en: 'Close whatever dialog is open', pt: 'Fechar a caixa que estiver aberta' } },
+];
+
+const CIERRE_ATAJOS: Record<Idioma, string> = {
+  es: 'Para seleccionar varios elementos: <kbd>Ctrl</kbd> o <kbd>Shift</kbd> mientras se hace clic, o arrastrar un recuadro sobre la hoja. Las teclas sueltas (T, L, R…) no hacen nada mientras se escribe en un campo.',
+  en: 'To select several elements: <kbd>Ctrl</kbd> or <kbd>Shift</kbd> while clicking, or drag a box over the sheet. Single-letter shortcuts (T, L, R…) do nothing while typing in a field.',
+  pt: 'Para selecionar vários elementos: <kbd>Ctrl</kbd> ou <kbd>Shift</kbd> enquanto clica, ou arraste um retângulo sobre a folha. As teclas soltas (T, L, R…) não fazem nada enquanto se escreve num campo.',
 };
+
+function tablaDeAtajos(idioma: Idioma): string {
+  const filas = FILAS_ATAJOS.map(
+    (fila) => `<tr><td>${fila.teclas.map((tecla) => `<kbd>${tecla}</kbd>`).join(' + ')}</td><td>${fila.que[idioma]}</td></tr>`
+  ).join('');
+  return `<table class="ed-atajos"><tbody>${filas}</tbody></table><p>${CIERRE_ATAJOS[idioma]}</p>`;
+}
+
+const ATAJOS: Record<Idioma, string> = { es: tablaDeAtajos('es'), en: tablaDeAtajos('en'), pt: tablaDeAtajos('pt') };
 
 const FAQ: Record<Idioma, string> = {
   es: `

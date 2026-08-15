@@ -1,13 +1,13 @@
 import { IDIOMAS_DISPONIBLES, aplicarIdioma, cambiarIdioma, idiomaActual, type Idioma } from './i18n';
 
 const MENU_ARCHIVO = `
-  <div class="ed-dd-item" id="ed-nuevo" data-i18n="menu.archivo.nuevo"></div>
-  <div class="ed-dd-item" id="ed-abrir-pdf" data-i18n="menu.archivo.abrirPdf"></div>
-  <div class="ed-dd-item" id="ed-importar-proyecto" data-i18n="menu.archivo.importarProyecto"></div>
+  <div class="ed-dd-item" id="ed-nuevo"><span data-i18n="menu.archivo.nuevo"></span> <span class="ed-dd-tecla">Ctrl+Alt+N</span></div>
+  <div class="ed-dd-item" id="ed-abrir-pdf"><span data-i18n="menu.archivo.abrirPdf"></span> <span class="ed-dd-tecla">Ctrl+O</span></div>
+  <div class="ed-dd-item" id="ed-importar-proyecto"><span data-i18n="menu.archivo.importarProyecto"></span> <span class="ed-dd-tecla">Ctrl+Shift+O</span></div>
   <div class="ed-dd-sep"></div>
-  <div class="ed-dd-item" id="ed-guardar-proyecto" data-i18n="menu.archivo.guardarProyecto"></div>
-  <div class="ed-dd-item" id="ed-verificar" data-i18n="menu.archivo.verificar"></div>
-  <div class="ed-dd-item" id="ed-exportar-pdf" data-i18n="menu.archivo.exportarPdf"></div>
+  <div class="ed-dd-item" id="ed-guardar-proyecto"><span data-i18n="menu.archivo.guardarProyecto"></span> <span class="ed-dd-tecla">Ctrl+S</span></div>
+  <div class="ed-dd-item" id="ed-verificar"><span data-i18n="menu.archivo.verificar"></span> <span class="ed-dd-tecla">Ctrl+Alt+V</span></div>
+  <div class="ed-dd-item" id="ed-exportar-pdf"><span data-i18n="menu.archivo.exportarPdf"></span> <span class="ed-dd-tecla">Ctrl+E</span></div>
 `;
 
 const MENU_EDITAR = `
@@ -21,19 +21,19 @@ const MENU_EDITAR = `
 `;
 
 const MENU_VER = `
-  <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-cuadricula" /> <span data-i18n="menu.ver.cuadricula"></span></label>
+  <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-cuadricula" /> <span data-i18n="menu.ver.cuadricula"></span> <span class="ed-dd-tecla">Ctrl+'</span></label>
   <div class="ed-dd-item ed-dd-persistente">
     <span data-i18n="menu.ver.paso"></span>
     <input type="number" id="ed-paso" value="5" min="2" max="50" data-i18n-title="menu.ver.pasoTt" />
   </div>
-  <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-reglas" /> <span data-i18n="menu.ver.reglas"></span></label>
-  <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-guias" checked /> <span data-i18n="menu.ver.alineacion"></span></label>
+  <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-reglas" /> <span data-i18n="menu.ver.reglas"></span> <span class="ed-dd-tecla">Ctrl+Alt+R</span></label>
+  <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-guias" checked /> <span data-i18n="menu.ver.alineacion"></span> <span class="ed-dd-tecla">Ctrl+;</span></label>
   <div class="ed-dd-sep"></div>
   <div class="ed-dd-nota" data-i18n="menu.ver.barras"></div>
   <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" data-barra="campos" checked /> <span data-i18n="menu.ver.barraCampos"></span></label>
   <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" data-barra="props" checked /> <span data-i18n="menu.ver.barraProps"></span></label>
   <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" data-barra="hojas" checked /> <span data-i18n="menu.ver.barraHojas"></span></label>
-  <div class="ed-dd-item" id="ed-restaurar-barras" data-i18n="menu.ver.restaurarBarras"></div>
+  <div class="ed-dd-item" id="ed-restaurar-barras"><span data-i18n="menu.ver.restaurarBarras"></span> <span class="ed-dd-tecla">Ctrl+Alt+B</span></div>
 `;
 
 const MENU_PAGINA = `
@@ -62,28 +62,28 @@ const MENU_PAGINA = `
     </select>
   </div>
   <div class="ed-dd-sep"></div>
-  <div class="ed-dd-item" id="ed-insertar-pdf" data-i18n="menu.pagina.insertarPdf"></div>
-  <div class="ed-dd-item" id="ed-margenes" data-i18n="menu.pagina.margenes"></div>
+  <div class="ed-dd-item" id="ed-insertar-pdf"><span data-i18n="menu.pagina.insertarPdf"></span> <span class="ed-dd-tecla">Ctrl+Alt+I</span></div>
+  <div class="ed-dd-item" id="ed-margenes"><span data-i18n="menu.pagina.margenes"></span> <span class="ed-dd-tecla">Ctrl+Alt+M</span></div>
 `;
 
 const MENU_CAMPOS = `
   <div class="ed-dd-nota" data-i18n="menu.campos.notaDibujo"></div>
-  <div class="ed-dd-item" data-dib="texto" data-i18n="menu.campos.dibTexto"></div>
-  <div class="ed-dd-item" data-dib="linea" data-i18n="menu.campos.dibLinea"></div>
-  <div class="ed-dd-item" data-dib="rect" data-i18n="menu.campos.dibRect"></div>
-  <div class="ed-dd-item" data-dib="tabla" data-i18n="menu.campos.dibTabla"></div>
-  <div class="ed-dd-item" data-dib="imagen" data-i18n="menu.campos.dibImagen"></div>
-  <div class="ed-dd-item" data-dib="qr" data-i18n="menu.campos.dibQr"></div>
+  <div class="ed-dd-item" data-dib="texto"><span data-i18n="menu.campos.dibTexto"></span> <span class="ed-dd-tecla">T</span></div>
+  <div class="ed-dd-item" data-dib="linea"><span data-i18n="menu.campos.dibLinea"></span> <span class="ed-dd-tecla">L</span></div>
+  <div class="ed-dd-item" data-dib="rect"><span data-i18n="menu.campos.dibRect"></span> <span class="ed-dd-tecla">R</span></div>
+  <div class="ed-dd-item" data-dib="tabla"><span data-i18n="menu.campos.dibTabla"></span> <span class="ed-dd-tecla">B</span></div>
+  <div class="ed-dd-item" data-dib="imagen"><span data-i18n="menu.campos.dibImagen"></span> <span class="ed-dd-tecla">I</span></div>
+  <div class="ed-dd-item" data-dib="qr"><span data-i18n="menu.campos.dibQr"></span> <span class="ed-dd-tecla">Q</span></div>
   <div class="ed-dd-sep"></div>
-  <div class="ed-dd-item" id="ed-csv-importar" data-i18n="menu.campos.csvImportar"></div>
-  <div class="ed-dd-item" id="ed-csv-exportar" data-i18n="menu.campos.csvExportar"></div>
+  <div class="ed-dd-item" id="ed-csv-importar"><span data-i18n="menu.campos.csvImportar"></span> <span class="ed-dd-tecla">Ctrl+Alt+C</span></div>
+  <div class="ed-dd-item" id="ed-csv-exportar"><span data-i18n="menu.campos.csvExportar"></span> <span class="ed-dd-tecla">Ctrl+Alt+X</span></div>
   <div class="ed-dd-sep"></div>
-  <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-completar" /> <span data-i18n="menu.campos.completar"></span></label>
-  <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-ocultar-campos" /> <span data-i18n="menu.campos.ocultar"></span></label>
+  <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-completar" /> <span data-i18n="menu.campos.completar"></span> <span class="ed-dd-tecla">F2</span></label>
+  <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-ocultar-campos" /> <span data-i18n="menu.campos.ocultar"></span> <span class="ed-dd-tecla">F4</span></label>
 `;
 
 const MENU_AYUDA = `
-  <div class="ed-dd-item" id="ed-ayuda-guia" data-i18n="ayuda.menu.guia"></div>
+  <div class="ed-dd-item" id="ed-ayuda-guia"><span data-i18n="ayuda.menu.guia"></span> <span class="ed-dd-tecla">F1</span></div>
   <div class="ed-dd-item" id="ed-ayuda-atajos"><span data-i18n="ayuda.menu.atajos"></span> <span class="ed-dd-tecla">Ctrl+/</span></div>
   <div class="ed-dd-sep"></div>
   <div class="ed-dd-item" id="ed-ayuda-csv" data-i18n="ayuda.menu.csv"></div>
@@ -213,7 +213,7 @@ export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
         <div class="ed-status-divisor"></div>
         <div class="ed-zoom-slider">
           <button type="button" id="ed-zoom-menos" data-i18n-title="shell.zoom.alejarTt">−</button>
-          <input type="range" id="ed-zoom" min="25" max="300" step="5" value="100" data-i18n-title="shell.zoom.tt" />
+          <input type="range" id="ed-zoom" min="25" max="400" step="5" value="100" data-i18n-title="shell.zoom.tt" />
           <button type="button" id="ed-zoom-mas" data-i18n-title="shell.zoom.acercarTt">+</button>
           <span id="ed-zoom-val">100%</span>
         </div>

@@ -41,7 +41,7 @@ export function refrescarLienzo(lienzo: Canvas): void {
 }
 
 export function establecerZoom(lienzo: Canvas, zoom: number): void {
-  estado.zoom = Math.min(3, Math.max(0.25, zoom));
+  estado.zoom = Math.min(4, Math.max(0.25, zoom));
   refrescarLienzo(lienzo);
 }
 
