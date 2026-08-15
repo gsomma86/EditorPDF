@@ -471,3 +471,13 @@ validada — ver la sección Fase 0 del roadmap.
     perder; y en un teclado latinoamericano **AltGr es Ctrl+Alt**, así que `Ctrl+Alt+letra` choca
     con las letras que ahí producen un carácter (Q, E, 2…). Antes de elegir uno, probarlo en el
     navegador: que llegue se comprueba mirando si el evento queda `defaultPrevented`.
+49. **Reflejar un estado tiene que poder deshacer lo que hizo, no solo hacerlo.** Varias veces la
+    función que aplica el estado escondía algo (`hidden = true`, `display: none`) sin volver a
+    mostrarlo en la pasada siguiente, y el elemento quedaba escondido para siempre: le pasó al
+    botón de colapsar de la tira de hojas y a la segunda barra de un costado. Al escribir una de
+    estas funciones, cada propiedad que se toca se calcula **siempre**, aunque el valor sea el de
+    por defecto.
+50. **Dos cosas parecidas necesitan nombres distintos y una regla clara de qué hace cada una.**
+    Conviven dos "ocultar": el del menú Campos es una vista temporal de todos los campos y **sí**
+    salen en el PDF; el de la barra de Capas es una propiedad del objeto y **no** sale. Se sostiene
+    porque `elementoVisible()` es el único lugar donde se decide qué se dibuja y qué se exporta.

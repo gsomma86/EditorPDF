@@ -389,7 +389,23 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
       y solo tenía el catálogo AcroForm; ahora suma arriba la sección **Dibujo** con las seis
       herramientas del menú Campos. Las dos se pliegan: con una plantilla real el catálogo tiene
       cientos de campos, y sin plegarlo las herramientas quedan fuera de la vista.
-- [ ] Capas
+- [x] **Capas** (15/08/2026). Barra propia con la lista de capas y, dentro de cada una, sus objetos
+      de adelante hacia atrás —en el lienzo el último del arreglo es el que se ve encima, así que el
+      orden se invierte para mostrarlo—. Desde ahí se selecciona, se apaga y se traba uno por uno o
+      la capa entera, y se crean y renombran capas. Resuelve un problema concreto: con doscientos
+      elementos amontonados, a uno tapado por otro no había forma de llegar.
+      **Lo apagado no se exporta**, que es la diferencia con "Ocultar campos" del menú Campos —esa
+      es una vista temporal y los campos igual salen en el PDF—. La capa, el ocultar y el bloquear
+      viven en el modelo (`Marcas` en `elemento.ts`), y `elementoVisible()` / `elementoBloqueado()`
+      son los dos únicos lugares donde se resuelve, para que el lienzo y la exportación no puedan
+      contradecirse. Las capas son del documento y no de cada hoja.
+      Como era una cuarta barra para tres lugares, **los costados pasan a aceptar dos barras
+      apiladas** con su separador, y el botón de colapsar salió de las cabeceras a una **lengüeta
+      sobre la línea** del costado, que es donde se lee que colapsa el costado entero. Colapsado, el
+      riel adelgaza a 10 px y esconde sus botones: el lienzo gana 200 px.
+      **Quedó afuera**: arrastrar para reordenar o cambiar de capa, y el menú de clic derecho
+      (duplicar, traer al frente, mover a la capa…). Los dos estaban en el mockup; el reordenar por
+      arrastre es el que más trabajo tiene.
 - [x] **Multi-página real (insertar, reordenar, eliminar páginas)** (15/08/2026). Un documento es
       varias hojas y el lienzo muestra una por vez; el tamaño, la orientación, los márgenes y el
       fondo son del documento entero, no de cada hoja (una decisión a propósito: hojas de distinto
