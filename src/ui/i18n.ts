@@ -938,5 +938,33 @@ export function aplicarIdioma(raiz: ParentNode = document): void {
   raiz.querySelectorAll<HTMLOptGroupElement>('[data-i18n-label]').forEach((el) => {
     el.label = t(el.dataset.i18nLabel as ClaveI18n);
   });
+  alinearIconosDeMenu(raiz);
   if (raiz === document) document.documentElement.lang = actual;
+}
+
+/**
+ * Da a cada ícono de menú el mismo ancho, para que los nombres de las opciones queden alineados en
+ * una columna. Los íconos viajan adelante del texto traducido —así se agregan sin tocar el HTML—
+ * pero no miden todos lo mismo, y con `⧉` al lado de `✓` cada nombre arrancaba en otro lugar.
+ *
+ * Se hace acá, después de traducir, porque el texto se rehace en cada cambio de idioma.
+ */
+function alinearIconosDeMenu(raiz: ParentNode): void {
+  for (const el of raiz.querySelectorAll<HTMLElement>('.ed-dropdown [data-i18n]')) {
+    const texto = el.textContent ?? '';
+    const corte = texto.indexOf(' ');
+    // Ícono es lo que va antes del primer espacio, siempre que no sea una palabra: así los
+    // encabezados y las opciones sin ícono quedan como están.
+    if (corte <= 0 || /[\p{L}\p{N}]/u.test(texto.slice(0, corte))) continue;
+
+    // Todo dentro de un mismo envoltorio: el contenedor puede ser flex con los extremos separados,
+    // y dos hijos sueltos terminarían con el ícono de un lado y el nombre del otro.
+    const etiqueta = document.createElement('span');
+    etiqueta.className = 'ed-dd-lbl';
+    const icono = document.createElement('span');
+    icono.className = 'ed-dd-ic';
+    icono.textContent = texto.slice(0, corte);
+    etiqueta.append(icono, texto.slice(corte + 1));
+    el.replaceChildren(etiqueta);
+  }
 }
