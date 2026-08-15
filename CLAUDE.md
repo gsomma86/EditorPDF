@@ -443,3 +443,17 @@ validada — ver la sección Fase 0 del roadmap.
     tapaba el texto. Por eso `debajoDeLaPagina` vive en `Elemento` y `crearObjetoFabric` la lee.
     Regla general: **si algo tiene que sobrevivir a deshacer, a cambiar de hoja o a recargar, tiene
     que estar en el modelo**; el objeto de Fabric es una vista descartable.
+43. **Dos hojas no pueden compartir una página del PDF.** Editar el contenido —borrar un texto,
+    sacar una forma— es cirugía sobre el PDF, no sobre la hoja: si dos hojas apuntan a la misma
+    página, lo que se borre en una desaparece en la otra, en los dos sentidos. Por eso duplicar una
+    hoja **inserta una copia de su página** en el PDF y corre los índices de las hojas siguientes
+    (`duplicarPaginaDelPdf`). La invariante es *una hoja, una página*, y conviene sostenerla en
+    cualquier operación nueva sobre hojas.
+44. **Un menú propio que se cierra con `pointerdown` tiene que atender sus opciones con
+    `pointerdown`.** El listener que cierra el menú al hacer clic afuera se dispara antes que el
+    `click` de la opción, así que para cuando el `click` iba a llegar el menú ya estaba fuera del
+    documento y ninguna opción hacía nada — se veía como "los botones no hacen lo que dicen".
+45. **Una miniatura vacía necesita un ancho calculado, no un `aspect-ratio`.** `aspect-ratio` sobre
+    una caja sin contenido y sin ancho de referencia no da nada: las hojas en blanco salían como una
+    línea fina mientras las que tenían imagen se veían bien, porque el ancho se lo daba la imagen.
+    El ancho de la miniatura sale del alto de la tira por la proporción de la hoja.

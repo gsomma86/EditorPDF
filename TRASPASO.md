@@ -41,11 +41,19 @@ encontró un bug real: la forma convertida se dibuja debajo de la página, y esa
 el objeto de Fabric, así que se perdía al deshacer, al cambiar de hoja y al recargar. Ahora la
 lleva el modelo (`debajoDeLaPagina`) — lección 42 de CLAUDE.md.
 
-**Fase 4 — Multipágina real: hecha** (15/08/2026, ver el punto 4). Un documento del editor ahora
-puede tener varias hojas, con su propia tira de pestañas para agregar, duplicar, borrar y
-reordenar. No confundir con el selector de página de la fase 2, que elige qué página del **PDF de
-fondo** se ve — son dos cosas distintas que conviven: un documento con varias hojas propias puede
-además tener un PDF de varias páginas de fondo.
+**Fase 4 — Multipágina real: hecha** (15/08/2026, ver el punto 4). Un documento del editor tiene
+varias hojas, con su propia tira para agregar, duplicar, borrar y reordenar.
+
+**Y las hojas pasaron a ser las páginas del PDF** (15/08/2026). Antes convivían dos nociones de
+página que no se hablaban —el selector "Página" elegía el fondo del documento entero, y el
+exportador ponía la hoja 1 en esa página, la hoja 2 en la siguiente— así que de la segunda hoja en
+adelante se diseñaba a ciegas. Ahora cada hoja se acuerda de qué página viene, abrir un PDF de N
+páginas arma N hojas, borrar una hoja saca esa página del archivo exportado, y la tira es de
+miniaturas. El selector "Página" ya no existe. Ver el punto 4 del ROADMAP.
+
+**Lo próximo, ya decidido y sin empezar**: insertar (mergear) otro PDF en una posición, y antes de
+eso tamaño y orientación **por hoja** — hoy son del documento entero, y sin eso no se puede meter
+un anexo A4 en un recibo A5 sin mentir en pantalla. Los dos están detallados en el ROADMAP.
 
 ## Lo que falta
 

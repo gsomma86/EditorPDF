@@ -280,6 +280,52 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
 
 ## Fase 4 — Avanzado
 
+- [x] **Las hojas del documento son las páginas del PDF** (15/08/2026). Corrige un problema de
+      diseño de la fase 2 que se veía como "no entiendo cómo funciona esto": convivían dos nociones
+      de página que no se hablaban. El selector **Página** de la barra de estado elegía el fondo del
+      documento entero, mientras que el exportador apoyaba la hoja 1 en esa página, la hoja 2 en la
+      siguiente y así — o sea que con tres hojas se editaban las tres viendo la página 1 de fondo y
+      terminaban en las páginas 1, 2 y 3: **de la segunda en adelante se diseñaba a ciegas**.
+      Ahora cada hoja lleva `paginaPdf` y su fondo propio, abrir un PDF de N páginas arma N hojas, y
+      al exportar se construye un documento nuevo copiando **solo las páginas que alguna hoja siga
+      usando, en el orden en que estén**: borrar una hoja saca esa página del archivo final,
+      moverla lo reordena y duplicarla la repite. El selector **Página** desaparece; en su lugar la
+      barra dice cuántas páginas se van a exportar.
+      **Duplicar una hoja duplica su página del PDF**, no la comparte: si dos hojas apuntaran a la
+      misma, borrar un texto en una lo borraría en la otra, porque la cirugía es sobre el PDF y no
+      sobre la hoja. La invariante es *una hoja, una página*.
+      Los fondos no se guardan en el proyecto ni en el autoguardado: se redibujan pidiéndoselos al
+      PDF, que ya viaja aparte — con doce páginas, guardar las imágenes no entra en localStorage.
+      **Interfaz**: la tira pasa a ser de **miniaturas** (opción elegida sobre un mockup de tres),
+      con duplicar y eliminar sobre la propia miniatura, el resto de las acciones en el menú de clic
+      derecho, y colapsable y redimensionable como los paneles laterales. Bajo el número se muestra
+      de qué página del original viene la hoja cuando ya no coinciden.
+      Verificado con `npm run verificar-hojas`: sobre un PDF de 4 páginas, borrar la segunda y
+      mover la última al principio da un exportado de 3 páginas en el orden D, A, C; y duplicar la
+      primera deja 5 páginas con la copia al lado del original.
+- [ ] **Insertar (mergear) otro PDF en una posición** — decidido el 15/08/2026, sin empezar.
+      Insertar las páginas de otro PDF dentro del documento, eligiendo dónde. **No** se hace
+      sobrecargando "Abrir PDF" según dónde esté parado el cursor: esa acción reemplaza el
+      documento y la nueva lo agranda, y compartir botón entre algo destructivo y algo aditivo
+      termina en trabajo perdido. Van dos disparadores para la misma función: **clic derecho en la
+      tira → "Insertar PDF aquí…"** (entra después de esa hoja; la posición ya está en el gesto) y
+      **menú Página → "Insertar PDF…"** (después de la hoja que se está editando), porque a un menú
+      de clic derecho no llega nadie solo. Arrastrar el archivo sobre la tira queda descartado por
+      ahora. Lo demás ya existe: fusionar es lo mismo que `agregarHoja` hace al duplicar —copiar
+      páginas dentro del PDF base, insertarlas y correr los índices de las hojas siguientes—, así
+      que **no hace falta manejar dos PDFs abiertos a la vez**.
+      **Antes hay que hacer el tamaño por hoja** (el punto de abajo): el caso típico es meter un
+      anexo A4 en un recibo A5, y hoy el documento tiene un solo tamaño. Al exportar, las páginas se
+      copian con su tamaño real, así que el archivo saldría bien pero en pantalla se verían con el
+      tamaño del documento — el mismo "diseñar a ciegas" que se acaba de sacar.
+      A tener en cuenta al implementarlo: campos AcroForm con el mismo nombre en los dos PDFs
+      quedan como un solo campo con el mismo valor en las dos páginas, y el PDF de base pasa a
+      pesar la suma de los dos (se nota en el autoguardado y en el `.json`).
+- [ ] **Tamaño y orientación por hoja** — decidido el 15/08/2026, sin empezar. Hoy son del
+      documento entero, una decisión a propósito de la fase 4 que el merge deja sin sostén. Cada
+      hoja se acuerda de su tamaño y orientación y el lienzo cambia al pasar de una a otra; los
+      márgenes siguen siendo del documento. Al insertar un PDF de otro tamaño se **avisa, sin
+      bloquear**: el aviso es solo un aviso, la inserción se hace igual.
 - [ ] Capas
 - [x] **Multi-página real (insertar, reordenar, eliminar páginas)** (15/08/2026). Un documento es
       varias hojas y el lienzo muestra una por vez; el tamaño, la orientación, los márgenes y el
