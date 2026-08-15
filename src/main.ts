@@ -10,6 +10,7 @@ import { camposDesdeCsv, csvDesdeCampos, descargarCsv } from './editor/csvCampos
 import { confirmar, mostrarAyuda, mostrarPreflight, pedirExportarPdf, pedirFilasColumnas, pedirMargenes, pedirNombreArchivo, pedirNuevoProyecto } from './ui/modales';
 import { formatearPeso, pesoDelPdf, verificarDiseno } from './editor/preflight';
 import { montarPanelCampos } from './ui/panelCampos';
+import { montarPanelCapas } from './ui/panelCapas';
 import { cablearAyuda } from './ui/ayuda';
 import { montarPaneles } from './ui/paneles';
 import { deshacer, inicializarHistorial, puedeDeshacer, puedeRehacer, registrarSnapshot, rehacer } from './editor/historial';
@@ -29,6 +30,7 @@ const panelCampos = montarPanelCampos(espacio.panelCampos, async (nombre) => {
   registrarSnapshot(lienzo);
   guardar();
 });
+const panelCapas = montarPanelCapas(document.getElementById('ed-panel-capas')!, lienzo, () => guardar());
 const ayuda = cablearAyuda();
 montarPaneles(espacio.raiz);
 activarVista(lienzo);
@@ -159,10 +161,10 @@ function alSeleccionar(e: { selected?: FabricObject[] }): void {
  * que no pasan por el panel ni por `object:modified`: por ejemplo hacer repetible un campo, donde
  * el clic del botón ocurre antes de confirmar el modal y después ya no hay ningún evento.
  */
-lienzo.on('object:added', () => guardar());
-lienzo.on('object:removed', () => guardar());
+lienzo.on('object:added', () => { guardar(); panelCapas.refrescar(); });
+lienzo.on('object:removed', () => { guardar(); panelCapas.refrescar(); });
 
-lienzo.on('selection:created', alSeleccionar);
+lienzo.on('selection:created', (e) => { alSeleccionar(e); panelCapas.refrescar(); });
 lienzo.on('selection:updated', alSeleccionar);
 lienzo.on('selection:cleared', () => {
   mostrarSinSeleccion(espacio.panelPropiedades);

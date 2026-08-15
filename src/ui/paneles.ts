@@ -24,10 +24,14 @@ const MAXIMO_ABAJO = 320;
 const IMAN = 70;
 
 export type Lugar = 'izq' | 'der' | 'abajo' | 'flotante' | 'cerrado';
-type Nombre = 'campos' | 'props' | 'hojas';
+type Nombre = 'campos' | 'props' | 'hojas' | 'capas';
 
 interface Pieza {
   lugar: Lugar;
+  /** En qué mitad del costado va: arriba (1) o abajo (2). Sin sentido fuera de los costados. */
+  mitad: 1 | 2;
+  /** Qué porcentaje del alto del costado ocupa, cuando comparte el costado con otra. */
+  altoEnElCostado: number;
   colapsado: boolean;
   /** Ancho en los costados, alto abajo. Se guarda por lugar: una tira alta no define un panel ancho. */
   ancho: number;
@@ -41,17 +45,32 @@ interface Pieza {
 
 type Estado = Record<Nombre, Pieza>;
 
+/** Todas las ranuras acopladas, en el orden en que se busca una libre. */
+const RANURAS: { lugar: Lugar; mitad: 1 | 2 }[] = [
+  { lugar: 'izq', mitad: 1 },
+  { lugar: 'der', mitad: 1 },
+  { lugar: 'izq', mitad: 2 },
+  { lugar: 'der', mitad: 2 },
+  { lugar: 'abajo', mitad: 1 },
+];
+
 /** Dónde nace cada barra, y a dónde vuelve al reabrirla o al restaurarlas. */
-const LUGAR_ORIGINAL: Record<Nombre, Lugar> = { campos: 'izq', props: 'der', hojas: 'abajo' };
+const LUGAR_ORIGINAL: Record<Nombre, { lugar: Lugar; mitad: 1 | 2 }> = {
+  campos: { lugar: 'izq', mitad: 1 },
+  props: { lugar: 'der', mitad: 1 },
+  capas: { lugar: 'der', mitad: 2 },
+  hojas: { lugar: 'abajo', mitad: 1 },
+};
 
 function piezaPorDefecto(lugar: Lugar): Pieza {
-  return { lugar, colapsado: false, ancho: 210, alto: 105, x: 120, y: 120, anchoFlotante: 230, altoFlotante: 280 };
+  return { lugar, mitad: 1, altoEnElCostado: 50, colapsado: false, ancho: 210, alto: 105, x: 120, y: 120, anchoFlotante: 230, altoFlotante: 280 };
 }
 
 function leerEstado(): Estado {
   const base: Estado = {
     campos: piezaPorDefecto('izq'),
     props: { ...piezaPorDefecto('der'), ancho: 230 },
+    capas: { ...piezaPorDefecto('der'), ancho: 230, mitad: 2 },
     hojas: piezaPorDefecto('abajo'),
   };
   try {
@@ -61,12 +80,13 @@ function leerEstado(): Estado {
     }
     // Dos piezas no pueden compartir ranura: si un guardado viejo o a medias lo pide, la segunda
     // se manda a flotar en vez de dejar una encima de la otra.
-    const ocupadas = new Set<Lugar>();
+    const ocupadas = new Set<string>();
     for (const nombre of Object.keys(base) as Nombre[]) {
-      const lugar = base[nombre].lugar;
-      if (lugar === 'flotante') continue;
-      if (ocupadas.has(lugar)) base[nombre].lugar = 'flotante';
-      else ocupadas.add(lugar);
+      const { lugar, mitad } = base[nombre];
+      if (lugar === 'flotante' || lugar === 'cerrado') continue;
+      const clave = lugar === 'abajo' ? 'abajo' : lugar + mitad;
+      if (ocupadas.has(clave)) base[nombre].lugar = 'flotante';
+      else ocupadas.add(clave);
     }
     return base;
   } catch {
@@ -83,15 +103,18 @@ export function montarPaneles(raiz: HTMLElement): void {
   const estado = leerEstado();
   const nombres = Object.keys(estado) as Nombre[];
   const piezaDe = (nombre: Nombre) => raiz.querySelector<HTMLElement>(`#ed-pieza-${nombre}`)!;
-  const ranuraDe = (lugar: Lugar) => raiz.querySelector<HTMLElement>(`#ed-ranura-${lugar}`);
-  const quienEsta = (lugar: Lugar) => nombres.find((n) => estado[n].lugar === lugar);
+  const ranuraDe = (lugar: Lugar, mitad: 1 | 2) =>
+    raiz.querySelector<HTMLElement>(lugar === 'abajo' ? '#ed-ranura-abajo' : `#ed-ranura-${lugar}-${mitad}`);
+  /** Qué barra ocupa una ranura. Abajo hay una sola, así que la mitad no cuenta. */
+  const quienEsta = (lugar: Lugar, mitad: 1 | 2 = 1) =>
+    nombres.find((n) => estado[n].lugar === lugar && (lugar === 'abajo' || estado[n].mitad === mitad));
 
   /** Refleja el estado entero: dónde está cada pieza, su medida, su colapso y sus botones. */
   const aplicar = (): void => {
     for (const nombre of nombres) {
       const pieza = estado[nombre];
       const nodo = piezaDe(nombre);
-      const ranura = ranuraDe(pieza.lugar);
+      const ranura = ranuraDe(pieza.lugar, pieza.mitad);
 
       // Mover el nodo, no clonarlo: adentro viven el lienzo de campos, el panel de propiedades y la
       // tira, con sus escuchas ya enganchadas.
@@ -121,15 +144,25 @@ export function montarPaneles(raiz: HTMLElement): void {
       nodo.querySelector<HTMLElement>('[data-accion="desacoplar"]')!.hidden = pieza.lugar === 'flotante';
     }
 
-    // Un costado sin pieza no ocupa lugar, y su separador tampoco.
+    // El ancho del costado lo decide la barra más ancha de las dos, y el costado se va a cero solo
+    // si está vacío del todo.
     for (const lado of ['izq', 'der'] as const) {
-      const quien = quienEsta(lado);
-      const medida = quien ? (estado[quien].colapsado ? RIEL : estado[quien].ancho) : 0;
-      layout.style.setProperty(`--ancho-${lado}`, `${medida}px`);
+      const arriba = quienEsta(lado, 1);
+      const abajoDelLado = quienEsta(lado, 2);
+      const anchoDe = (quien?: Nombre) => (quien ? (estado[quien].colapsado ? RIEL : estado[quien].ancho) : 0);
+      layout.style.setProperty(`--ancho-${lado}`, `${Math.max(anchoDe(arriba), anchoDe(abajoDelLado))}px`);
+
       // El separador se queda en su lugar aunque el costado esté vacío: es una columna del grid, y
       // sacarlo del flujo corre todas las demás —el panel del otro lado terminaba midiendo 5 px—.
       const separador = raiz.querySelector<HTMLElement>(`#ed-separador-${lado}`)!;
-      separador.classList.toggle('inerte', !quien || estado[quien].colapsado);
+      separador.classList.toggle('inerte', !arriba && !abajoDelLado);
+
+      // El separador de adentro solo tiene sentido con las dos mitades ocupadas; si no, la que
+      // esté ocupa el costado entero.
+      const sub = raiz.querySelector<HTMLElement>(`#ed-separador-${lado}-sub`)!;
+      const partido = !!arriba && !!abajoDelLado;
+      sub.style.display = partido ? '' : 'none';
+      raiz.style.setProperty(`--alto-${lado}-1`, partido ? `${estado[arriba].altoEnElCostado}%` : arriba ? '100%' : '0%');
     }
 
     const abajo = quienEsta('abajo');
@@ -196,8 +229,15 @@ export function montarPaneles(raiz: HTMLElement): void {
   /** Devuelve una barra cerrada a su lugar de siempre, o a uno libre si ese está ocupado. */
   function abrir(nombre: Nombre): void {
     const suyo = LUGAR_ORIGINAL[nombre];
-    const destino = !quienEsta(suyo) ? suyo : (['izq', 'der', 'abajo'] as const).find((l) => !quienEsta(l));
-    estado[nombre].lugar = destino ?? 'flotante';
+    if (!quienEsta(suyo.lugar, suyo.mitad)) {
+      estado[nombre].lugar = suyo.lugar;
+      estado[nombre].mitad = suyo.mitad;
+    } else {
+      // Su lugar de siempre está tomado: se busca cualquier ranura libre, y si no hay, flota.
+      const libre = RANURAS.find((r) => !quienEsta(r.lugar, r.mitad));
+      estado[nombre].lugar = libre?.lugar ?? 'flotante';
+      estado[nombre].mitad = libre?.mitad ?? 1;
+    }
     estado[nombre].colapsado = false;
   }
 
@@ -212,7 +252,8 @@ export function montarPaneles(raiz: HTMLElement): void {
 
   raiz.querySelector('#ed-restaurar-barras')!.addEventListener('click', () => {
     for (const nombre of nombres) {
-      estado[nombre] = { ...piezaPorDefecto(LUGAR_ORIGINAL[nombre]), ancho: nombre === 'props' ? 230 : 210 };
+      const suyo = LUGAR_ORIGINAL[nombre];
+      estado[nombre] = { ...piezaPorDefecto(suyo.lugar), mitad: suyo.mitad, ancho: nombre === 'campos' ? 210 : 230 };
     }
     aplicar();
   });
@@ -229,7 +270,7 @@ export function montarPaneles(raiz: HTMLElement): void {
       const pieza = estado[nombre];
       const desde = { x: pieza.x, y: pieza.y };
       const inicio = { x: e.clientX, y: e.clientY };
-      let destino: Lugar | null = null;
+      let destino: { lugar: Lugar; mitad: 1 | 2 } | null = null;
 
       const mover = (m: PointerEvent) => {
         pieza.x = desde.x + (m.clientX - inicio.x);
@@ -300,52 +341,74 @@ export function montarPaneles(raiz: HTMLElement): void {
    * panel no son equivalentes —un panel abajo sería una franja de 100 px de alto— así que ahí solo
    * entra si está libre.
    */
-  function bordeCercano(x: number, y: number, nombre: Nombre): Lugar | null {
+  /**
+   * A qué ranura iría la ventana si se soltara acá, o null si a ninguna.
+   *
+   * Un costado tiene dos ranuras: la mitad de arriba y la de abajo. Con una sola barra en el
+   * costado, el costado entero es su ranura y soltar en cualquier mitad la reemplaza o la parte,
+   * según dónde caiga el puntero. Abajo hay una sola ranura y solo entra si está libre: un panel
+   * de propiedades como franja de 100 px de alto no le sirve a nadie.
+   */
+  function bordeCercano(x: number, y: number, nombre: Nombre): { lugar: Lugar; mitad: 1 | 2 } | null {
     const caja = layout!.getBoundingClientRect();
     if (y > caja.bottom - IMAN && y < caja.bottom + IMAN * 2) {
-      return quienEsta('abajo') && quienEsta('abajo') !== nombre ? null : 'abajo';
+      const ocupa = quienEsta('abajo');
+      return ocupa && ocupa !== nombre ? null : { lugar: 'abajo', mitad: 1 };
     }
-    if (x < caja.left + IMAN) return 'izq';
-    if (x > caja.right - IMAN) return 'der';
-    return null;
+    const lado = x < caja.left + IMAN ? 'izq' : x > caja.right - IMAN ? 'der' : null;
+    if (!lado) return null;
+    return { lugar: lado, mitad: y < caja.top + caja.height / 2 ? 1 : 2 };
   }
 
-  function marcarSombra(destino: Lugar | null): void {
+  function marcarSombra(destino: { lugar: Lugar; mitad: 1 | 2 } | null): void {
     sombra!.hidden = !destino;
     if (!destino) return;
     const caja = layout!.getBoundingClientRect();
     const estilo = sombra!.style;
-    if (destino === 'abajo') {
+    if (destino.lugar === 'abajo') {
       Object.assign(estilo, { left: `${caja.left}px`, width: `${caja.width}px`, top: `${caja.bottom + 6}px`, height: '96px' });
-    } else {
-      const ancho = 200;
-      Object.assign(estilo, {
-        left: `${destino === 'izq' ? caja.left : caja.right - ancho}px`,
-        width: `${ancho}px`,
-        top: `${caja.top}px`,
-        height: `${caja.height}px`,
-      });
+      return;
     }
+
+    // La sombra ocupa el costado entero si va a quedar sola ahí, o la mitad que corresponda si va a
+    // compartirlo: es lo que hace entender de un vistazo que el costado se parte en dos.
+    const otra = quienEsta(destino.lugar, destino.mitad === 1 ? 2 : 1);
+    const alto = otra ? caja.height / 2 : caja.height;
+    const ancho = 200;
+    Object.assign(estilo, {
+      left: `${destino.lugar === 'izq' ? caja.left : caja.right - ancho}px`,
+      width: `${ancho}px`,
+      top: `${caja.top + (otra && destino.mitad === 2 ? caja.height / 2 : 0)}px`,
+      height: `${alto}px`,
+    });
   }
 
-  /** Acopla una pieza; si el lugar está ocupado, las dos cambian de lado. */
-  function acoplarEn(nombre: Nombre, destino: Lugar): void {
-    const inquilino = quienEsta(destino);
-    const veniaDe = estado[nombre].lugar;
+  /** Acopla una barra en una ranura; si está ocupada, las dos se intercambian. */
+  function acoplarEn(nombre: Nombre, destino: { lugar: Lugar; mitad: 1 | 2 }): void {
+    const inquilino = quienEsta(destino.lugar, destino.mitad);
+    const pieza = estado[nombre];
+    const veniaDe = { lugar: pieza.lugar, mitad: pieza.mitad };
+
     if (inquilino && inquilino !== nombre) {
-      // El que estaba se va al lugar que deja libre la que llega. Si la que llega venía flotando
-      // no hay lugar que ceder, así que se lo manda a un costado libre: sacarlo a flotar sin que
-      // nadie lo pidiera se siente como que la aplicación hizo cualquier cosa.
-      const libre = veniaDe === 'flotante' ? (['izq', 'der', 'abajo'] as const).find((l) => l !== destino && !quienEsta(l)) : veniaDe;
-      estado[inquilino].lugar = libre ?? 'flotante';
+      // El que estaba se va al lugar que deja libre la que llega. Si la que llega venía flotando no
+      // hay lugar que ceder, así que se lo manda a una ranura libre: sacarlo a flotar sin que nadie
+      // lo pidiera se siente como que la aplicación hizo cualquier cosa.
+      const libre =
+        veniaDe.lugar === 'flotante' || veniaDe.lugar === 'cerrado'
+          ? RANURAS.find((r) => !quienEsta(r.lugar, r.mitad))
+          : veniaDe;
+      estado[inquilino].lugar = libre?.lugar ?? 'flotante';
+      estado[inquilino].mitad = libre?.mitad ?? 1;
       if (estado[inquilino].lugar === 'flotante') {
         const caja = piezaDe(inquilino).getBoundingClientRect();
         estado[inquilino].x = Math.max(8, caja.left);
         estado[inquilino].y = Math.max(8, caja.top);
       }
     }
-    estado[nombre].lugar = destino;
-    estado[nombre].colapsado = false;
+
+    pieza.lugar = destino.lugar;
+    pieza.mitad = destino.mitad;
+    pieza.colapsado = false;
   }
 
   /** Que una ventana no quede fuera de la pantalla y no se pueda recuperar más. */

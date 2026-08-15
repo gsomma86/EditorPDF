@@ -32,6 +32,7 @@ const MENU_VER = `
   <div class="ed-dd-nota" data-i18n="menu.ver.barras"></div>
   <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" data-barra="campos" checked /> <span data-i18n="menu.ver.barraCampos"></span></label>
   <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" data-barra="props" checked /> <span data-i18n="menu.ver.barraProps"></span></label>
+  <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" data-barra="capas" checked /> <span data-i18n="menu.ver.barraCapas"></span></label>
   <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" data-barra="hojas" checked /> <span data-i18n="menu.ver.barraHojas"></span></label>
   <div class="ed-dd-item" id="ed-restaurar-barras"><span data-i18n="menu.ver.restaurarBarras"></span> <span class="ed-dd-tecla">Ctrl+Alt+B</span></div>
 `;
@@ -145,6 +146,10 @@ const PIEZAS: Record<string, { titulo: string; cuerpo: string }> = {
         <div class="ed-sinsel" data-i18n="shell.sinSeleccion"></div>
       </div>`,
   },
+  capas: {
+    titulo: 'shell.capas.titulo',
+    cuerpo: '<div class="ed-panel-cont"><div class="ed-props-tit"><strong data-i18n="shell.capas.titulo"></strong></div><div id="ed-panel-capas"></div></div>',
+  },
   hojas: {
     titulo: 'shell.hojas.titulo',
     cuerpo: `<div class="ed-hojas-lista" id="ed-hojas-lista"></div>`,
@@ -199,7 +204,12 @@ export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
     </div>
 
     <div class="ed-layout" id="ed-layout">
-      <div class="ed-ranura" id="ed-ranura-izq"></div>
+      <!-- Cada costado admite dos barras, una arriba de la otra, con su separador en el medio. -->
+      <div class="ed-costado" id="ed-costado-izq">
+        <div class="ed-ranura" id="ed-ranura-izq-1"></div>
+        <div class="ed-separador-h ed-sep-costado" id="ed-separador-izq-sub" data-i18n-title="shell.separadorTt"></div>
+        <div class="ed-ranura" id="ed-ranura-izq-2"></div>
+      </div>
       <div class="ed-separador" id="ed-separador-izq" data-i18n-title="shell.separadorTt"></div>
 
       <div class="ed-lienzo-cont">
@@ -207,7 +217,11 @@ export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
       </div>
 
       <div class="ed-separador" id="ed-separador-der" data-i18n-title="shell.separadorTt"></div>
-      <div class="ed-ranura" id="ed-ranura-der"></div>
+      <div class="ed-costado" id="ed-costado-der">
+        <div class="ed-ranura" id="ed-ranura-der-1"></div>
+        <div class="ed-separador-h ed-sep-costado" id="ed-separador-der-sub" data-i18n-title="shell.separadorTt"></div>
+        <div class="ed-ranura" id="ed-ranura-der-2"></div>
+      </div>
     </div>
 
     <div class="ed-separador-h" id="ed-separador-hojas" data-i18n-title="shell.separadorTt"></div>
@@ -239,8 +253,9 @@ export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
   `;
 
   // Las piezas nacen en su ranura por defecto; `paneles.ts` las reubica según lo que esté guardado.
-  raiz.querySelector('#ed-ranura-izq')!.innerHTML = htmlDePieza('campos');
-  raiz.querySelector('#ed-ranura-der')!.innerHTML = htmlDePieza('props');
+  raiz.querySelector('#ed-ranura-izq-1')!.innerHTML = htmlDePieza('campos');
+  raiz.querySelector('#ed-ranura-der-1')!.innerHTML = htmlDePieza('props');
+  raiz.querySelector('#ed-ranura-der-2')!.innerHTML = htmlDePieza('capas');
   raiz.querySelector('#ed-ranura-abajo')!.innerHTML = htmlDePieza('hojas');
 
   const menubar = raiz.querySelector<HTMLElement>('#ed-menubar')!;

@@ -1284,3 +1284,123 @@ button {
   background: var(--card-1);
   border-color: var(--borde);
 }
+
+/* ---------- Costados partidos en dos ---------- */
+
+/* Un costado puede tener dos barras, una arriba de la otra. El alto de la primera va en
+   porcentaje: así el reparto se mantiene al cambiar el alto de la ventana. */
+.ed-costado {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  gap: 0;
+}
+#ed-costado-izq > #ed-ranura-izq-1 {
+  height: var(--alto-izq-1, 100%);
+}
+#ed-costado-der > #ed-ranura-der-1 {
+  height: var(--alto-der-1, 100%);
+}
+.ed-costado > .ed-ranura {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.ed-costado > .ed-ranura:empty {
+  flex: 0 0 0;
+  height: 0 !important;
+}
+.ed-sep-costado {
+  flex: 0 0 5px;
+  margin: 1px 0;
+}
+
+/* ---------- Lista de capas y objetos ---------- */
+
+#ed-panel-capas {
+  font-size: 11.5px;
+}
+.ed-capa {
+  margin-bottom: 3px;
+}
+.ed-capa-head {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 5px;
+  border-radius: 6px;
+  background: var(--card-1);
+  font-weight: 600;
+}
+.ed-capa-nom {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: text;
+}
+.ed-obj {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 5px 3px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.ed-obj:hover {
+  background: var(--fondo-suave);
+}
+.ed-obj.sel {
+  background: #e3f0fc;
+  box-shadow: inset 2px 0 0 var(--acento);
+}
+.ed-obj-ic {
+  width: 13px;
+  text-align: center;
+  color: var(--texto-suave);
+  font-size: 10px;
+  flex-shrink: 0;
+}
+.ed-obj-nom {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Apagado se tacha —no sale en el PDF— y trabado va en itálica: se distinguen de un vistazo. */
+.ed-obj.oculto .ed-obj-nom {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+.ed-obj.bloq .ed-obj-nom {
+  opacity: 0.6;
+  font-style: italic;
+}
+.ed-obj-btn {
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: 9px;
+  line-height: 1;
+  flex-shrink: 0;
+  border-radius: 3px;
+}
+.ed-obj-btn:hover {
+  background: #fff;
+}
+.ed-capas-acciones {
+  margin-top: 8px;
+}
+.ed-capas-acciones button {
+  width: 100%;
+  padding: 4px;
+  border: 1px solid var(--borde-fuerte);
+  background: #fff;
+  border-radius: 6px;
+  color: var(--texto-2);
+  font-size: 11px;
+}
