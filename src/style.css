@@ -575,6 +575,10 @@ button {
    sin tener que leer un número — que después de borrar o reordenar ya no dice mucho. */
 .ed-hoja,
 .ed-hoja-nueva {
+  /* El ancho sale del alto de la tira y de la proporción de la hoja. Se calcula y no se deduce del
+     aspect-ratio del papel: una hoja en blanco no tiene imagen adentro, así que sin esto el ancho
+     quedaba indefinido y la miniatura salía finita. */
+  width: calc((var(--alto-hojas, 105px) - 28px) * var(--relacion-hoja, 0.707));
   flex-shrink: 0;
   cursor: pointer;
   display: flex;
@@ -583,7 +587,6 @@ button {
 .ed-hoja-papel {
   flex: 1;
   min-height: 0;
-  aspect-ratio: var(--relacion-hoja, 0.707);
   background: #fff;
   border: 1px solid var(--borde-fuerte);
   border-radius: 3px;

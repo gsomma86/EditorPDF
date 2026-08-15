@@ -634,7 +634,9 @@ function menuDeHoja(indice: number, x: number, y: number): void {
     fila.textContent = t(opcion.clave);
     if (opcion.roja) fila.className = 'roja';
     if (opcion.roja && cantidadDeHojas() < 2) fila.classList.add('apagada');
-    else fila.addEventListener('click', () => {
+    // `pointerdown` y no `click`: el que cierra el menú también escucha pointerdown, así que con
+    // click el menú ya no existía cuando llegaba el evento y ninguna opción hacía nada.
+    else fila.addEventListener('pointerdown', () => {
       menu.remove();
       void opcion.hacer();
     });
