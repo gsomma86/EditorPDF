@@ -566,7 +566,7 @@ function reflejarHojas(): void {
   hojasLista.querySelectorAll<HTMLButtonElement>('[data-duplicar]').forEach((boton) => {
     boton.addEventListener('click', () => void duplicarHoja(Number(boton.dataset.duplicar)));
   });
-  document.getElementById('ed-hoja-agregar')!.addEventListener('click', () => void nuevaHoja());
+  document.getElementById('ed-hoja-agregar')!.addEventListener('click', () => void nuevaHoja(cantidadDeHojas() - 1));
 }
 
 /**
@@ -602,8 +602,14 @@ async function duplicarHoja(indice: number): Promise<void> {
   await trasCambiarHojas(true);
 }
 
-async function nuevaHoja(alFinal = false): Promise<void> {
-  if (alFinal) await irAHoja(lienzo, cantidadDeHojas() - 1);
+/**
+ * Agrega una hoja en blanco **después de `despuesDe`**. `agregarHoja` inserta siempre después de
+ * la hoja vigente, así que hay que pararse primero donde lo pidieron: desde el menú, la hoja sobre
+ * la que se hizo clic derecho —que puede no ser la que se está editando—, y desde el botón `+`, la
+ * última. Sin esto, las dos siempre caían en el lugar 2.
+ */
+async function nuevaHoja(despuesDe: number): Promise<void> {
+  await irAHoja(lienzo, despuesDe);
   await agregarHoja(lienzo, false);
   await trasCambiarHojas(true);
 }
@@ -612,7 +618,7 @@ async function nuevaHoja(alFinal = false): Promise<void> {
 function menuDeHoja(indice: number, x: number, y: number): void {
   const opciones: { clave: ClaveI18n; roja?: boolean; hacer: () => Promise<void> }[] = [
     { clave: 'shell.hojas.duplicarTt', hacer: () => duplicarHoja(indice) },
-    { clave: 'shell.hojas.insertar', hacer: () => nuevaHoja() },
+    { clave: 'shell.hojas.insertar', hacer: () => nuevaHoja(indice) },
     { clave: 'shell.hojas.moverIzq', hacer: async () => {
       await moverHoja(lienzo, indice, Math.max(0, indice - 1));
       await trasCambiarHojas(true);
