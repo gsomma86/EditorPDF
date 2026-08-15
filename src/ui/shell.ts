@@ -207,7 +207,7 @@ export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
       <!-- Cada costado admite dos barras, una arriba de la otra, con su separador en el medio. -->
       <div class="ed-costado" id="ed-costado-izq">
         <div class="ed-ranura" id="ed-ranura-izq-1"></div>
-        <div class="ed-separador-h ed-sep-costado" id="ed-separador-izq-sub" data-i18n-title="shell.separadorTt"></div>
+        <div class="ed-separador-h ed-sep-costado" id="ed-separador-izq-sub" data-i18n-title="shell.separadorAltoTt"></div>
         <div class="ed-ranura" id="ed-ranura-izq-2"></div>
       </div>
       <div class="ed-separador" id="ed-separador-izq" data-i18n-title="shell.separadorTt"></div>
@@ -219,7 +219,7 @@ export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
       <div class="ed-separador" id="ed-separador-der" data-i18n-title="shell.separadorTt"></div>
       <div class="ed-costado" id="ed-costado-der">
         <div class="ed-ranura" id="ed-ranura-der-1"></div>
-        <div class="ed-separador-h ed-sep-costado" id="ed-separador-der-sub" data-i18n-title="shell.separadorTt"></div>
+        <div class="ed-separador-h ed-sep-costado" id="ed-separador-der-sub" data-i18n-title="shell.separadorAltoTt"></div>
         <div class="ed-ranura" id="ed-ranura-der-2"></div>
       </div>
     </div>

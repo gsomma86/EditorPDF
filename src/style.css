@@ -1302,7 +1302,13 @@ button {
 #ed-costado-der > #ed-ranura-der-1 {
   height: var(--alto-der-1, 100%);
 }
-.ed-costado > .ed-ranura {
+/* La de arriba manda con su porcentaje y la de abajo se queda con el resto: con las dos creciendo
+   se repartían el alto en partes iguales y el separador de adentro no cambiaba nada. */
+.ed-costado > .ed-ranura:first-child {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+.ed-costado > .ed-ranura:last-child {
   flex: 1 1 auto;
   min-height: 0;
 }

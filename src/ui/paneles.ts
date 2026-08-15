@@ -451,6 +451,41 @@ export function montarPaneles(raiz: HTMLElement): void {
   arrastrarSeparador(raiz.querySelector<HTMLElement>('#ed-separador-izq')!, 'izq');
   arrastrarSeparador(raiz.querySelector<HTMLElement>('#ed-separador-der')!, 'der');
 
+  /**
+   * El separador de adentro de un costado reparte su alto entre las dos barras. Va en porcentaje y
+   * no en píxeles para que el reparto se mantenga al cambiar el alto de la ventana.
+   */
+  const repartirCostado = (lado: 'izq' | 'der'): void => {
+    const separador = raiz.querySelector<HTMLElement>(`#ed-separador-${lado}-sub`)!;
+    separador.addEventListener('pointerdown', (e) => {
+      const arriba = quienEsta(lado, 1);
+      if (!arriba || !quienEsta(lado, 2)) return;
+      e.preventDefault();
+      separador.setPointerCapture(e.pointerId);
+      separador.classList.add('arrastrando');
+
+      const costado = raiz.querySelector<HTMLElement>(`#ed-costado-${lado}`)!.getBoundingClientRect();
+
+      const mover = (m: PointerEvent) => {
+        const parte = ((m.clientY - costado.top) / costado.height) * 100;
+        // Con topes: una barra de 3 px de alto no sirve y además no se la puede volver a agarrar.
+        estado[arriba].altoEnElCostado = Math.min(85, Math.max(15, parte));
+        aplicar();
+      };
+      const soltar = () => {
+        separador.classList.remove('arrastrando');
+        separador.removeEventListener('pointermove', mover);
+        separador.removeEventListener('pointerup', soltar);
+      };
+
+      separador.addEventListener('pointermove', mover);
+      separador.addEventListener('pointerup', soltar);
+    });
+  };
+
+  repartirCostado('izq');
+  repartirCostado('der');
+
   // La ranura de abajo crece hacia arriba, así que su delta va al revés que el de un costado.
   const separadorAbajo = raiz.querySelector<HTMLElement>('#ed-separador-hojas')!;
   separadorAbajo.addEventListener('pointerdown', (e) => {
