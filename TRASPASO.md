@@ -49,9 +49,10 @@ además tener un PDF de varias páginas de fondo.
    del editor público: diccionario plano, `data-i18n`/`-title`/`-placeholder`/`-label`, persistido
    en localStorage). El selector del encabezado funciona. Cableado en `shell.ts`, `modales.ts`,
    `panelPropiedades.ts`, `panelCampos.ts`, `main.ts` y los 7 bloques largos de `ui/ayuda.ts` (guía,
-   atajos, CSV, repetibles, apariencias, FAQ, acerca de). **Falta probarlo en el navegador** — no se
-   verificó todavía que el selector cambie todo correctamente ni que un PDF con texto en otro
-   idioma se vea bien.
+   atajos, CSV, repetibles, apariencias, FAQ, acerca de). **Probado en el navegador (15/08/2026)**
+   en los tres idiomas: lo que estaba a medias era todo lo que arma el codigo —el peso, las
+   pestanas de hojas y el panel de propiedades ya dibujado quedaban en el idioma anterior— y se
+   resolvio con `alCambiarIdioma`, el aviso al que se engancha ese tipo de texto.
 2. ~~Persistir la página elegida al retomar una sesión~~ — **hecho (14/08/2026)**. De paso, buscando
    esto apareció un bug más serio y ya corregido: **retomar una sesión borraba el PDF de base
    entero, justo antes de recuperarlo**. `restaurarAutoguardado` pasa por `cargarProyecto`, que

@@ -369,3 +369,11 @@ hoja, ayuda y rendimiento medido. **Falta solo el multiidioma ES/EN/PT**, que co
 
 Fases 2 y 3 (editar texto y formas de PDFs preexistentes) tienen una prueba de concepto ya
 validada — ver la sección Fase 0 del roadmap.
+34. **Traducir con `data-i18n` alcanza solo para lo que está escrito en el HTML.** Todo lo que arma
+    texto por código —el peso del PDF, las pestañas de hojas, el panel de propiedades, que se
+    dibuja al seleccionar— queda en el idioma anterior al cambiar de idioma, porque el barrido no
+    tiene qué recorrer y nada lo vuelve a dibujar. Para eso está `alCambiarIdioma` en `ui/i18n.ts`:
+    **al agregar cualquier texto generado por código, engancharlo ahí**. Lo mismo vale para un
+    texto que dependa de un valor calculado (el peso muestra "Peso: 1.8 KB"): hay que guardar el
+    último estado —qué clave y qué valor— para poder reescribirlo en el idioma nuevo, porque el
+    valor ya no se puede deducir del DOM.

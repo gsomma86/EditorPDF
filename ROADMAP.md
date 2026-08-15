@@ -79,7 +79,10 @@ Paridad con el editor público actual, mejorando sus limitaciones conocidas (ren
       en ~21 ms, o sea unos 48 cuadros por segundo. Una hoja llena de verdad ronda los 200.
 - [x] Multiidioma ES/EN/PT — `ui/i18n.ts` (diccionario + `data-i18n*` + selector en el encabezado),
       cableado en `shell.ts`, `modales.ts`, `panelPropiedades.ts`, `panelCampos.ts`, `main.ts` y los
-      textos largos de `ayuda.ts`. Falta: probar el selector en el navegador (no se probó todavía)
+      textos largos de `ayuda.ts`. **Probado en el navegador en los tres idiomas (15/08/2026)**:
+      al hacerlo aparecio que el barrido de `data-i18n` no alcanza lo que arma el codigo (el peso,
+      las pestanas de hojas, el panel de propiedades ya dibujado). Se resolvio con un aviso de
+      cambio de idioma —`alCambiarIdioma`— al que se engancha lo que dibuje texto por codigo.
 - [x] **Auditoría del panel de propiedades contra el editor público** (14/08/2026), control por
       control. Faltaban 3, todos de imagen: el botón "Reemplazar imagen…" (cambia el `src` sin
       tocar posición ni tamaño, a diferencia de borrar y volver a colocarla), la miniatura de la
