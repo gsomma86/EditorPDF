@@ -738,6 +738,14 @@ lienzo.on('mouse:dblclick', async (e) => {
     }
 
     const nuevo = await agregarAlLienzo(lienzo, elemento);
+    // Esta forma no es un elemento nuevo: es algo que ya estaba en el PDF y tiene que quedar donde
+    // estaba, debajo del texto y de las líneas que tenía encima. Se logra con dos cosas: al fondo
+    // de los elementos, y dibujada *por debajo* de lo ya dibujado —incluida la imagen de la
+    // página— con 'destination-over'. Si entrara al frente, como cualquier elemento nuevo, taparía
+    // el texto que el PDF dibujaba sobre ella.
+    lienzo.sendObjectToBack(nuevo);
+    nuevo.set({ globalCompositeOperation: 'destination-over' });
+    lienzo.requestRenderAll();
     mostrarPropiedades(espacio.panelPropiedades, lienzo, nuevo);
     registrarSnapshot(lienzo);
     guardar();

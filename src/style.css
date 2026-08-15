@@ -939,3 +939,9 @@ button {
 .ed-atajos tr:last-child td {
   border-bottom: none;
 }
+
+/* El blanco de la hoja: lo pone el contenedor y no el lienzo, para que una forma sacada del PDF
+   pueda dibujarse por debajo de la pagina sin que un fondo opaco la tape. */
+.canvas-container {
+  background: #ffffff;
+}

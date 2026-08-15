@@ -15,7 +15,9 @@ export function crearLienzo(
     width: ancho,
     height: alto,
   });
-  lienzo.backgroundColor = '#ffffff';
+  // El blanco de la hoja lo pone el CSS (`.canvas-container`) y no el lienzo. Es a propósito: una
+  // forma sacada de un PDF se dibuja *por debajo* de lo ya dibujado, para quedar donde estaba —
+  // debajo del texto de la página—, y un fondo opaco del lienzo la taparía por completo.
   lienzo.renderAll();
 
   return lienzo;

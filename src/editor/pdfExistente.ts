@@ -437,7 +437,9 @@ async function rasterizar(): Promise<PdfAbierto> {
   // Sin anotaciones: los campos de formulario del PDF se importan como elementos del diseño, así
   // que si además vinieran dibujados en el fondo se verían dos veces —el del fondo con su valor y
   // el nuestro encima— y al borrar un campo reaparecería el de abajo, como si no se hubiera ido.
-  await pagina.render({ canvas: lienzo, canvasContext: contexto, viewport: vista, annotationMode: pdfjs.AnnotationMode.DISABLE }).promise;
+  // Fondo transparente y no blanco: donde la pagina no dibuja nada tiene que verse lo que este
+  // debajo, que es donde van las formas sacadas del PDF (ver , doble clic sobre forma).
+  await pagina.render({ canvas: lienzo, canvasContext: contexto, viewport: vista, background: 'transparent', annotationMode: pdfjs.AnnotationMode.DISABLE }).promise;
 
   return {
     fondo: lienzo.toDataURL('image/png'),

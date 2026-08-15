@@ -399,3 +399,12 @@ validada — ver la sección Fase 0 del roadmap.
     archivo y la caja del campo es un marcador, no un dibujo—, pero lo que el usuario dibujó sí
     tiene prioridad. Vale la pena tenerlo en cuenta antes de agregar cualquier gesto sobre el
     lienzo que dependa de "si hay un objeto abajo".
+38. **Una forma sacada del PDF va debajo de la página, no arriba.** Al convertirla en elemento, lo
+    natural sería agregarla como cualquier elemento nuevo: al frente. Pero en el PDF esa forma
+    estaba *debajo* —el texto se dibujaba encima de ella— así que al frente tapa ese texto, que
+    vive en la imagen de la página y no se puede reordenar. La solución son tres piezas que hay que
+    mantener juntas: la página se rasteriza con **fondo transparente** (`background: 'transparent'`
+    en pdf.js, que si no rellena de blanco), el lienzo **no tiene color de fondo** (lo pone
+    `.canvas-container` en el CSS, porque un fondo opaco del lienzo taparía igual), y la forma se
+    dibuja con **`globalCompositeOperation: 'destination-over'`**, que la manda debajo de todo lo ya
+    dibujado. Si alguna de las tres se rompe, la forma desaparece o vuelve a tapar el texto.
