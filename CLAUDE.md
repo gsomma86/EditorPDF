@@ -377,3 +377,10 @@ validada — ver la sección Fase 0 del roadmap.
     texto que dependa de un valor calculado (el peso muestra "Peso: 1.8 KB"): hay que guardar el
     último estado —qué clave y qué valor— para poder reescribirlo en el idioma nuevo, porque el
     valor ya no se puede deducir del DOM.
+35. **El atributo `hidden` no oculta nada si el CSS le da un `display` propio.** `hidden` se aplica
+    con una regla del navegador (`[hidden] { display: none }`) que pierde contra cualquier regla de
+    la hoja de estilos, así que un `.algo { display: flex }` lo anula sin avisar: el código pone
+    `hidden = true`, nadie se queja, y el elemento se sigue viendo. Le pasó al selector de página,
+    que aparecía vacío en la barra de estado sin ningún PDF abierto. En `style.css` hay un
+    `[hidden] { display: none !important }` que lo cubre para todos los casos — pero conviene
+    saberlo igual, porque es un bug que no deja rastro en la consola.

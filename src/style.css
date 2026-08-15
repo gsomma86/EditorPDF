@@ -655,6 +655,11 @@ button {
   gap: 6px;
   color: var(--texto-suave);
 }
+/* Cualquier `display` propio le gana al atributo `hidden`, que solo trae el `display: none` del
+   navegador. Sin esto, el selector de página se veía vacío aunque el código lo ocultara. */
+[hidden] {
+  display: none !important;
+}
 .ed-status-pagina select {
   border: 1px solid var(--borde-fuerte);
   border-radius: 5px;
