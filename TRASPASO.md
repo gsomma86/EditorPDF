@@ -40,8 +40,13 @@ nuevo como texto extraíble, y el viejo ya no está.
 3. **Fondo de hoja de tipo PDF** — la otra puerta de entrada de la fase 2.
 4. **Fase 3 (formas preexistentes)** — bosquejada (14/08/2026, ver ROADMAP.md), sin codear. El
    borrado del original no puede reusar `Redact`/`applyRedactions` de mupdf (es para texto/imagen,
-   no para un relleno vectorial): hace falta parchar el operador exacto en el content stream, como
-   en el spike de fase 0. Repartido entre los dos agentes por archivo, igual que el resto.
+   no para una forma vectorial). **El alcance de v1 cambió tras validar contra 8 PDF reales**: no
+   son rectángulos rellenos (el caso del spike de fase 0) sino rectángulos y líneas con **trazo**
+   — las plantillas de ReciboMail no usan el operador `re` en absoluto, dibujan con `m`/`l`/`h`, y
+   los rellenos abundantes que sí aparecen (la marca de agua de un recibo real) están rotados 30°
+   y no son rectangulares. El truco de detección: el recorrido de mupdf entrega las formas en el
+   mismo orden que los operadores del stream, así que el clic se mapea por posición, no por
+   coordenadas. Repartido entre los dos agentes por archivo, igual que el resto.
 5. **Fases 4 y 5**: capas y multipágina real, y empaquetado con Tauri.
 
 ## Cómo verificar
