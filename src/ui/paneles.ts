@@ -139,6 +139,9 @@ export function montarPaneles(raiz: HTMLElement): void {
 
       // Flotando, colapsar no significa nada: ese botón pasa a devolver la pieza a su lugar.
       const colapsar = nodo.querySelector<HTMLElement>('[data-accion="colapsar"]')!;
+      // Se muestra siempre y más abajo se esconde solo el de la barra de abajo de un costado
+      // compartido: sin esto, una barra que pasó por ahí se quedaba sin su botón para siempre.
+      colapsar.hidden = false;
       colapsar.textContent =
         pieza.lugar === 'flotante' ? '⇥' : pieza.lugar === 'abajo' ? (pieza.colapsado ? '⌃' : '⌄') : flechaDeCostado(pieza);
       nodo.querySelector<HTMLElement>('[data-accion="desacoplar"]')!.hidden = pieza.lugar === 'flotante';
@@ -160,7 +163,7 @@ export function montarPaneles(raiz: HTMLElement): void {
       // Colapsar es del costado entero, no de cada barra: quedan 32 px de ancho, y ahí no entran
       // dos listas ni tiene sentido tener una abierta y la otra no. Colapsado se ve un solo riel.
       const colapsado = !!arriba && estado[arriba].colapsado;
-      if (colapsado && abajoDelLado) piezaDe(abajoDelLado).hidden = true;
+      if (abajoDelLado) piezaDe(abajoDelLado).hidden = colapsado || estado[abajoDelLado].lugar === 'cerrado';
 
       // El separador de adentro solo tiene sentido con las dos mitades ocupadas y desplegadas; si
       // no, la que esté ocupa el costado entero.
