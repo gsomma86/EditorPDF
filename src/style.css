@@ -1441,6 +1441,28 @@ button {
   color: var(--acento);
   flex-shrink: 0;
 }
+/* El triángulo de plegar. Angosto y sin fondo: es el control que más se usa de la cabecera, pero
+   no tiene que competir con el nombre de la capa. */
+.ed-capa-plegar {
+  flex-shrink: 0;
+  width: 14px;
+  font-size: 9px;
+  opacity: 0.75;
+}
+.ed-capa-plegar:hover {
+  opacity: 1;
+}
+/* Plegada, la cabecera es toda la capa: sin el margen de abajo se apilan más juntas y entran más
+   en pantalla, que es para lo que se pliega. */
+.ed-capa.plegada {
+  margin-bottom: 1px;
+}
+/* Avisa que lo seleccionado está adentro de esta capa plegada, donde no se lo puede ver. */
+.ed-capa-sel {
+  font-size: 8px;
+  color: var(--acento);
+  flex-shrink: 0;
+}
 .ed-obj-btn.borrar {
   color: var(--err-texto);
 }
@@ -1559,11 +1581,15 @@ button {
 .ed-obj-btn:hover {
   background: var(--fondo-suave);
 }
+/* Los dos botones van lado a lado; con uno solo, `flex: 1` lo deja igual de ancho que antes. */
 .ed-capas-acciones {
   margin-top: 8px;
+  display: flex;
+  gap: 4px;
 }
 .ed-capas-acciones button {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 4px;
   border: 1px solid var(--borde-fuerte);
   background: var(--fondo-suave);

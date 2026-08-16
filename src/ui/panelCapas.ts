@@ -63,6 +63,17 @@ const ICONO: Record<string, string> = {
 };
 
 export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: () => void): PanelCapas {
+  /**
+   * Las capas plegadas, por id. Con una plantilla real la capa de base tiene casi doscientos
+   * campos, y la lista entera es un solo chorizo donde las demás capas no se distinguen: plegarla
+   * deja ver la estructura de un vistazo.
+   *
+   * Es estado de **vista**, como apagar o trabar: no va al modelo ni al historial. Vive en el
+   * módulo para que aguante los redibujados —la lista se rearma entera en cada `refrescar`— y se
+   * pierde al recargar, que es cuando de todas formas se vuelve a empezar.
+   */
+  const plegadas = new Set<string>();
+
   function refrescar(): void {
     // De adelante hacia atrás: en el lienzo el último es el que se ve encima.
     const enOrden = [...lienzo.getObjects()].reverse();
@@ -88,27 +99,39 @@ export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: 
           return el && capaDe(el).id === capa.id;
         });
 
-        const objetos = suyos
-          .map((objeto) => {
-            const el = elementoDe(objeto)!;
-            const clases = ['ed-obj', el.oculto ? 'oculto' : '', el.bloqueado ? 'bloq' : '', objeto === activo ? 'sel' : ''];
-            return `
+        const plegada = plegadas.has(capa.id);
+        // Plegada no se dibuja ninguna fila: es justamente lo que hace que la lista entre en
+        // pantalla. El contador de la cabecera sigue diciendo cuántos hay, así que no se pierde de
+        // vista que la capa tiene algo adentro.
+        const objetos = plegada
+          ? ''
+          : suyos
+              .map((objeto) => {
+                const el = elementoDe(objeto)!;
+                const clases = ['ed-obj', el.oculto ? 'oculto' : '', el.bloqueado ? 'bloq' : '', objeto === activo ? 'sel' : ''];
+                return `
               <div class="${clases.filter(Boolean).join(' ')}" data-id="${el.id}" title="${nombreDe(el)}" draggable="true">
                 <span class="ed-obj-ic">${ICONO[el.clase === 'forma' ? el.figura : el.clase] ?? '▫'}</span>
                 <span class="ed-obj-nom">${nombreDe(el)}</span>
                 <button type="button" class="ed-obj-btn" data-ver="${el.id}" data-i18n-title="capas.verTt" title="${t('capas.verTt')}">${el.oculto ? '⃠' : '👁'}</button>
                 <button type="button" class="ed-obj-btn" data-trabar="${el.id}" data-i18n-title="capas.trabarTt" title="${t('capas.trabarTt')}">${el.bloqueado ? '🔒' : '🔓'}</button>
               </div>`;
-          })
-          .join('');
+              })
+              .join('');
+
+        // Con la capa plegada, lo seleccionado en el lienzo queda sin fila que lo muestre. La
+        // cabecera lo avisa, para que no parezca que el objeto se perdió de la lista.
+        const escondeLaSeleccion = plegada && suyos.some((o) => o === activo);
 
         return `
-          <div class="ed-capa ${capa.destino ? 'destino' : ''}" data-capa="${capa.id}">
+          <div class="ed-capa ${capa.destino ? 'destino' : ''} ${plegada ? 'plegada' : ''}" data-capa="${capa.id}">
             <div class="ed-capa-head" draggable="true" data-arrastrar-capa="${capa.id}">
+              <button type="button" class="ed-obj-btn ed-capa-plegar" data-plegar="${capa.id}" title="${t(plegada ? 'capas.desplegarTt' : 'capas.plegarTt')}">${plegada ? '▸' : '▾'}</button>
               <button type="button" class="ed-obj-btn" data-capa-ver="${capa.id}" title="${t('capas.verTt')}">${capa.visible ? '👁' : '⃠'}</button>
               <button type="button" class="ed-obj-btn" data-capa-trabar="${capa.id}" title="${t('capas.trabarTt')}">${capa.bloqueada ? '🔒' : '🔓'}</button>
               <span class="ed-capa-nom" data-destino="${capa.id}" title="${t('capas.destinoTt')}">${capa.nombre}</span>
               ${capa.destino ? `<span class="ed-capa-marca" title="${t('capas.destinoTt')}">◉</span>` : ''}
+              ${escondeLaSeleccion ? `<span class="ed-capa-sel" title="${t('capas.tieneSeleccionTt')}">●</span>` : ''}
               <span class="ed-col-n">${suyos.length}</span>
               <button type="button" class="ed-obj-btn ed-capa-menu-btn" data-capa-menu="${capa.id}" title="${t('capas.menuTt')}">⋯</button>
             </div>
@@ -117,9 +140,18 @@ export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: 
       })
       .join('');
 
+    // "Plegar todo" solo tiene sentido con más de una capa; con una sola, el botón de su cabecera
+    // ya hace lo mismo.
+    const capas = capasDelDocumento();
+    const todasPlegadas = capas.length > 0 && capas.every((c) => plegadas.has(c.id));
+    const botonTodo =
+      capas.length > 1
+        ? `<button type="button" id="ed-capas-plegar-todo">${t(todasPlegadas ? 'capas.desplegarTodo' : 'capas.plegarTodo')}</button>`
+        : '';
+
     panel.insertAdjacentHTML(
       'beforeend',
-      `<div class="ed-capas-acciones"><button type="button" id="ed-capa-nueva">${t('capas.nueva')}</button></div>`
+      `<div class="ed-capas-acciones">${botonTodo}<button type="button" id="ed-capa-nueva">${t('capas.nueva')}</button></div>`
     );
   }
 
@@ -129,6 +161,24 @@ export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: 
   panel.addEventListener('click', (e) => {
     const destino = e.target as HTMLElement;
     const capas = capasDelDocumento();
+
+    // Plegar o desplegar una capa. Es solo de vista: no toca el modelo ni deja paso en el historial.
+    const plegar = destino.dataset.plegar;
+    if (plegar) {
+      if (plegadas.has(plegar)) plegadas.delete(plegar);
+      else plegadas.add(plegar);
+      refrescar();
+      return;
+    }
+
+    if (destino.id === 'ed-capas-plegar-todo') {
+      const capas = capasDelDocumento();
+      // Si ya estaban todas plegadas, el botón despliega; si no, pliega las que falten.
+      if (capas.every((c) => plegadas.has(c.id))) plegadas.clear();
+      else for (const c of capas) plegadas.add(c.id);
+      refrescar();
+      return;
+    }
 
     // Apagar o trabar una capa entera.
     const verCapa = destino.dataset.capaVer;
@@ -384,6 +434,9 @@ export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: 
         }
       }
 
+      // Que no quede su id colgado en las plegadas: si más adelante naciera otra capa con el mismo
+      // id, aparecería plegada sin que nadie lo hubiera pedido.
+      plegadas.delete(id);
       const corte = capasSobreElFondoDelDocumento();
       establecerCapas(quedan);
       // Si la que se fue estaba delante de la página, el corte se corre con ella; si no, no se mueve.

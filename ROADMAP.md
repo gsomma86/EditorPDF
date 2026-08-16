@@ -476,6 +476,14 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
       Esto destapó que **las capas no estaban en el historial**: deshacer restauraba los elementos
       pero no las capas y quedaban apuntando a una inexistente. Ahora el snapshot las incluye y las
       restaura primero, porque los objetos se arman mirando si la suya está apagada o trabada.
+      **Capas plegables** (16/08/2026), pedido por Germán apenas quedó el apilado único. Con una
+      plantilla real la capa de base tiene casi doscientos campos y la lista es un solo chorizo donde
+      las demás capas ni se distinguen: el triángulo de la cabecera esconde el contenido y deja el
+      título, con el contador al lado para no perder de vista que la capa tiene algo. Hay además
+      "Plegar todo" cuando hay más de una capa. Es **estado de vista**, como apagar o trabar: no va
+      al modelo ni al historial, vive en el módulo del panel y se pierde al recargar. Si lo
+      seleccionado queda adentro de una capa plegada, la cabecera lo marca con un punto — si no,
+      parecería que el objeto desapareció de la lista.
       Renombrar estaba roto y salió acá: el clic que marca la capa destino redibuja la lista, así
       que el segundo clic del doble clic caía en un nodo nuevo (ver la lección 53).
       Como era una cuarta barra para tres lugares, **los costados pasan a aceptar dos barras
