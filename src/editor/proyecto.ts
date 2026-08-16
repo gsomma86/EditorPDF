@@ -1,7 +1,21 @@
 import type { Canvas } from 'fabric';
 import { reservarIds, type Elemento } from './elemento';
 
-import { aplicarConfigPagina, capasDelDocumento, configActual, establecerCapas, establecerHojas, hojaActual, hojasDelDocumento, type Capa, type Hoja } from './documento';
+import {
+  aplicarConfigPagina,
+  capaDelContenidoDelPdf,
+  capasDelDocumento,
+  capasSobreElFondoDelDocumento,
+  CAPA_CONTENIDO_PDF,
+  configActual,
+  establecerCapas,
+  establecerCapasSobreElFondo,
+  establecerHojas,
+  hojaActual,
+  hojasDelDocumento,
+  type Capa,
+  type Hoja,
+} from './documento';
 import { configPorDefecto, type ConfigPagina } from './pagina';
 import { asentarPdf, bytesDelPdf, cerrarPdf } from './pdfExistente';
 
@@ -33,6 +47,11 @@ export interface Proyecto {
   pdfPagina?: number;
   /** Las capas del documento. Un proyecto anterior a capas no las trae y se abre con una sola. */
   capas?: Capa[];
+  /**
+   * Cuántas capas van delante de la página del PDF. Un proyecto anterior al apilado único no lo
+   * trae: se deduce de los elementos marcados `debajoDeLaPagina`, que era como se decía antes.
+   */
+  capasSobreElFondo?: number;
 }
 
 function aBase64(bytes: Uint8Array): string {
@@ -64,6 +83,7 @@ export function serializarProyecto(lienzo: Canvas, campos: string[], conPdf = fa
     hoja: hojaActual(),
     campos: [...campos],
     capas: JSON.parse(JSON.stringify(capasDelDocumento())),
+    capasSobreElFondo: capasSobreElFondoDelDocumento(),
     pdfBase: pdf ? aBase64(pdf) : null,
   };
 }
@@ -132,9 +152,39 @@ export function leerProyecto(texto: string): Proyecto {
     hoja: Math.min(Math.max(0, datos.hoja ?? 0), hojas.length - 1),
     campos: Array.isArray(datos.campos) ? datos.campos : [],
     capas: Array.isArray(datos.capas) && datos.capas.length ? datos.capas : undefined,
+    capasSobreElFondo: typeof datos.capasSobreElFondo === 'number' ? datos.capasSobreElFondo : undefined,
     pdfBase: datos.pdfBase ?? null,
     pdfPagina: datos.pdfPagina ?? 0,
   };
+}
+
+/**
+ * Trae al modelo nuevo los proyectos guardados cuando "ir debajo de la página" era una marca de
+ * cada elemento (`debajoDeLaPagina`) en vez del lugar de su capa en el apilado.
+ *
+ * Los marcados se mudan a la capa "Contenido del PDF", que queda detrás del fondo, y así se siguen
+ * viendo igual que antes. Sin esto, un proyecto viejo con formas convertidas las mostraría de golpe
+ * **encima** de la página, tapando el texto que antes las cubría.
+ */
+function migrarDebajoDeLaPagina(hojas: Hoja[], proyecto: Proyecto): void {
+  const marcados = hojas.flatMap((hoja) => hoja.elementos).filter((e) => (e as { debajoDeLaPagina?: boolean }).debajoDeLaPagina);
+  if (marcados.length) {
+    const capa = capaDelContenidoDelPdf();
+    for (const elemento of marcados) {
+      elemento.capa = capa.id;
+      delete (elemento as { debajoDeLaPagina?: boolean }).debajoDeLaPagina;
+    }
+  }
+
+  // Un proyecto que ya trae el dato manda; uno viejo deja la página detrás de todas las capas menos
+  // la del contenido, que es donde acaban de caer los elementos migrados.
+  const capas = capasDelDocumento();
+  if (typeof proyecto.capasSobreElFondo === 'number') {
+    establecerCapasSobreElFondo(proyecto.capasSobreElFondo);
+  } else {
+    const contenido = capas.findIndex((c) => c.id === CAPA_CONTENIDO_PDF);
+    establecerCapasSobreElFondo(contenido >= 0 ? contenido : capas.length);
+  }
 }
 
 /**
@@ -155,6 +205,7 @@ export async function cargarProyecto(lienzo: Canvas, proyecto: Proyecto, conserv
   );
   const conElementos = hojas.length ? hojas : [{ elementos: proyecto.elementos, paginaPdf: null, fondo: null, ...deLaPagina }];
   reservarIds(conElementos.flatMap((hoja) => hoja.elementos));
+  migrarDebajoDeLaPagina(conElementos, proyecto);
 
   // El PDF primero: las hojas se dibujan pidiéndole sus páginas, así que si no está abierto todavía
   // saldrían todas en blanco.

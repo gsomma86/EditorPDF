@@ -2,7 +2,7 @@ import { FabricImage, type Canvas } from 'fabric';
 import { configPorDefecto, dimensionesDe, tamanoParecido, type ConfigPagina, type Orientacion, type TamanoPagina } from './pagina';
 import { establecerAreaUtil, type Elemento } from './elemento';
 import { refrescarLienzo } from './vista';
-import { elementoDe, reconstruirLienzo } from './objetosFabric';
+import { elementoDe, esPaginaFija, marcarPaginaFija, ordenarPila, reconstruirLienzo } from './objetosFabric';
 
 let config: ConfigPagina = configPorDefecto();
 
@@ -92,6 +92,27 @@ export function establecerCapas(nuevas: Capa[]): void {
   if (capas.filter((c) => c.destino).length !== 1) {
     capas.forEach((c, i) => (c.destino = i === 0));
   }
+  // El corte del fondo no puede quedar fuera de la lista nueva.
+  capasSobreElFondo = Math.min(Math.max(0, capasSobreElFondo), capas.length);
+}
+
+/**
+ * Cuántas capas van **delante** del fondo de la hoja. El fondo (la página del PDF, o la imagen de
+ * la hoja) es un objeto más del apilado, y este número dice en qué lugar del orden de capas se
+ * intercala: las primeras `capasSobreElFondo` quedan encima de la página y el resto, debajo.
+ *
+ * Es un solo número y no una marca por capa a propósito: así el corte es siempre limpio y no se
+ * pueden intercalar capas de los dos lados, que es justo el estado imposible de explicar. Con el
+ * valor por defecto —`capas.length`— el fondo queda detrás de todo, como fue siempre.
+ */
+let capasSobreElFondo = 1;
+
+export function capasSobreElFondoDelDocumento(): number {
+  return capasSobreElFondo;
+}
+
+export function establecerCapasSobreElFondo(cuantas: number): void {
+  capasSobreElFondo = Math.min(Math.max(0, cuantas), capas.length);
 }
 
 /** La capa a la que van a parar los elementos nuevos. */
@@ -107,6 +128,28 @@ export function establecerCapaDestino(id: string): void {
 /** La capa de un elemento, resolviendo el caso de los que no tienen ninguna anotada. */
 export function capaDe(elemento: Elemento): Capa {
   return capas.find((c) => c.id === elemento.capa) ?? capas[0];
+}
+
+/** El id reservado de la capa donde cae todo lo que se saca del contenido de un PDF. */
+export const CAPA_CONTENIDO_PDF = 'pdf';
+
+/**
+ * La capa donde va a parar lo que se convierte del PDF, creándola si todavía no está.
+ *
+ * Existe porque una forma sacada de un PDF tiene que quedar **debajo de la página**, donde estaba:
+ * el texto de la hoja se dibujaba encima de ella. Antes eso era una marca por elemento; ahora es su
+ * capa la que está detrás del fondo, que es lo mismo pero se ve en el panel y se puede mover.
+ *
+ * Nace al final de la lista —la más de atrás— y por eso queda del lado de atrás del fondo sin
+ * tocar `capasSobreElFondo`: el corte cuenta capas desde adelante.
+ */
+export function capaDelContenidoDelPdf(): Capa {
+  const existente = capas.find((c) => c.id === CAPA_CONTENIDO_PDF);
+  if (existente) return existente;
+
+  const capa: Capa = { id: CAPA_CONTENIDO_PDF, nombre: 'Contenido del PDF', visible: true, bloqueada: false };
+  capas.push(capa);
+  return capa;
 }
 
 /**
@@ -487,14 +530,25 @@ async function mostrarHojaVigente(lienzo: Canvas): Promise<void> {
 }
 
 /**
- * Pone la imagen de fondo de la hoja vigente, estirada al tamaño de la página. Va como fondo del
- * lienzo y no como objeto, así no se puede seleccionar, no entra al historial y siempre queda por
- * debajo. Es aparte de `aplicarConfigPagina` porque cargar la imagen es asincrónico.
+ * Pone la imagen de fondo de la hoja vigente, estirada al tamaño de la página.
+ *
+ * Va como **un objeto más de la pila** y no como `backgroundImage` del lienzo: así hay un solo
+ * apilado, y las capas que van detrás de la página quedan realmente detrás sin necesidad del
+ * `destination-over` que antes partía el orden en dos grupos incomunicados. Para que siga sin
+ * poderse tocar, nace `selectable: false` y `evented: false`, y **no se registra en el modelo**
+ * —`elementoDe` no lo conoce—, así lo saltean el historial, el panel de capas y el guardado.
+ *
+ * Es aparte de `aplicarConfigPagina` porque cargar la imagen es asincrónico.
  */
 export async function aplicarFondo(lienzo: Canvas): Promise<void> {
+  // Salga o no salga fondo nuevo, el viejo se va: si no, al pasar de una hoja con PDF a una sin él
+  // la página anterior queda pegada abajo del dibujo.
+  const anterior = lienzo.getObjects().filter((o) => esPaginaFija(o));
+  if (anterior.length) lienzo.remove(...anterior);
+
   const fondo = await fondoDe(hojas[hojaVigente]);
   if (!fondo) {
-    lienzo.backgroundImage = undefined;
+    ordenarPila(lienzo);
     lienzo.requestRenderAll();
     return;
   }
@@ -508,7 +562,15 @@ export async function aplicarFondo(lienzo: Canvas): Promise<void> {
     top: 0,
     scaleX: ancho / (imagen.width || ancho),
     scaleY: alto / (imagen.height || alto),
+    selectable: false,
+    evented: false,
+    hasControls: false,
+    hasBorders: false,
   });
-  lienzo.backgroundImage = imagen;
+  marcarPaginaFija(imagen);
+  lienzo.add(imagen);
+  // `add` la deja al frente de todo: `ordenarPila` la manda al lugar que le toca según cuántas
+  // capas vayan por encima de la página.
+  ordenarPila(lienzo);
   lienzo.requestRenderAll();
 }

@@ -19,6 +19,7 @@
  */
 
 import { crearElemento, crearElementoForma, crearElementoImagen, type Elemento } from './elemento';
+import { capaDelContenidoDelPdf } from './documento';
 import type { Segmento } from './figuras';
 
 /** Una forma del contenido, en coordenadas de la hoja (Y desde arriba, como el lienzo). */
@@ -409,6 +410,10 @@ export async function borrarImagenDelPdf(bytes: Uint8Array, pagina: number, imag
  * La imagen del PDF como elemento del diseño, en el mismo lugar y con las mismas medidas. De ahí
  * en más es una imagen común del editor: se mueve, se estira desde una esquina y se borra con Supr,
  * sin que haga falta nada propio para eso.
+ *
+ * Va a la misma capa que las formas, "Contenido del PDF": las dos salieron de la página y las dos
+ * tienen que apilarse igual. Que antes no fuera así —la imagen quedaba encima y la forma debajo— es
+ * justo lo que hacía que "Enviar atrás" pareciera funcionar con una y no con la otra.
  */
 export function elementoDesdeImagen(imagen: ImagenDelPdf): Elemento {
   // Por el constructor de siempre, para que tome un id de la secuencia; después se le imponen la
@@ -419,6 +424,7 @@ export function elementoDesdeImagen(imagen: ImagenDelPdf): Elemento {
   elemento.w = imagen.w;
   elemento.h = imagen.h;
   elemento.angulo = imagen.angulo;
+  elemento.capa = capaDelContenidoDelPdf().id;
   return elemento;
 }
 
@@ -494,8 +500,10 @@ export async function borrarFormaDelPdf(
 /**
  * Convierte una forma del PDF en un elemento del diseño, con su misma posición, medidas y color.
  * Un relleno macizo se reconstruye como recuadro relleno sin borde; uno de contorno, al revés.
- * Queda marcado como `debajoDeLaPagina` porque en el PDF estaba debajo del texto y ahí tiene que
- * seguir; el modelo lo lleva para que sobreviva a deshacer, cambiar de hoja y recargar.
+ *
+ * Va a la capa "Contenido del PDF", que está **detrás de la página**: en el PDF esta forma estaba
+ * debajo del texto y ahí tiene que seguir. Es su capa la que decide eso, no una marca del elemento,
+ * así el orden que muestra el panel es el que se ve en la hoja.
  */
 export function elementoDesdeForma(forma: FormaDelPdf): Elemento {
   // Un camino libre entra como elemento 'forma' con `figura: 'camino'`: comparte con las demás la
@@ -512,8 +520,9 @@ export function elementoDesdeForma(forma: FormaDelPdf): Elemento {
     elemento.conRelleno = forma.relleno;
     elemento.rellenoColor = forma.color;
     elemento.grosor = forma.relleno ? 0 : Math.max(0.5, forma.grosor);
-    elemento.debajoDeLaPagina = true;
-    return elemento as Elemento;
+    const camino = elemento as Elemento;
+    camino.capa = capaDelContenidoDelPdf().id;
+    return camino;
   }
 
   const elemento = crearElemento(forma.clase) as Elemento & { clase: 'rect' | 'linea' };
@@ -525,7 +534,7 @@ export function elementoDesdeForma(forma: FormaDelPdf): Elemento {
   // editor: todos los elementos rotan alrededor de su esquina superior izquierda.
   elemento.angulo = forma.angulo;
   elemento.color = forma.color;
-  elemento.debajoDeLaPagina = true;
+  elemento.capa = capaDelContenidoDelPdf().id;
   if (elemento.clase === 'rect') {
     elemento.conRelleno = forma.relleno;
     elemento.rellenoColor = forma.color;

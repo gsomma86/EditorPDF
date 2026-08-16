@@ -24,6 +24,7 @@
     "verificar-campos": "vite build --config pruebas/vite.campos.config.ts && node pruebas/dist-campos/arnesCampos.js",
     "verificar-hojas": "vite build --config pruebas/vite.hojas.config.ts && node pruebas/dist-hojas/arnesHojas.js",
     "verificar-formas": "vite build --config pruebas/vite.formas.config.ts && node pruebas/dist-formas/arnesFormas.js",
+    "verificar-apilado": "vite build --config pruebas/vite.apilado.config.ts && node pruebas/dist-apilado/arnesApilado.js",
     "tauri": "tauri",
     "escritorio": "tauri dev",
     "escritorio-build": "tauri build",

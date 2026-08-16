@@ -1413,6 +1413,23 @@ button {
   white-space: nowrap;
   cursor: pointer;
 }
+/* La página del PDF dentro de la lista. Se ve distinta de una capa a propósito: no es una capa, no
+   tiene contenido propio ni se puede apagar; está para mostrar dónde queda el corte entre lo que se
+   dibuja encima de la página y lo que se dibuja debajo. */
+.ed-capa-fondo .ed-capa-head {
+  background: transparent;
+  border: 1px dashed var(--borde);
+  color: var(--texto-2);
+  font-weight: 500;
+  cursor: grab;
+}
+.ed-capa-fondo .ed-capa-nom {
+  cursor: grab;
+}
+.ed-capa-fondo .ed-obj-ic {
+  flex-shrink: 0;
+  opacity: 0.75;
+}
 /* La capa donde caen los elementos nuevos. Se marca fuerte porque contesta una pregunta que se
    hace todo el tiempo: "esto que estoy por dibujar, ¿dónde va a parar?". */
 .ed-capa.destino .ed-capa-head {

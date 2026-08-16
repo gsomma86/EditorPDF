@@ -122,21 +122,19 @@ quedan sin empezar Capas, Firma digital y Más formas geométricas.
     aparte, y la miniatura que nunca mostró lo dibujado). Para eso quedó
     `npm run inspeccionar -- archivo.pdf`. **Si se toca cualquier cosa que lea PDF ajeno, probar con
     archivos de verdad antes de darlo por bueno.**
-13. **LO PRIMERO QUE HAY QUE HACER: un solo apilado, y que las capas manden.** Es el pendiente más
-    grande y el único que hoy se nota usando la aplicación. Lo encontró Germán probando:
-    - Lo convertido de un PDF se dibuja **debajo de la página** (`destination-over`), y eso parte el
-      apilado en **dos grupos que "Al frente" y "Enviar atrás" no pueden cruzar**. Un recuadro
-      propio enviado atrás pasa detrás de una imagen convertida pero no detrás de un dibujo
-      convertido.
-    - El panel de Capas muestra **una sola lista**, dando a entender un orden único que el lienzo no
-      respeta: la lista miente.
-    - **El orden de las capas tiene que mandar**: algo de la capa 1 nunca puede quedar detrás de
-      algo de la capa 2. Hoy solo se garantiza al reordenar capas, y "Al frente" lo rompe enseguida.
-    La salida propuesta —la página del PDF como un objeto más del apilado en vez de como fondo— y
-    todo lo que hay que cuidar están en ROADMAP.md, al final de la fase 4. La casilla "Debajo del
-    contenido del PDF" que hay hoy es un parche para cruzar de grupo a mano, no la solución.
-    **Se dejó para una sesión nueva a propósito**: es un cambio de arquitectura de tamaño medio que
-    toca cosas que hoy funcionan bien, y conviene encararlo con la cabeza fresca.
+13. ~~Un solo apilado, y que las capas manden~~ — **hecho (16/08/2026)**. Era el pendiente más
+    grande y el único que se notaba usando la aplicación. La página del PDF pasó a ser **un objeto
+    más de la pila** (antes iba de `backgroundImage`) y desapareció el `destination-over` que partía
+    el orden en dos grupos incomunicados. La decisión de producto que tomó Germán: **la banda es de
+    la capa, no del elemento** —el fondo ocupa un lugar en el orden de capas, y una capa entera está
+    delante o detrás de la página—, así que la regla "capa 1 nunca detrás de capa 2" quedó sin
+    excepciones y "Al frente"/"Enviar atrás" quedaron acotados a la capa. El panel de Capas muestra
+    la página como una fila arrastrable: la lista dejó de mentir. Se fue la casilla "Debajo del
+    contenido del PDF" (los proyectos viejos se migran solos al abrirlos). Detalle completo en
+    ROADMAP.md, fase 4.
+    **Falta probarlo a mano en el navegador con un PDF real** — está todo verde en los arneses
+    (`verificar-apilado`, nuevo, más los cinco de siempre) pero la lección 32 dice que eso no
+    alcanza. Lo que conviene mirar está en la lista de más abajo, "Qué probar".
 14. **SmartScreen — solicitud enviada a SignPath Foundation (16/08/2026), esperando revisión.** Se
     investigó y se descartaron antes Azure Trusted Signing (no admite Argentina) y un certificado
     EV (pide empresa registrada). El camino elegido es **SignPath Foundation** (firma OV gratis
@@ -161,10 +159,11 @@ quedan sin empezar Capas, Firma digital y Más formas geométricas.
 npm run verificar-export   # el PDF exportado contra lo que dibuja el lienzo
 npm run verificar-pdf      # que borrar un texto de un PDF lo borre, y no lo tape
 npm run verificar-campos   # importar los campos de una plantilla real, exportar y comparar que vuelvan iguales
+npm run verificar-apilado  # el orden real del lienzo: que las capas manden y nadie cruce de capa
 npm run medir-rendimiento  # 50, 200, 500 y 1000 elementos
 ```
 
-Los cuatro corren sin navegador. En `verificar-export` quedan cuatro diferencias marcadas en los
+Los cinco corren sin navegador. En `verificar-export` quedan cuatro diferencias marcadas en los
 casos de texto: **son de la medición, no del código** — en Node no está la Helvetica real y
 node-canvas dibuja con una sustituta más ancha. Para cerrarlas habría que registrar la fuente real
 en el arnés.
@@ -176,6 +175,27 @@ el exportador o `camposDelPdf()`.
 En el navegador: el Browser pane integrado funciona (probado el 14/08), **con la pestaña a la
 vista**. Si está oculta, `requestAnimationFrame` no se dispara y abrir un PDF queda colgado sin
 dar ningún error, como si fuera un bug de la app.
+
+### Qué probar del apilado nuevo (16/08/2026, pendiente de prueba a mano)
+
+Con un PDF real, no con uno armado en el arnés (lección 32 y 55):
+
+1. Doble clic en una forma del PDF → queda **debajo** del texto de la página, como antes, y aparece
+   la capa "Contenido del PDF" en el panel.
+2. Convertir una banda gris con líneas adentro → se conserva el apilado relativo entre las que salen
+   juntas.
+3. Doble clic en una **imagen** del PDF → ahora también va a esa capa (antes quedaba encima).
+4. Dos capas con elementos superpuestos → "Al frente" en la de atrás **no** puede tapar la de
+   adelante.
+5. Arrastrar la fila "Página del PDF" entre las capas → cambia qué queda encima y qué debajo.
+6. Deshacer/rehacer, cambiar de hoja y **recargar la página** → el apilado se conserva en los tres.
+7. Abrir un `.json` guardado **antes** de este cambio, con formas convertidas → tienen que verse
+   igual que antes (se migran solas a la capa nueva).
+8. Ctrl+A → no agarra la página (no se arrastra la hoja entera con el grupo).
+9. Con una hoja **vacía** y un PDF de base, abrir otro PDF → **no** debe saltar el aviso de "vas a
+   perder el trabajo".
+10. Entrar y salir de "Completar campos" → la página sigue ahí.
+11. Hoja con fondo y hoja sin fondo → navegar entre las dos no deja la página pegada.
 
 ## Cosas que conviene saber antes de tocar
 

@@ -2,7 +2,7 @@ import './style.css';
 import { montarEspacioTrabajo } from './ui/shell';
 import { crearLienzo } from './editor/lienzo';
 import { crearElemento, crearElementoCampo, crearElementoFirma, crearElementoForma, crearElementoImagen, crearElementoTabla, duplicarElemento, type ClaseSimple, type Elemento, type Figura } from './editor/elemento';
-import { activarModoCompletar, agregarAlLienzo, bloquearContenido, camposEstanOcultos, elementoDe, enModoCompletar, estaBloqueadoElContenido, ocultarCampos, reconstruirLienzo, sincronizarGeometria } from './editor/objetosFabric';
+import { activarModoCompletar, agregarAlLienzo, bloquearContenido, camposEstanOcultos, elementoDe, enModoCompletar, esPaginaFija, estaBloqueadoElContenido, ocultarCampos, reconstruirLienzo, sincronizarGeometria } from './editor/objetosFabric';
 import { escapeHtml, mostrarMultiSeleccion, mostrarPropiedades, mostrarSinSeleccion } from './ui/panelPropiedades';
 import { ActiveSelection, type FabricObject } from 'fabric';
 import { borrarAutoguardado, hayAutoguardado, programarAutoguardado, restaurarAutoguardado } from './editor/autoguardado';
@@ -15,7 +15,7 @@ import { cablearAyuda } from './ui/ayuda';
 import { montarPaneles } from './ui/paneles';
 import { deshacer, inicializarHistorial, puedeDeshacer, puedeRehacer, registrarSnapshot, rehacer } from './editor/historial';
 import { alCambiarIdioma, aplicarIdioma, t, type ClaveI18n } from './ui/i18n';
-import { agregarHoja, aplicarConfigPagina, cantidadDeHojas, capturarMiniatura, configActual, eliminarHoja, establecerCapas, establecerFondoDeLaHoja, fondoDeLaHoja, establecerHojas, hojaActual, hojaEnBlanco, hojasDesdePdf, irAHoja, medidasDeLaHoja, miniaturaDeHoja, moverHoja, olvidarPaginasDibujadas, paginaDeLaHoja, refrescarPaginaDibujada } from './editor/documento';
+import { agregarHoja, aplicarConfigPagina, aplicarFondo, cantidadDeHojas, capturarMiniatura, configActual, eliminarHoja, establecerCapas, establecerCapasSobreElFondo, establecerFondoDeLaHoja, fondoDeLaHoja, establecerHojas, hojaActual, hojaEnBlanco, hojasDesdePdf, irAHoja, medidasDeLaHoja, miniaturaDeHoja, moverHoja, olvidarPaginasDibujadas, paginaDeLaHoja, refrescarPaginaDibujada } from './editor/documento';
 import { activarVista, configurarVista, establecerZoom, vistaActual } from './editor/vista';
 import { configPorDefecto, type Orientacion, type TamanoPagina } from './editor/pagina';
 import { GRUPOS, TEMAS, aplicarTema, establecerCustom, iniciarTema, paletaActual, previsualizar, repintar, temaActual, type NombreTema, type Paleta } from './ui/temas';
@@ -513,7 +513,7 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     ayuda.verAtajos();
   } else if (tecla === 'a') {
-    if (!lienzo.getObjects().length) return;
+    if (!elementosDelLienzo().length) return;
     e.preventDefault(); // si no, el navegador selecciona el texto de toda la página
     seleccionarTodo();
   }
@@ -593,6 +593,9 @@ document.getElementById('ed-completar')!.addEventListener('change', async (e) =>
   activarModoCompletar(encendido);
   lienzo.discardActiveObject();
   await reconstruirLienzo(lienzo, elementosDelLienzo());
+  // `reconstruirLienzo` vacía el lienzo, y la página del PDF es un objeto más: sin reponerla, entrar
+  // o salir del modo Completar dejaba la hoja en blanco.
+  await aplicarFondo(lienzo);
 
   // Con el modo prendido solo se tocan los campos: el resto del diseño queda quieto para no
   // moverlo sin querer mientras se completa.
@@ -623,7 +626,10 @@ lienzo.on('text:changed', (e) => {
 let portapapeles: Elemento[] = [];
 
 function seleccionarTodo(): void {
-  const objetos = lienzo.getObjects();
+  // Sin la página del PDF, que es un objeto del lienzo pero no del diseño: metida en la selección se
+  // arrastraría junto con todo lo demás, porque dentro de un grupo el `evented: false` de un hijo ya
+  // no lo protege.
+  const objetos = lienzo.getObjects().filter((o) => !esPaginaFija(o));
   if (!objetos.length) return;
   lienzo.discardActiveObject();
   lienzo.setActiveObject(objetos.length === 1 ? objetos[0] : new ActiveSelection([...objetos], { canvas: lienzo }));
@@ -1096,8 +1102,10 @@ inputPdf.style.display = 'none';
 document.body.appendChild(inputPdf);
 
 document.getElementById('ed-abrir-pdf')!.addEventListener('click', async () => {
+  // Los elementos del diseño, no los objetos del lienzo: la página del PDF también es uno, y
+  // contándola el aviso de "vas a perder el trabajo" saltaba siempre, incluso con la hoja vacía.
   if (
-    lienzo.getObjects().length &&
+    elementosDelLienzo().length &&
     !(await confirmar(t('confirmar.abrirPdf.titulo'), t('confirmar.abrirPdf.mensaje'), t('confirmar.abrirPdf.aceptar')))
   ) {
     return;
@@ -1398,8 +1406,10 @@ document.getElementById('ed-nuevo')!.addEventListener('click', async () => {
   // y seguirían saliendo en el PDF.
   await establecerHojas(lienzo, [hojaEnBlanco()], 0);
   panelCampos.establecerCatalogo([]);
-  // Las capas son del documento: un proyecto nuevo arranca con una sola, como recién instalado.
+  // Las capas son del documento: un proyecto nuevo arranca con una sola, como recién instalado, y
+  // con la página del PDF detrás de ella.
   establecerCapas([]);
+  establecerCapasSobreElFondo(1);
   panelCapas.refrescar();
   mostrarSinSeleccion(espacio.panelPropiedades);
   reflejarPagina();
@@ -1421,7 +1431,7 @@ inputProyecto.style.display = 'none';
 document.body.appendChild(inputProyecto);
 
 document.getElementById('ed-importar-proyecto')!.addEventListener('click', async () => {
-  const hayTrabajo = lienzo.getObjects().length > 0;
+  const hayTrabajo = elementosDelLienzo().length > 0;
   if (
     hayTrabajo &&
     !(await confirmar(t('confirmar.importarProyecto.titulo'), t('confirmar.importarProyecto.mensaje'), t('confirmar.importarProyecto.aceptar')))

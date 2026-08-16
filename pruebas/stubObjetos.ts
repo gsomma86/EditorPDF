@@ -15,6 +15,18 @@ export function elementoDe(objeto: { __el?: Elemento }): Elemento | undefined {
  */
 export async function reconstruirLienzo(): Promise<void> {}
 
+/**
+ * El apilado y la página de fondo son cosas del lienzo, y estos arneses no lo tienen: exportan
+ * leyendo el modelo. Alcanza con que existan y no hagan nada.
+ */
+export function ordenarPila(): void {}
+
+export function marcarPaginaFija(): void {}
+
+export function esPaginaFija(): boolean {
+  return false;
+}
+
 export function generarQr(elemento: ElementoQr): Promise<string> {
   return QRCode.toDataURL(elemento.texto || ' ', {
     margin: 0,

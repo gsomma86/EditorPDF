@@ -1,7 +1,14 @@
 import { cache, FabricImage, FabricObject, FabricText, Group, Rect, Textbox, type Canvas } from 'fabric';
 import QRCode from 'qrcode';
 import { alturaRenglonFabric, PASO_RENGLON, type Elemento, type ElementoQr } from './elemento';
-import { capaDestino, elementoBloqueado, elementoVisible } from './documento';
+import {
+  capaDe,
+  capaDestino,
+  capasDelDocumento,
+  capasSobreElFondoDelDocumento,
+  elementoBloqueado,
+  elementoVisible,
+} from './documento';
 import { asegurarFuenteCargada } from './fuentes';
 import { TablaObjeto } from './tablaObjeto';
 import { LineaObjeto } from './lineaObjeto';
@@ -20,6 +27,25 @@ FabricObject.ownDefaults.originX = 'left';
 FabricObject.ownDefaults.originY = 'top';
 
 const datosPorObjeto = new WeakMap<FabricObject, Elemento>();
+
+/**
+ * El fondo de la hoja —la página del PDF, o su imagen suelta— es **un objeto más del apilado**, no
+ * el `backgroundImage` del lienzo. Así hay un solo orden: las capas de adelante quedan encima de la
+ * página y las de atrás, debajo, sin el truco de `globalCompositeOperation` que partía el apilado
+ * en dos grupos que los botones "Al frente" y "Enviar atrás" no podían cruzar.
+ *
+ * Se lo reconoce por este conjunto y no por "es una imagen sin elemento": el resto del código ya
+ * filtra por `elementoDe`, y una heurística repetida en cada lugar es una que se rompe en uno solo.
+ */
+const paginasFijas = new WeakSet<FabricObject>();
+
+export function marcarPaginaFija(objeto: FabricObject): void {
+  paginasFijas.add(objeto);
+}
+
+export function esPaginaFija(objeto: FabricObject): boolean {
+  return paginasFijas.has(objeto);
+}
 
 /**
  * Modo "Completar campos": en vez del chip con el ID, cada campo se dibuja como una caja de texto
@@ -172,29 +198,84 @@ function recortarAlAncho(texto: string, campo: { w: number; size: number; famili
 }
 
 /**
- * Mover un objeto al frente o al fondo de la pila **de lo que se ve**.
+ * Rehace el apilado entero del lienzo desde el modelo. **Es la única definición del orden**: las
+ * capas mandan, y el fondo de la hoja se intercala donde diga `capasSobreElFondo`.
  *
- * No alcanza con `bringObjectToFront`/`sendObjectToBack` porque las formas sacadas de un PDF se
- * dibujan con `globalCompositeOperation: 'destination-over'` —cada una detrás de lo ya dibujado,
- * para quedar debajo de la página como estaban— y en esas el apilado que se ve es **el inverso**
- * del orden interno: la primera de la lista termina arriba. Sin esta corrección, sus botones "Al
- * frente" y "Enviar atrás" hacen justo lo contrario de lo que dicen.
+ * De atrás hacia adelante: las capas que van debajo de la página, el fondo, y las que van encima.
+ * Dentro de cada capa se conserva el orden que ya tenían, que es lo que mueven "Al frente" y
+ * "Enviar atrás".
+ *
+ * Hay que llamarla después de **cualquier** cosa que cambie quién está en qué capa o el orden de
+ * las capas: agregar un elemento, cambiarlo de capa, reordenar capas, reconstruir el lienzo. Si no,
+ * el lienzo y la lista de capas dicen cosas distintas, y la lista es la que parece mentir.
  */
-export function moverEnLaPila(lienzo: import('fabric').Canvas, objeto: FabricObject, hacia: 'frente' | 'fondo'): void {
-  const alReves = objeto.globalCompositeOperation === 'destination-over';
-  const alFrente = hacia === 'frente' ? !alReves : alReves;
-  if (alFrente) lienzo.bringObjectToFront(objeto);
-  else lienzo.sendObjectToBack(objeto);
+export function ordenarPila(lienzo: Canvas): void {
+  const capas = capasDelDocumento();
+  const objetos = [...lienzo.getObjects()];
+  const fondo = objetos.find((o) => esPaginaFija(o));
+
+  const deLaCapa = (id: string): FabricObject[] =>
+    objetos.filter((o) => {
+      const elemento = elementoDe(o);
+      return elemento ? capaDe(elemento).id === id : false;
+    });
+
+  // De la última capa a la primera: la primera de la lista es la que se ve más adelante, tal como
+  // se la muestra en el panel.
+  const corte = Math.min(Math.max(0, capasSobreElFondoDelDocumento()), capas.length);
+  const debajo = capas.slice(corte).reverse().flatMap((c) => deLaCapa(c.id));
+  const encima = capas.slice(0, corte).reverse().flatMap((c) => deLaCapa(c.id));
+
+  const ordenados = [...debajo, ...(fondo ? [fondo] : []), ...encima];
+  if (ordenados.length !== objetos.length) {
+    // Un objeto sin capa reconocible se perdería al reordenar. No debería pasar —`capaDe` cae en la
+    // primera capa— pero perder algo del dibujo es mucho peor que un orden imperfecto.
+    const faltantes = objetos.filter((o) => !ordenados.includes(o));
+    ordenados.push(...faltantes);
+  }
+
+  // De una sola vez y no con `moveObjectTo` objeto por objeto: su índice se aplica sobre el arreglo
+  // **ya sin** el objeto movido, y esa aritmética es la forma más fácil de introducir un bug acá.
+  lienzo.remove(...objetos);
+  lienzo.insertAt(0, ...ordenados);
+  lienzo.requestRenderAll();
+}
+
+/**
+ * Mueve un objeto al frente o al fondo **dentro de su capa**, sin salirse de ella.
+ *
+ * El orden de las capas manda sobre el apilado: algo de la capa 1 nunca puede quedar detrás de algo
+ * de la capa 2. Por eso esto no puede ser `bringObjectToFront`/`sendObjectToBack` a secas, que
+ * saltan por encima de todo el lienzo y rompen ese orden en el primer clic. Para cruzar de capa
+ * está el desplegable de capa, que es una decisión distinta y se toma en otro lado.
+ */
+export function moverEnLaPila(lienzo: Canvas, objeto: FabricObject, hacia: 'frente' | 'fondo'): void {
+  const elemento = elementoDe(objeto);
+  if (!elemento) return;
+
+  const objetos = [...lienzo.getObjects()];
+  const miCapa = capaDe(elemento).id;
+  const indices = objetos
+    .map((o, i) => ({ o, i }))
+    .filter(({ o }) => {
+      const suyo = elementoDe(o);
+      return suyo ? capaDe(suyo).id === miCapa : false;
+    });
+  if (indices.length < 2) return;
+
+  const desde = indices[0].i;
+  const resto = indices.map(({ o }) => o).filter((o) => o !== objeto);
+  const nuevos = hacia === 'frente' ? [...resto, objeto] : [objeto, ...resto];
+
+  // El mismo tramo de la pila, reescrito: los de la capa ocupan índices contiguos porque
+  // `ordenarPila` los dejó así, y se los devuelve al mismo lugar en el orden nuevo.
+  lienzo.remove(...indices.map(({ o }) => o));
+  lienzo.insertAt(desde, ...nuevos);
+  lienzo.requestRenderAll();
 }
 
 export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObject> {
-  // Las formas sacadas de un PDF se dibujan por debajo de la página, como estaban. Se aplica acá,
-  // leyendo el modelo, para que valga también al deshacer, cambiar de hoja o recargar.
-  const debajo =
-    (elemento.clase === 'rect' || elemento.clase === 'linea' || elemento.clase === 'forma' || elemento.clase === 'imagen') &&
-    elemento.debajoDeLaPagina;
   const objeto = await construirObjeto(elemento);
-  if (debajo) objeto.set({ globalCompositeOperation: 'destination-over' });
   // Con los campos apagados, los que nazcan después también tienen que nacer apagados: se crean al
   // cambiar de hoja, al deshacer y al colocar uno nuevo.
   if (elemento.clase === 'campo' && camposApagados) aplicarVisibilidadDeCampo(objeto);
@@ -387,6 +468,9 @@ export async function agregarAlLienzo(lienzo: import('fabric').Canvas, elemento:
   const objeto = await crearObjetoFabric(elemento);
   datosPorObjeto.set(objeto, elemento);
   lienzo.add(objeto);
+  // `add` lo deja al frente de **todo**, que es el lugar equivocado si su capa no es la primera: el
+  // elemento nuevo taparía capas que van por encima de la suya.
+  ordenarPila(lienzo);
   lienzo.setActiveObject(objeto);
   lienzo.requestRenderAll();
   return objeto;
@@ -395,6 +479,10 @@ export async function agregarAlLienzo(lienzo: import('fabric').Canvas, elemento:
 /**
  * Vacía el lienzo y lo reconstruye desde cero a partir de una lista de elementos, en orden
  * (usado por deshacer/rehacer para restaurar un estado anterior completo).
+ *
+ * Se lleva puesto también el objeto del fondo, que es uno más de la pila. Lo repone `aplicarFondo`,
+ * que corre justo después en los cuatro caminos que llegan acá (cambiar de hoja, agregar, eliminar
+ * y reemplazar las hojas), así que no hay que reponerlo desde acá.
  */
 export async function reconstruirLienzo(lienzo: import('fabric').Canvas, elementos: Elemento[]): Promise<void> {
   lienzo.discardActiveObject();
@@ -404,6 +492,7 @@ export async function reconstruirLienzo(lienzo: import('fabric').Canvas, element
     datosPorObjeto.set(objeto, elemento);
     lienzo.add(objeto);
   }
+  ordenarPila(lienzo);
   lienzo.requestRenderAll();
 }
 

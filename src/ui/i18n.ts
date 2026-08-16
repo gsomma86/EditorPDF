@@ -23,6 +23,8 @@ const ES = {
   'capas.verTt': 'Mostrar u ocultar. Lo oculto no sale en el PDF.',
   'capas.trabarTt': 'Trabar: no se puede seleccionar ni mover en la hoja.',
   'capas.destinoTt': 'Clic para que los elementos nuevos vayan a esta capa; doble clic para renombrarla',
+  'capas.fondo': 'Página del PDF',
+  'capas.fondoTt': 'El contenido del PDF. Las capas de arriba se dibujan encima de la página; las de abajo, debajo. Arrastrala para cambiar el orden.',
   'capas.moverA': 'Mover a la capa…',
   'capas.borrarTt': 'Eliminar la capa',
   'capas.borrarTitulo': 'Eliminar la capa',
@@ -327,8 +329,6 @@ const ES = {
   'props.campo.hacerRepetible': 'Hacer repetible…',
   'props.campo.editarRepeticion': 'Editar repetición (×{n})',
 
-  'props.debajoDeLaPagina': 'Debajo del contenido del PDF',
-  'props.debajoDeLaPaginaNota': 'Lo que sale de un PDF nace debajo, donde estaba. Los botones de apilado solo ordenan dentro de cada grupo: para cruzar de uno al otro, usá esta casilla.',
   'props.conRelleno': 'Con relleno',
   'props.colorRelleno': 'Color de relleno',
 
@@ -405,6 +405,8 @@ const EN: Record<ClaveI18n, string> = {
   'capas.verTt': 'Show or hide. Hidden items are not exported.',
   'capas.trabarTt': 'Lock: cannot be selected or moved on the sheet.',
   'capas.destinoTt': 'Click so new elements go to this layer; double-click to rename it',
+  'capas.fondo': 'PDF page',
+  'capas.fondoTt': 'The PDF content. Layers above are drawn over the page; layers below, under it. Drag it to change the order.',
   'capas.moverA': 'Move to layer…',
   'capas.borrarTt': 'Delete layer',
   'capas.borrarTitulo': 'Delete layer',
@@ -709,8 +711,6 @@ const EN: Record<ClaveI18n, string> = {
   'props.campo.hacerRepetible': 'Make repeatable…',
   'props.campo.editarRepeticion': 'Edit repetition (×{n})',
 
-  'props.debajoDeLaPagina': 'Under the PDF content',
-  'props.debajoDeLaPaginaNota': 'Anything taken from a PDF starts underneath, where it was. The stacking buttons only order within each group: use this box to cross from one to the other.',
   'props.conRelleno': 'Filled',
   'props.colorRelleno': 'Fill color',
 
@@ -785,6 +785,8 @@ const PT: Record<ClaveI18n, string> = {
   'capas.verTt': 'Mostrar ou ocultar. O que está oculto não sai no PDF.',
   'capas.trabarTt': 'Travar: não pode ser selecionado nem movido na folha.',
   'capas.destinoTt': 'Clique para que os elementos novos vão para esta camada; duplo clique para renomear',
+  'capas.fondo': 'Página do PDF',
+  'capas.fondoTt': 'O conteúdo do PDF. As camadas de cima são desenhadas sobre a página; as de baixo, embaixo dela. Arraste para mudar a ordem.',
   'capas.moverA': 'Mover para a camada…',
   'capas.borrarTt': 'Excluir a camada',
   'capas.borrarTitulo': 'Excluir a camada',
@@ -1089,8 +1091,6 @@ const PT: Record<ClaveI18n, string> = {
   'props.campo.hacerRepetible': 'Tornar repetível…',
   'props.campo.editarRepeticion': 'Editar repetição (×{n})',
 
-  'props.debajoDeLaPagina': 'Abaixo do conteúdo do PDF',
-  'props.debajoDeLaPaginaNota': 'O que sai de um PDF nasce abaixo, onde estava. Os botões de empilhamento só ordenam dentro de cada grupo: para cruzar de um ao outro, use esta caixa.',
   'props.conRelleno': 'Com preenchimento',
   'props.colorRelleno': 'Cor de preenchimento',
 

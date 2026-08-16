@@ -76,6 +76,7 @@ npx tsc --noEmit         # chequeo de tipos (correr siempre antes de commitear)
 npm run verificar-export # compara el PDF exportado contra lo que dibuja el lienzo (headless)
 npm run verificar-pdf    # borra un texto de un PDF real y comprueba que no quedó tapado
 npm run verificar-campos # importa los campos de una plantilla real, exporta y compara que vuelvan iguales
+npm run verificar-apilado # el orden real del lienzo: que las capas manden y nadie cruce de capa
 npm run medir-rendimiento # cuánto tarda el lienzo con 50, 200, 500 y 1000 elementos
 ```
 
@@ -407,13 +408,13 @@ validada — ver la sección Fase 0 del roadmap.
     lienzo que dependa de "si hay un objeto abajo".
 38. **Una forma sacada del PDF va debajo de la página, no arriba.** Al convertirla en elemento, lo
     natural sería agregarla como cualquier elemento nuevo: al frente. Pero en el PDF esa forma
-    estaba *debajo* —el texto se dibujaba encima de ella— así que al frente tapa ese texto, que
-    vive en la imagen de la página y no se puede reordenar. La solución son tres piezas que hay que
-    mantener juntas: la página se rasteriza con **fondo transparente** (`background: 'transparent'`
-    en pdf.js, que si no rellena de blanco), el lienzo **no tiene color de fondo** (lo pone
-    `.canvas-container` en el CSS, porque un fondo opaco del lienzo taparía igual), y la forma se
-    dibuja con **`globalCompositeOperation: 'destination-over'`**, que la manda debajo de todo lo ya
-    dibujado. Si alguna de las tres se rompe, la forma desaparece o vuelve a tapar el texto.
+    estaba *debajo* —el texto se dibujaba encima de ella— así que al frente tapa ese texto. Hoy eso
+    se resuelve con **su capa**: lo convertido cae en "Contenido del PDF"
+    (`capaDelContenidoDelPdf()`), que está detrás de la página en el orden de capas — ver la
+    lección 41. Siguen haciendo falta las otras dos piezas, y hay que mantenerlas juntas: la página
+    se rasteriza con **fondo transparente** (`background: 'transparent'` en pdf.js, que si no
+    rellena de blanco) y el lienzo **no tiene color de fondo** (lo pone `.canvas-container` en el
+    CSS). Si alguna se rompe, la forma desaparece detrás de un blanco opaco.
 39. **El recorrido de mupdf informa menos formas que operadores tiene el content stream**: saltea
     los que no dibujan nada visible, y en una plantilla real son 556 contra 672. Así que emparejar
     "la enésima forma que veo" con "el enésimo operador que pinta" está mal y borra lo que no es —
@@ -432,23 +433,36 @@ validada — ver la sección Fase 0 del roadmap.
     `quitarFormaDelPdf` devuelve **todas** las que se fueron (compara la lista de formas antes y
     después) y quien llama las convierte a todas. Vale para cualquier operación futura sobre el
     contenido: **comparar antes y después, y no dar por sentado que se fue solo lo que se pidió**.
-41. **Con `destination-over` el apilado que se ve es el inverso del orden del arreglo.** Cada objeto
-    se dibuja detrás de lo ya dibujado, así que el primero del arreglo termina *arriba* de los
-    siguientes. Al convertir varias formas de un PDF de una vez hay que recorrerlas **en el orden en
-    que las pintaba el PDF** mandando cada una al fondo: así la última pintada queda primera en el
-    arreglo y, por lo tanto, arriba — como estaba. Haciéndolo al revés (que es lo intuitivo) una
-    banda gris termina tapando las líneas que tenía adentro, y parece que se hubieran borrado.
-    **Lo mismo vale para los botones "Al frente" y "Enviar atrás"**: sobre una forma de esas hacen
-    justo lo contrario de lo que dicen si se los deja llamar directo a `bringObjectToFront` y
-    `sendObjectToBack`. Por eso existe `moverEnLaPila()` en `objetosFabric.ts`, que invierte cuando
-    hace falta; usarla siempre en vez de las de Fabric.
-42. **Cómo se dibuja un elemento es parte del modelo, no del objeto de Fabric.** Las formas que se
-    sacan de un PDF van *debajo* de la página (`destination-over`). Dejar esa marca solo en el
-    objeto de Fabric parece que anda —se ve bien recién convertida— pero el objeto se reconstruye
-    al deshacer, al cambiar de hoja y al recargar, y en los tres casos la forma saltaba al frente y
-    tapaba el texto. Por eso `debajoDeLaPagina` vive en `Elemento` y `crearObjetoFabric` la lee.
-    Regla general: **si algo tiene que sobrevivir a deshacer, a cambiar de hoja o a recargar, tiene
-    que estar en el modelo**; el objeto de Fabric es una vista descartable.
+41. **Hay UN solo apilado, y las capas mandan.** Esta lección decía lo contrario y era una trampa:
+    antes lo convertido de un PDF se dibujaba con `globalCompositeOperation: 'destination-over'`
+    —cada objeto detrás de lo ya dibujado— para quedar bajo la página, que iba de `backgroundImage`.
+    Eso partía el orden en **dos grupos que "Al frente" y "Enviar atrás" no podían cruzar**, invertía
+    el apilado de uno de ellos respecto del arreglo, y dejaba al panel de Capas prometiendo un orden
+    único que el lienzo no respetaba. Se rehízo entero (16/08/2026):
+    - La página del PDF es **un objeto más de la pila** (`aplicarFondo` en `documento.ts`), fijo y
+      fuera del modelo: no se registra en `datosPorObjeto`, así lo saltean `elementosDelLienzo`, el
+      historial y el panel de Capas sin que haya que filtrarlo en cada lugar. Se lo reconoce con
+      `esPaginaFija()`.
+    - El orden sale de **una sola función**, `ordenarPila()` en `objetosFabric.ts`: las capas de
+      atrás hacia adelante, con la página intercalada donde diga `capasSobreElFondo`. Hay que
+      llamarla después de cualquier cosa que cambie quién está en qué capa o el orden de las capas.
+    - `moverEnLaPila()` quedó **acotada a la capa** del objeto: "Al frente" nunca puede sacar algo de
+      su capa, porque eso rompería el orden que muestra el panel. Para cruzar de capa está el
+      desplegable, que es otra decisión.
+    - Cuidado con `getObjects()` en crudo: la página también es un objeto. Contarla hacía saltar el
+      aviso de "vas a perder el trabajo" con la hoja vacía, y metida en un `ActiveSelection` de
+      Ctrl+A se arrastraba con todo lo demás (dentro de un grupo, el `evented: false` de un hijo ya
+      no lo protege). Filtrar por `elementoDe` o por `esPaginaFija`.
+    Se cubre con `npm run verificar-apilado`, que mide el orden real del arreglo — un apilado mal
+    ordenado no da ningún error, solo tapa algo, así que a ojo se descubre tarde.
+42. **Cómo se dibuja un elemento es parte del modelo, no del objeto de Fabric.** El caso que lo
+    enseñó: las formas sacadas de un PDF van *debajo* de la página. Dejar esa marca solo en el
+    objeto de Fabric parecía andar —se veía bien recién convertida— pero el objeto se reconstruye al
+    deshacer, al cambiar de hoja y al recargar, y en los tres la forma saltaba al frente y tapaba el
+    texto. Hoy eso lo decide `elemento.capa`, que vive en el modelo y viaja en el proyecto, el
+    historial y el autoguardado. Regla general: **si algo tiene que sobrevivir a deshacer, a cambiar
+    de hoja o a recargar, tiene que estar en el modelo**; el objeto de Fabric es una vista
+    descartable.
 43. **Dos hojas no pueden compartir una página del PDF.** Editar el contenido —borrar un texto,
     sacar una forma— es cirugía sobre el PDF, no sobre la hoja: si dos hojas apuntan a la misma
     página, lo que se borre en una desaparece en la otra, en los dos sentidos. Por eso duplicar una
@@ -541,3 +555,19 @@ validada — ver la sección Fase 0 del roadmap.
     y nunca mostró nada de lo dibujado encima. Moraleja doble: si algo se ve bien por una caché
     vieja, no está bien; y una miniatura tiene que salir de lo mismo que ve el usuario —el lienzo—
     y no de una de sus partes.
+58. **Una prueba cuyos casos dan todos el mismo resultado no está probando nada.** Escribiendo
+    `verificar-apilado`, el caso de "cambiar un elemento de capa" comparaba tres estados que daban
+    los tres `["b1","x"]`: pasaba en verde y habría pasado igual con el código roto. Al armar el caso
+    para que el movimiento se notara —un testigo en cada capa— apareció un problema real: devolver
+    un elemento a su capa original lo dejaba **más abajo** de donde estaba, porque `ordenarPila`
+    conserva el orden del arreglo y ese orden ya había cambiado al pasar por la otra capa. Se
+    arregló mandándolo al frente de su capa nueva al cambiarlo de capa. Antes de dar por buena una
+    prueba, mirar si sus casos **pueden** fallar: si el valor esperado es el mismo antes y después
+    de la operación, la prueba no la está mirando.
+59. **Un valor que indexa una lista tiene que sostenerse cuando la lista cambia.**
+    `capasSobreElFondo` dice cuántas capas van delante de la página, así que crear, borrar, duplicar
+    o reordenar una capa lo corre: al borrar una capa de adelante hay que restarle uno, al crear
+    sumarle, y al reemplazar la lista entera recortarlo a la nueva longitud (lo hace
+    `establecerCapas`). Sin eso, la página termina apuntando a un lugar que ya no existe y salta al
+    fondo sin que nadie lo haya pedido. La alternativa —una marca por capa— se descartó porque
+    permite el estado imposible de explicar: capas de los dos lados de la página, intercaladas.

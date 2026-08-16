@@ -11,8 +11,20 @@
  */
 
 import type { Canvas, FabricObject } from 'fabric';
-import { capaDe, capasDelDocumento, elementoBloqueado, elementoVisible, establecerCapaDestino, establecerCapas, type Capa } from '../editor/documento';
-import { agregarAlLienzo, aplicarMarcas, elementoDe } from '../editor/objetosFabric';
+import {
+  capaDe,
+  capasDelDocumento,
+  capasSobreElFondoDelDocumento,
+  elementoBloqueado,
+  elementoVisible,
+  establecerCapaDestino,
+  establecerCapas,
+  establecerCapasSobreElFondo,
+  fondoDeLaHoja,
+  paginaDeLaHoja,
+  type Capa,
+} from '../editor/documento';
+import { agregarAlLienzo, aplicarMarcas, elementoDe, moverEnLaPila, ordenarPila } from '../editor/objetosFabric';
 import { duplicarElemento, type Elemento } from '../editor/elemento';
 import { registrarSnapshot } from '../editor/historial';
 import { pedirDestinoAlBorrarCapa, pedirTexto } from './modales';
@@ -52,13 +64,25 @@ const ICONO: Record<string, string> = {
 
 export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: () => void): PanelCapas {
   function refrescar(): void {
-    const capas = capasDelDocumento();
     // De adelante hacia atrás: en el lienzo el último es el que se ve encima.
     const enOrden = [...lienzo.getObjects()].reverse();
     const activo = lienzo.getActiveObject();
 
-    panel.innerHTML = capas
-      .map((capa) => {
+    panel.innerHTML = filas()
+      .map((fila) => {
+        // La página del PDF va como una fila más, para que la lista no prometa un orden que el
+        // lienzo no respeta: lo que quede por debajo de ella se dibuja debajo de la página.
+        if (fila.fondo) {
+          return `
+          <div class="ed-capa ed-capa-fondo" data-fondo="1">
+            <div class="ed-capa-head" draggable="true" data-arrastrar-fondo="1" title="${t('capas.fondoTt')}">
+              <span class="ed-obj-ic">📄</span>
+              <span class="ed-capa-nom" data-i18n="capas.fondo">${t('capas.fondo')}</span>
+            </div>
+          </div>`;
+        }
+
+        const capa = fila.capa!;
         const suyos = enOrden.filter((o) => {
           const el = elementoDe(o);
           return el && capaDe(el).id === capa.id;
@@ -135,8 +159,14 @@ export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: 
       const usados = capas.map((c) => Number(/(\d+)\s*$/.exec(c.nombre)?.[1] ?? 0));
       // La recién creada pasa a ser la destino: si se creó una capa es para poner algo adentro.
       const nueva = { id: `c${Date.now()}`, nombre: t('capas.nombreNueva', { n: Math.max(0, ...usados) + 1 }), visible: true, bloqueada: false };
-      establecerCapas([...capas, nueva]);
+      // Va al final de las que están **encima** de la página, no al final de todo: si naciera
+      // detrás de la página, lo primero que se dibujara en ella no se vería y parecería un bug.
+      // Con la página al fondo —lo habitual— ese lugar es el final de la lista, como siempre.
+      const corte = Math.min(capasSobreElFondoDelDocumento(), capas.length);
+      establecerCapas([...capas.slice(0, corte), nueva, ...capas.slice(corte)]);
+      establecerCapasSobreElFondo(corte + 1);
       establecerCapaDestino(nueva.id);
+      ordenarPila(lienzo);
       refrescar();
       alCambiar();
       registrarSnapshot(lienzo);
@@ -202,32 +232,41 @@ export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: 
     });
 
   /**
-   * Rehace el apilado del lienzo para que respete el orden de las capas: la primera de la lista es
-   * la que se ve más adelante, como se la muestra. Sin esto, mover una capa cambiaría la lista pero
-   * no lo que se ve, y la lista estaría mintiendo.
-   *
-   * Ojo con las formas sacadas de un PDF: se dibujan con `destination-over` y su apilado real es el
-   * inverso (ver `moverEnLaPila` en objetosFabric). Viven todas en la capa de base, así que
-   * mientras no se las reparta entre capas esto no las afecta.
+   * La lista tal como se la ve: las capas **más la página del PDF**, que es una fila más porque en
+   * el lienzo es un objeto más del apilado. Tenerlas juntas en un solo arreglo es lo que hace que
+   * reordenar sea un `splice` y no una cuenta: la posición de la página sale de dónde quedó su fila.
    */
-  function aplicarOrdenDeCapas(): void {
+  type Fila = { capa: Capa; fondo?: false } | { fondo: true; capa?: undefined };
+
+  function filas(): Fila[] {
     const capas = capasDelDocumento();
-    // De la última a la primera, mandando cada una al frente: al terminar, la primera de la lista
-    // quedó adelante de todas.
-    for (let i = capas.length - 1; i >= 0; i--) {
-      for (const objeto of objetosDe(capas[i].id)) lienzo.bringObjectToFront(objeto);
-    }
+    const lista: Fila[] = capas.map((capa) => ({ capa }));
+    if (hayFondo()) lista.splice(Math.min(capasSobreElFondoDelDocumento(), capas.length), 0, { fondo: true });
+    return lista;
   }
 
-  /** Cambia una capa de lugar en la lista y reordena el lienzo para que se vea el cambio. */
-  function moverCapa(id: string, hasta: number): void {
-    const capas = [...capasDelDocumento()];
-    const desde = capas.findIndex((c) => c.id === id);
-    if (desde < 0 || hasta < 0 || hasta >= capas.length || desde === hasta) return;
-    const [capa] = capas.splice(desde, 1);
-    capas.splice(hasta, 0, capa);
+  /** Vuelca al modelo una lista ya reordenada: qué capas hay, en qué orden, y dónde quedó la página. */
+  function asentarFilas(lista: Fila[]): void {
+    const capas = lista.filter((f) => !f.fondo).map((f) => f.capa!);
+    const corte = lista.findIndex((f) => f.fondo);
     establecerCapas(capas);
-    aplicarOrdenDeCapas();
+    establecerCapasSobreElFondo(corte < 0 ? capas.length : corte);
+  }
+
+  /** Si la hoja tiene algo de fondo: su página del PDF, o una imagen propia. */
+  const hayFondo = () => paginaDeLaHoja() !== null || fondoDeLaHoja() !== null;
+
+  /**
+   * Cambia una fila de lugar y reordena el lienzo para que se vea el cambio. Sirve igual para una
+   * capa y para la página: mover la página es lo que decide qué capas quedan encima de ella.
+   */
+  function moverFila(desde: number, hasta: number): void {
+    const lista = filas();
+    if (desde < 0 || hasta < 0 || desde >= lista.length || hasta >= lista.length || desde === hasta) return;
+    const [fila] = lista.splice(desde, 1);
+    lista.splice(hasta, 0, fila);
+    asentarFilas(lista);
+    ordenarPila(lienzo);
     refrescarConHistorial();
   }
 
@@ -245,14 +284,17 @@ export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: 
          <span class="ic">${icono}</span>${t(clave)}
        </div>`;
 
+    // Subir y bajar se miden sobre la lista completa, que incluye la página: una capa que está justo
+    // debajo de ella sí puede subir, aunque sea la primera de las capas de atrás.
+    const enLista = filas().findIndex((f) => f.capa?.id === id);
     const menu = document.createElement('div');
     menu.className = 'ed-capas-menu';
     menu.innerHTML =
       item('renombrar', '✎', 'capas.menu.renombrar', true) +
       item('duplicar', '⧉', 'capas.menu.duplicar', true) +
       '<div class="ed-dd-sep"></div>' +
-      item('subir', '↑', 'capas.menu.subir', indice > 0) +
-      item('bajar', '↓', 'capas.menu.bajar', indice < capas.length - 1) +
+      item('subir', '↑', 'capas.menu.subir', enLista > 0) +
+      item('bajar', '↓', 'capas.menu.bajar', enLista < filas().length - 1) +
       '<div class="ed-dd-sep"></div>' +
       item('borrar', '✕', 'capas.menu.borrar', capas.length > 1, true);
 
@@ -284,8 +326,12 @@ export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: 
     const capa = capas.find((c) => c.id === id);
     if (!capa) return;
 
-    if (accion === 'subir') return moverCapa(id, indice - 1);
-    if (accion === 'bajar') return moverCapa(id, indice + 1);
+    // Sobre la lista completa —capas y página—, así el menú también sirve para cruzar la página, que
+    // es lo mismo que hace arrastrarla.
+    if (accion === 'subir' || accion === 'bajar') {
+      const desde = filas().findIndex((f) => f.capa?.id === id);
+      return moverFila(desde, accion === 'subir' ? desde - 1 : desde + 1);
+    }
 
     if (accion === 'renombrar') {
       const nuevo = await pedirTexto(t('capas.menu.renombrar'), t('capas.nombreLbl'), capa.nombre);
@@ -302,13 +348,17 @@ export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: 
       // objetos se clonan como al duplicar uno suelto —corridos unos puntos— y van a la capa nueva.
       const nueva: Capa = { id: `c${Date.now()}`, nombre: t('capas.nombreCopia', { nombre: capa.nombre }), visible: capa.visible, bloqueada: capa.bloqueada };
       const copias = objetosDe(id).map((o) => elementoDe(o)!).filter(Boolean);
+      const corte = capasSobreElFondoDelDocumento();
       establecerCapas([...capas.slice(0, indice + 1), nueva, ...capas.slice(indice + 1)]);
+      // La copia queda del mismo lado de la página que la original: si la de origen iba detrás, se
+      // corre el corte para que la copia también quede detrás.
+      establecerCapasSobreElFondo(indice + 1 < corte ? corte + 1 : corte);
       for (const original of copias) {
         const clon = duplicarElemento(original);
         clon.capa = nueva.id;
         await agregarAlLienzo(lienzo, clon);
       }
-      aplicarOrdenDeCapas();
+      ordenarPila(lienzo);
       refrescarConHistorial();
       return;
     }
@@ -334,8 +384,11 @@ export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: 
         }
       }
 
+      const corte = capasSobreElFondoDelDocumento();
       establecerCapas(quedan);
-      aplicarOrdenDeCapas();
+      // Si la que se fue estaba delante de la página, el corte se corre con ella; si no, no se mueve.
+      establecerCapasSobreElFondo(indice < corte ? corte - 1 : corte);
+      ordenarPila(lienzo);
       refrescarConHistorial();
     }
   }
@@ -354,6 +407,12 @@ export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: 
       const el = elementoDe(uno);
       if (el) el.capa = capaId;
     }
+    // Cambiar de capa cambia dónde va en el apilado: sin esto la fila se muda en la lista pero el
+    // objeto se queda dibujado donde estaba, y la lista vuelve a mentir.
+    ordenarPila(lienzo);
+    // Y cada uno al frente de su capa nueva, para que caiga siempre en el mismo lugar y no donde lo
+    // deje el orden que traía de antes.
+    for (const uno of alcance) moverEnLaPila(lienzo, uno, 'frente');
     refrescarConHistorial();
   }
 
@@ -363,8 +422,16 @@ export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: 
   // agarrando la fila de un objeto se lo cambia de capa; agarrando la cabecera se reordena la capa.
   let arrastrado: number | null = null;
   let capaArrastrada: string | null = null;
+  let fondoArrastrado = false;
 
   panel.addEventListener('dragstart', (e) => {
+    const laPagina = (e.target as HTMLElement).closest<HTMLElement>('[data-arrastrar-fondo]');
+    if (laPagina) {
+      fondoArrastrado = true;
+      laPagina.closest('.ed-capa')!.classList.add('arrastrando');
+      e.dataTransfer?.setData('text/plain', 'fondo');
+      return;
+    }
     const cabecera = (e.target as HTMLElement).closest<HTMLElement>('[data-arrastrar-capa]');
     if (cabecera) {
       capaArrastrada = cabecera.dataset.arrastrarCapa!;
@@ -383,35 +450,47 @@ export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: 
   panel.addEventListener('dragend', () => {
     arrastrado = null;
     capaArrastrada = null;
+    fondoArrastrado = false;
     panel.querySelectorAll('.arrastrando, .sobre, .sobre-capa').forEach((n) => n.classList.remove('arrastrando', 'sobre', 'sobre-capa'));
   });
 
   panel.addEventListener('dragover', (e) => {
     const caja = (e.target as HTMLElement).closest<HTMLElement>('.ed-capa');
-    if (!caja || (arrastrado === null && capaArrastrada === null)) return;
+    if (!caja || (arrastrado === null && capaArrastrada === null && !fondoArrastrado)) return;
     e.preventDefault(); // sin esto el navegador no deja soltar
     panel.querySelectorAll('.sobre, .sobre-capa').forEach((n) => n.classList.remove('sobre', 'sobre-capa'));
     // Reordenando se marca solo la línea de arriba, que es donde va a caer; cambiando un objeto de
     // capa se marca la capa entera, que es lo que lo va a recibir.
-    if (capaArrastrada && caja.dataset.capa !== capaArrastrada) caja.classList.add('sobre-capa');
-    else if (arrastrado !== null) caja.classList.add('sobre');
+    if (fondoArrastrado && !caja.dataset.fondo) caja.classList.add('sobre-capa');
+    else if (capaArrastrada && caja.dataset.capa !== capaArrastrada) caja.classList.add('sobre-capa');
+    // Un objeto no se puede soltar en la página: no es una capa, no tiene contenido propio.
+    else if (arrastrado !== null && !caja.dataset.fondo) caja.classList.add('sobre');
   });
+
+  /** En qué posición de la lista está la fila del DOM que recibió el arrastre. */
+  const indiceDeFila = (caja: HTMLElement): number =>
+    caja.dataset.fondo ? filas().findIndex((f) => f.fondo) : filas().findIndex((f) => f.capa?.id === caja.dataset.capa);
 
   panel.addEventListener('drop', (e) => {
     const caja = (e.target as HTMLElement).closest<HTMLElement>('.ed-capa');
     if (!caja) return;
     e.preventDefault();
 
+    if (fondoArrastrado) {
+      moverFila(filas().findIndex((f) => f.fondo), indiceDeFila(caja));
+      fondoArrastrado = false;
+      return;
+    }
+
     if (capaArrastrada) {
-      const capas = capasDelDocumento();
-      const hasta = capas.findIndex((c) => c.id === caja.dataset.capa);
-      moverCapa(capaArrastrada, hasta);
+      moverFila(filas().findIndex((f) => f.capa?.id === capaArrastrada), indiceDeFila(caja));
       capaArrastrada = null;
       return;
     }
 
     if (arrastrado !== null) {
-      moverACapa(arrastrado, caja.dataset.capa!);
+      // Sobre la página no hay dónde poner un objeto: se ignora en vez de mandarlo a cualquier capa.
+      if (caja.dataset.capa) moverACapa(arrastrado, caja.dataset.capa);
       arrastrado = null;
     }
   });

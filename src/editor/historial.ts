@@ -1,6 +1,15 @@
 import type { Canvas } from 'fabric';
 import type { Elemento } from './elemento';
-import { capasDelDocumento, establecerCapas, establecerHojas, hojaActual, hojasDelDocumento, type Capa } from './documento';
+import {
+  capasDelDocumento,
+  capasSobreElFondoDelDocumento,
+  establecerCapas,
+  establecerCapasSobreElFondo,
+  establecerHojas,
+  hojaActual,
+  hojasDelDocumento,
+  type Capa,
+} from './documento';
 
 /**
  * Cada paso guarda el documento entero —todas las hojas, cuál se estaba viendo y las capas— y no
@@ -17,6 +26,8 @@ interface Instantanea {
   hojas: Elemento[][];
   actual: number;
   capas: Capa[];
+  /** Dónde queda la página del PDF dentro del orden de capas. Va con ellas: es parte del apilado. */
+  capasSobreElFondo: number;
 }
 
 let hist: Instantanea[] = [];
@@ -28,6 +39,7 @@ function clonar(lienzo: Canvas): Instantanea {
     hojas: JSON.parse(JSON.stringify(hojasDelDocumento(lienzo))),
     actual: hojaActual(),
     capas: JSON.parse(JSON.stringify(capasDelDocumento())),
+    capasSobreElFondo: capasSobreElFondoDelDocumento(),
   };
 }
 
@@ -54,6 +66,7 @@ async function restaurar(lienzo: Canvas, paso: Instantanea): Promise<void> {
   // Las capas primero: los objetos se arman mirando si la suya está apagada o trabada, así que con
   // las capas viejas todavía puestas nacerían con las marcas equivocadas.
   establecerCapas(JSON.parse(JSON.stringify(paso.capas)));
+  establecerCapasSobreElFondo(paso.capasSobreElFondo ?? paso.capas.length);
   await establecerHojas(lienzo, JSON.parse(JSON.stringify(paso.hojas)), paso.actual);
   restaurando = false;
 }

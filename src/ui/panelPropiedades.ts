@@ -1,6 +1,6 @@
 import type { Canvas, FabricObject } from 'fabric';
 import { FabricImage } from 'fabric';
-import { aplicarMarcas, elementoDe, moverEnLaPila, reemplazarObjeto, agregarAlLienzo, generarQr, prepararFuente, sincronizarGeometria, textoParaDibujar } from '../editor/objetosFabric';
+import { aplicarMarcas, elementoDe, moverEnLaPila, ordenarPila, reemplazarObjeto, agregarAlLienzo, generarQr, prepararFuente, sincronizarGeometria, textoParaDibujar } from '../editor/objetosFabric';
 import { capaDe, capasDelDocumento } from '../editor/documento';
 import { alturaRenglonFabric, duplicarElemento, type Elemento } from '../editor/elemento';
 import { FAMILIAS_BASE, FAMILIAS_WEB } from '../editor/fuentes';
@@ -331,29 +331,8 @@ function seccionPosicion(elemento: Elemento): string {
       }
       <div><label class="ed-lbl" data-i18n="props.multi.angulo"></label><input type="number" id="ed-p-angulo" class="mono" value="${elemento.angulo}" step="1"></div>
     </div>
-    ${bloqueDebajo(elemento)}
     ${bloqueCapa(elemento)}`
   );
-}
-
-/**
- * "Debajo del contenido del PDF", solo para lo que salió de uno.
- *
- * Lo que se convierte del PDF se dibuja **por debajo de la página**, que es donde estaba: si no,
- * taparía el texto que tenía encima. Eso hace que "Al frente" no pueda subirlo más allá de la
- * página —un objeto dibujado así nunca queda sobre uno normal, esté donde esté en la lista—, y sin
- * este control eso se vive como que el botón no anda. Destildándolo, el elemento pasa a ser uno
- * común y los botones de apilado vuelven a valer contra todo lo demás.
- */
-function bloqueDebajo(elemento: Elemento): string {
-  // Se ofrece en todas las clases que saben dibujarse así, tengan o no la marca puesta. Mostrarlo
-  // solo en las convertidas dejaba sin salida el caso más común: una imagen sacada del PDF —que
-  // queda encima de la página— y un dibujo sacado del PDF —que queda debajo—, entre los cuales
-  // ningún botón de apilado puede cruzar porque están en grupos distintos.
-  const soporta = elemento.clase === 'rect' || elemento.clase === 'linea' || elemento.clase === 'forma' || elemento.clase === 'imagen';
-  if (!soporta) return '';
-  return `<label class="ed-check"><input type="checkbox" id="ed-p-debajo" ${elemento.debajoDeLaPagina ? 'checked' : ''}> <span data-i18n="props.debajoDeLaPagina"></span></label>
-    <p class="nota" data-i18n="props.debajoDeLaPaginaNota"></p>`;
 }
 
 /**
@@ -643,23 +622,17 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
   $('#ed-p-capa')?.addEventListener('change', (e) => {
     elemento.capa = (e.target as HTMLSelectElement).value;
     aplicarMarcas(objeto, elemento);
+    // La capa decide dónde va en el apilado —incluso de qué lado de la página del PDF—, así que el
+    // cambio no termina en el modelo: hay que rehacer el orden o el objeto se queda dibujado donde
+    // estaba y la lista de capas pasa a decir otra cosa.
+    ordenarPila(lienzo);
+    // Y al frente de su capa nueva. Sin esto cae donde lo deje el orden anterior, que depende de por
+    // dónde pasó antes: mandar algo a otra capa y traerlo de vuelta lo dejaba más abajo que al
+    // empezar, sin que nadie lo hubiera pedido.
+    moverEnLaPila(lienzo, objeto, 'frente');
     repintar();
     registrarSnapshot(lienzo);
     document.dispatchEvent(new CustomEvent('ed-capas-cambiadas'));
-  });
-  // Pasar el elemento de "debajo de la página" a encima, o al revés. Se cambia el modo de dibujo
-  // del objeto en el lugar: reconstruirlo perdería la selección y no hace falta para esto.
-  $('#ed-p-debajo')?.addEventListener('change', (e) => {
-    const debajo = (e.target as HTMLInputElement).checked;
-    (elemento as { debajoDeLaPagina?: boolean }).debajoDeLaPagina = debajo;
-    // 'source-over' explícito, no `undefined`: el canvas ignora un valor indefinido y se queda con
-    // el modo del objeto anterior, así que destildar no devolvía el dibujo a la normalidad.
-    objeto.set({ globalCompositeOperation: debajo ? 'destination-over' : 'source-over' });
-    // Al subirlo se lo manda al frente y al bajarlo al fondo: es lo que se espera de un cambio que
-    // justamente es de profundidad, y evita que parezca que no pasó nada.
-    moverEnLaPila(lienzo, objeto, debajo ? 'fondo' : 'frente');
-    repintar();
-    registrarSnapshot(lienzo);
   });
   $('#ed-p-angulo')!.addEventListener('input', (e) => {
     elemento.angulo = Number((e.target as HTMLInputElement).value);

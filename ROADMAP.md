@@ -549,38 +549,54 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
       cerrados, la elipse con curvas, 17 rectas entre triángulo, flecha y estrella, y el relleno
       solo en la figura que lo pide.
 
-- [ ] **Un solo apilado, y que las capas manden** (pendiente grande, anotado el 16/08/2026 tras
-      encontrarlo probando). **Hoy hay dos órdenes que no se hablan y el panel de Capas miente.**
+- [x] **Un solo apilado, y que las capas manden** (16/08/2026). Era el pendiente más grande y el
+      único que se notaba usando la aplicación.
 
-      *El problema.* Lo que se convierte de un PDF se dibuja con `globalCompositeOperation:
-      'destination-over'` para quedar donde estaba: **debajo de la página entera**. Un objeto así
-      nunca puede quedar sobre uno normal, ni uno normal meterse debajo de él. Son dos grupos que
-      "Al frente" y "Enviar atrás" no pueden cruzar, y desde afuera se vive como que los botones no
-      andan. Lo comprobó Germán: un recuadro blanco propio, enviado atrás, pasa detrás de una imagen
-      convertida —las dos son objetos normales— pero **no** detrás de un dibujo convertido. Y el
-      panel de Capas lista **todo junto en una sola columna**, dando a entender un orden único que
-      el lienzo no respeta. La casilla "Debajo del contenido del PDF" es un parche para cruzar de
-      grupo a mano, no la solución.
+      *El problema que había.* Convivían dos órdenes que no se hablaban. Lo convertido de un PDF se
+      dibujaba con `globalCompositeOperation: 'destination-over'` para quedar debajo de la página,
+      que iba aparte como `backgroundImage` del lienzo. Un objeto así nunca podía quedar sobre uno
+      normal ni al revés: eran **dos grupos que "Al frente" y "Enviar atrás" no podían cruzar**, y
+      desde afuera se vivía como que los botones no andaban. Lo comprobó Germán: un recuadro propio
+      enviado atrás pasaba detrás de una imagen convertida pero **no** detrás de un dibujo
+      convertido. Encima el panel de Capas listaba todo en una sola columna, prometiendo un orden
+      único que el lienzo no respetaba.
 
-      *La salida.* Dejar de usar `destination-over` y poner **la página del PDF como un objeto más
-      del apilado** —fijo, no seleccionable, sin entrada en el modelo, así lo ignoran
-      `elementosDelLienzo` y el panel de Capas— en vez de como fondo del lienzo. Con eso hay un
-      solo orden: lo convertido se coloca por debajo de ese objeto, lo demás por encima, y cualquier
-      cosa se puede mover a cualquier lado con la misma regla.
+      *Qué se hizo.* La decisión de producto fue que **la banda es de la capa, no del elemento**: el
+      fondo ocupa un lugar en el orden de capas y una capa entera está delante o detrás de la
+      página. Así la regla "capa 1 nunca detrás de capa 2" queda sin excepciones.
+      - La página del PDF pasó a ser **un objeto más de la pila** (`aplicarFondo` en `documento.ts`),
+        fijo, no seleccionable y **fuera del modelo**: no se registra en `datosPorObjeto`, así lo
+        saltean `elementosDelLienzo`, el historial y el panel de Capas sin filtros nuevos. Se lo
+        reconoce con `esPaginaFija()`.
+      - **`ordenarPila()`** (`objetosFabric.ts`) es la única definición del orden: capas de atrás
+        hacia adelante con la página intercalada donde diga **`capasSobreElFondo`**, el número nuevo
+        del documento que viaja en el proyecto, el historial y el autoguardado.
+      - **`moverEnLaPila()`** quedó acotada a la capa del objeto. Para cruzar de capa está el
+        desplegable de Propiedades, y para cruzar la página, mover la capa (o la página) en el panel.
+      - El panel de Capas muestra **la página como una fila más**, arrastrable entre las capas: es lo
+        que hace visible dónde está el corte. La lista dejó de mentir.
+      - Desapareció la casilla "Debajo del contenido del PDF" y el flag `debajoDeLaPagina`. Los
+        proyectos guardados antes **se migran al abrirlos** (`migrarDebajoDeLaPagina` en
+        `proyecto.ts`): lo marcado se muda a la capa "Contenido del PDF", que queda detrás de la
+        página, y se sigue viendo igual que antes.
+      - Las **imágenes** convertidas del PDF ahora van a la misma capa que las formas. Que antes no
+        fuera así —la imagen quedaba encima y el dibujo debajo— era justo lo que hacía parecer que
+        "Enviar atrás" andaba con una y no con la otra.
 
-      *El requisito que pidió Germán y hoy no se cumple.* **El orden de las capas manda sobre el
-      apilado**: algo de la capa 1 nunca puede quedar detrás de algo de la capa 2. Hoy
-      `aplicarOrdenDeCapas()` lo garantiza solo cuando se reordenan las capas, y después "Al frente"
-      lo rompe, porque `bringObjectToFront` salta por encima de los objetos de las otras capas. Al
-      rehacer esto, mover en la pila tiene que quedar **acotado a la banda de su capa**, y el cambio
-      tiene que verse reflejado en la lista de Capas.
+      *Lo que apareció en el camino y no estaba previsto.* Cuatro lugares usaban `getObjects()` en
+      crudo y la página también es un objeto: contarla hacía saltar el aviso de "vas a perder el
+      trabajo" con la hoja vacía (al abrir otro PDF y al importar un proyecto), y metida en el
+      `ActiveSelection` de Ctrl+A se arrastraba con todo lo demás. Además `reconstruirLienzo` ahora
+      se lleva la página puesta, así que el modo "Completar campos" —que lo llama sin pasar por
+      `aplicarFondo`— dejaba la hoja en blanco. Y el desplegable de capa de Propiedades **nunca
+      había reordenado nada**: era un agujero previo que esta pasada cerró de paso.
 
-      *Lo que hay que cuidar.* Toca el fondo de la hoja (`aplicarFondo`), el zoom
-      (`setDimensions`/`setZoom`), la captura de miniaturas —que hoy sale de `toDataURL` del lienzo
-      y tendría que seguir incluyendo la página— y la reconstrucción del lienzo al cambiar de hoja,
-      que tendría que reinsertar el objeto-página en el lugar correcto. La exportación no se toca:
-      arma el PDF desde el archivo de base, no desde el lienzo. Verificar con `verificar-hojas`,
-      `verificar-formas` y `verificar-export` antes de darlo por bueno.
+      *Cómo se verifica.* Se sumó **`npm run verificar-apilado`** (`pruebas/arnesApilado.ts`), que
+      mide el orden real del arreglo de Fabric: que las capas manden, que "Al frente" no saque nada
+      de su capa, que la página se intercale donde toca y que un elemento nuevo no se cuele al
+      frente de todo. Es la clase de invariante que no da ningún error cuando se rompe —solo tapa
+      algo— así que a ojo se descubre tarde. Pasan además `verificar-export`, `verificar-hojas`,
+      `verificar-formas`, `verificar-campos` y `verificar-pdf`.
 
 ## Fase 5 — Empaquetado y distribución
 
