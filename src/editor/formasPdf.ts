@@ -7,22 +7,31 @@
  * dibujo vectorial —o la imagen— y no toque el texto. No se emparejan formas con operadores del
  * content stream: ver el detalle en `borrarFormasDelPdf`, donde está por qué eso no funciona.
  *
- * **Qué entra.** Rectángulos y líneas rectas, giradas o no, que sobre 60 PDF reales son el 84% de
- * lo que hay dibujado; las líneas suelen venir como rectángulos degenerados —alto o ancho 0— así
- * que son el mismo caso. Y las imágenes, que salen del PDF y vuelven como imagen del diseño, con lo
- * que se las puede mover, redimensionar y borrar sin nada propio para eso.
+ * **Qué entra.** Todo el dibujo vectorial, giradas las formas o no. Los rectángulos y las líneas
+ * rectas —el 89% de lo que hay dibujado, medido sobre 120 PDF reales— se reconocen como tales y
+ * entran como recuadro o línea del editor; las líneas suelen venir como rectángulos degenerados
+ * —alto o ancho 0— así que son el mismo caso. El resto (curvas y dibujos de varios trazos, el 11%)
+ * entra como **camino**: se guardan sus tramos tal cual y se redibujan igual. Y las imágenes, que
+ * vuelven como imagen del diseño y se mueven, se estiran y se borran como cualquier otra.
  *
- * **Qué queda afuera.** Curvas y paths compuestos: no hay elemento del modelo que los represente.
- * Y cualquier cosa con sesgo real, que tampoco tiene con qué dibujarse.
+ * **Qué queda afuera.** Solo lo que tenga sesgo real, que no hay con qué dibujar. Sobre esos mismos
+ * 120 PDF no apareció ni uno.
  */
 
-import { crearElemento, crearElementoImagen, type Elemento } from './elemento';
+import { crearElemento, crearElementoForma, crearElementoImagen, type Elemento } from './elemento';
+import type { Segmento } from './figuras';
 
 /** Una forma del contenido, en coordenadas de la hoja (Y desde arriba, como el lienzo). */
 export interface FormaDelPdf {
   /** Orden en que la dibuja el PDF, desde 0. Sirve para identificarla mientras está a la vista. */
   indice: number;
-  clase: 'rect' | 'linea';
+  /**
+   * `camino` es todo lo que no entra en un rectángulo ni en una línea: curvas y dibujos de varios
+   * trazos. Sobre 120 PDF reales es el 11% de lo dibujado, así que dejarlo afuera se notaba.
+   */
+  clase: 'rect' | 'linea' | 'camino';
+  /** Los tramos, normalizados de 0 a 1 sobre la caja. Solo lo trae `clase: 'camino'`. */
+  camino?: Segmento[];
   x: number;
   y: number;
   w: number;
@@ -117,11 +126,12 @@ function ubicarEsquina(x: number, y: number, ctm: number[]): { x: number; y: num
 }
 
 /**
- * Clasifica los puntos de un path ya pasados a coordenadas de la hoja. Devuelve null si la forma
- * no es de las que se pueden editar: con curvas o con más de cuatro puntos.
+ * Clasifica los puntos de un path ya enderezados. Devuelve `null` si no es un rectángulo ni una
+ * línea —con curvas, con varios subcaminos o con más de cuatro puntos—, y entonces quien llama lo
+ * guarda como camino libre.
  */
-function medir(puntos: [number, number][], curvas: boolean): { clase: 'rect' | 'linea'; x: number; y: number; w: number; h: number } | null {
-  if (curvas) return null;
+function medir(puntos: [number, number][], curvas: boolean, subcaminos: number): { clase: 'rect' | 'linea'; x: number; y: number; w: number; h: number } | null {
+  if (curvas || subcaminos > 1) return null;
 
   const xs = [...new Set(puntos.map((p) => Math.round(p[0] * 100) / 100))];
   const ys = [...new Set(puntos.map((p) => Math.round(p[1] * 100) / 100))];
@@ -160,16 +170,34 @@ export async function formasDelPdf(bytes: Uint8Array, pagina: number): Promise<F
 
   const anotar = (path: any, ctm: number[], color: number[], relleno: boolean, grosor: number) => {
     const propio = indice++;
+
+    // Se recorre el camino entero, guardando cada tramo: los rectos alcanzan para reconocer un
+    // rectángulo o una línea, y si aparece una curva o varios subcaminos sirven igual para
+    // reconstruir el dibujo tal cual.
     const puntos: [number, number][] = [];
+    const tramos: Segmento[] = [];
     let curvas = false;
+    let subcaminos = 0;
     path.walk({
-      moveTo: (x: number, y: number) => puntos.push([x, y]),
-      lineTo: (x: number, y: number) => puntos.push([x, y]),
-      curveTo: () => {
-        curvas = true;
+      moveTo: (x: number, y: number) => {
+        subcaminos++;
+        puntos.push([x, y]);
+        tramos.push({ t: 'M', x, y });
       },
-      closePath: () => {},
+      lineTo: (x: number, y: number) => {
+        puntos.push([x, y]);
+        tramos.push({ t: 'L', x, y });
+      },
+      curveTo: (x1: number, y1: number, x2: number, y2: number, x: number, y: number) => {
+        curvas = true;
+        // Los puntos de control entran en la caja: la contienen, así que la curva nunca se sale.
+        puntos.push([x1, y1], [x2, y2], [x, y]);
+        tramos.push({ t: 'C', x1, y1, x2, y2, x, y });
+      },
+      closePath: () => tramos.push({ t: 'Z' }),
     });
+
+    if (!puntos.length) return;
 
     // Se separa el giro de la matriz y se mide la forma **enderezada**: así una línea girada 30°
     // se reconoce igual que una derecha, y el ángulo se guarda aparte. Con sesgo (los ejes dejan
@@ -181,21 +209,43 @@ export async function formasDelPdf(bytes: Uint8Array, pagina: number): Promise<F
     // Sin trasladar: la traslación se aplica *después* del giro, así que sumarla acá correría la
     // caja a un lugar que no es. Se mide la forma enderezada y recién entonces se ubica su esquina.
     const enderezados = puntos.map((p) => [escalaX * p[0], escalaY * p[1]] as [number, number]);
-    const medida = medir(enderezados, curvas);
-    if (!medida) return;
+    const medida = medir(enderezados, curvas, subcaminos);
 
-    const esquina = ubicarEsquina(medida.x, medida.y, ctm);
-
-    formas.push({
+    const comun = {
       indice: propio,
-      ...medida,
-      ...esquina,
       color: hex(color.slice(0, 4)),
       relleno,
       // El grosor está en el sistema del path: la matriz lo escala igual que a todo lo demás.
       grosor: Math.abs(grosor * escalaY) || 1,
       angulo: Math.abs(separada.angulo) < 1e-6 ? 0 : Math.round(separada.angulo * 100) / 100,
+    };
+
+    if (medida) {
+      formas.push({ ...comun, ...medida, ...ubicarEsquina(medida.x, medida.y, ctm) });
+      return;
+    }
+
+    // No es un rectángulo ni una línea: se guarda como camino. La caja sale de todos sus puntos y
+    // los tramos se normalizan contra ella, así estirar la forma después es solo multiplicar.
+    const xs = enderezados.map((p) => p[0]);
+    const ys = enderezados.map((p) => p[1]);
+    const x = Math.min(...xs);
+    const y = Math.min(...ys);
+    const w = Math.max(...xs) - x;
+    const h = Math.max(...ys) - y;
+    // Un camino sin superficie no se puede agarrar ni normalizar: se lo deja pasar.
+    if (w < 0.5 || h < 0.5) return;
+
+    const normal = (v: number, min: number, largo: number) => Math.round(((v - min) / largo) * 10000) / 10000;
+    const camino: Segmento[] = tramos.map((t) => {
+      if (t.t === 'Z') return t;
+      const nx = (v: number) => normal(escalaX * v, x, w);
+      const ny = (v: number) => normal(escalaY * v, y, h);
+      if (t.t === 'C') return { t: 'C', x1: nx(t.x1), y1: ny(t.y1), x2: nx(t.x2), y2: ny(t.y2), x: nx(t.x), y: ny(t.y) };
+      return { t: t.t, x: nx(t.x), y: ny(t.y) };
     });
+
+    formas.push({ ...comun, clase: 'camino', camino, w, h, ...ubicarEsquina(x, y, ctm) });
   };
 
   const dispositivo = new mupdf.Device({
@@ -427,6 +477,24 @@ export async function borrarFormaDelPdf(bytes: Uint8Array, pagina: number, forma
  * seguir; el modelo lo lleva para que sobreviva a deshacer, cambiar de hoja y recargar.
  */
 export function elementoDesdeForma(forma: FormaDelPdf): Elemento {
+  // Un camino libre entra como elemento 'forma' con `figura: 'camino'`: comparte con las demás la
+  // caja, el color, el relleno y el estilo, y lo único propio son sus tramos.
+  if (forma.clase === 'camino') {
+    const elemento = crearElementoForma('camino');
+    elemento.camino = forma.camino;
+    elemento.x = forma.x;
+    elemento.y = forma.y;
+    elemento.w = forma.w;
+    elemento.h = forma.h;
+    elemento.angulo = forma.angulo;
+    elemento.color = forma.color;
+    elemento.conRelleno = forma.relleno;
+    elemento.rellenoColor = forma.color;
+    elemento.grosor = forma.relleno ? 0 : Math.max(0.5, forma.grosor);
+    elemento.debajoDeLaPagina = true;
+    return elemento as Elemento;
+  }
+
   const elemento = crearElemento(forma.clase) as Elemento & { clase: 'rect' | 'linea' };
   elemento.x = forma.x;
   elemento.y = forma.y;

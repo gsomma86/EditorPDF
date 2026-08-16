@@ -190,7 +190,8 @@ export function moverEnLaPila(lienzo: import('fabric').Canvas, objeto: FabricObj
 export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObject> {
   // Las formas sacadas de un PDF se dibujan por debajo de la página, como estaban. Se aplica acá,
   // leyendo el modelo, para que valga también al deshacer, cambiar de hoja o recargar.
-  const debajo = (elemento.clase === 'rect' || elemento.clase === 'linea') && elemento.debajoDeLaPagina;
+  const debajo =
+    (elemento.clase === 'rect' || elemento.clase === 'linea' || elemento.clase === 'forma') && elemento.debajoDeLaPagina;
   const objeto = await construirObjeto(elemento);
   if (debajo) objeto.set({ globalCompositeOperation: 'destination-over' });
   // Con los campos apagados, los que nazcan después también tienen que nacer apagados: se crean al

@@ -1,6 +1,6 @@
 import { FabricObject } from 'fabric';
 import type { ElementoForma } from './elemento';
-import { puntosDeFigura } from './figuras';
+import { puntosDeFigura, recorrerCamino } from './figuras';
 import { guionDe } from './trazos';
 
 /**
@@ -45,6 +45,14 @@ export class FormaObjeto extends FabricObject {
     if (puntos) {
       puntos.forEach((p, i) => (i === 0 ? ctx.moveTo(dx + p.x, dy + p.y) : ctx.lineTo(dx + p.x, dy + p.y)));
       ctx.closePath();
+    } else if (this.datos.figura === 'camino') {
+      // Los tramos vienen normalizados: `recorrerCamino` los lleva a la caja de este objeto.
+      recorrerCamino(this.datos.camino ?? [], w, h, {
+        mover: (x, y) => ctx.moveTo(dx + x, dy + y),
+        linea: (x, y) => ctx.lineTo(dx + x, dy + y),
+        curva: (x1, y1, x2, y2, x, y) => ctx.bezierCurveTo(dx + x1, dy + y1, dx + x2, dy + y2, dx + x, dy + y),
+        cerrar: () => ctx.closePath(),
+      });
     } else {
       ctx.ellipse(0, 0, w / 2, h / 2, 0, 0, Math.PI * 2);
     }

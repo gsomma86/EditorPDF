@@ -12,7 +12,19 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { PDFDocument, StandardFonts, degrees, rgb } from '@cantoo/pdf-lib';
-import { borrarFormaDelPdf, borrarFormasDelPdf, borrarImagenDelPdf, formaEn, formasDelPdf, imagenEn, imagenesDelPdf } from '../src/editor/formasPdf';
+import { StaticCanvas } from 'fabric';
+import { borrarFormaDelPdf, borrarFormasDelPdf, borrarImagenDelPdf, elementoDesdeForma, formaEn, formasDelPdf, imagenEn, imagenesDelPdf } from '../src/editor/formasPdf';
+import { establecerHojas, hojaEnBlanco } from '../src/editor/documento';
+import { agregarAlLienzo } from '../src/editor/objetosFabric';
+import { exportarPdf } from '../src/editor/exportarPdf';
+
+// El catálogo de fuentes se las pide al navegador; en Node no hacen falta y alcanza con que no falle.
+(globalThis as any).document ??= { fonts: { load: async () => [] } };
+
+const lienzo = new StaticCanvas(undefined, { width: 300, height: 400 }) as any;
+// `StaticCanvas` no tiene selección y agregar un elemento la usa para dejarlo seleccionado.
+lienzo.setActiveObject = () => lienzo;
+lienzo.discardActiveObject = () => lienzo;
 
 const SALIDA = fileURLToPath(new URL('../salida/', import.meta.url));
 const PLANTILLA_REAL = 'C:/Users/gsomma/Desktop/Template recibo Argentina Napsis.pdf';
@@ -161,14 +173,14 @@ await writeFile(`${SALIDA}formas-partida.pdf`, original);
 const formas = await formasDelPdf(original, 0);
 filas.push(`     formas detectadas: ${formas.map((f) => `${f.clase} ${Math.round(f.x)},${Math.round(f.y)} ${Math.round(f.w)}x${Math.round(f.h)} @${f.angulo}deg`).join(' | ')}`);
 
-comparar('detectar', 'cuántas se pueden editar', 4, formas.length);
-comparar('detectar', 'clases', ['rect', 'linea', 'rect', 'rect'], formas.map((f) => f.clase));
-// La elipse no entra, y el texto tampoco: solo formas.
-comparar('detectar', 'la elipse queda afuera', true, !formas.some((f) => f.w > 70 && f.h > 40 && f.clase === 'rect' && f.y > 200));
+comparar('detectar', 'cuántas se pueden editar', 5, formas.length);
+comparar('detectar', 'clases', ['rect', 'linea', 'rect', 'camino', 'rect'], formas.map((f) => f.clase));
+// La elipse entra como camino —antes quedaba afuera— y el texto sigue sin contar: solo dibujo.
+comparar('detectar', 'la elipse entra como camino', 1, formas.filter((f) => f.clase === 'camino').length);
 
 // La girada: se mide **enderezada**, así que conserva sus medidas reales (80x30, no la caja que la
 // envuelve, que sería más grande), y el ángulo sale aparte en el sentido del lienzo.
-const girada = formas[3];
+const girada = formas[4];
 comparar('girada', 'ángulo en sentido del lienzo', 30, girada.angulo);
 comparar('girada', 'conserva sus medidas', { w: 80, h: 30 }, { w: Math.round(girada.w), h: Math.round(girada.h) });
 // Las cuatro esquinas reconstruidas desde x/y/w/h/ángulo tienen que dar el rectángulo dibujado.
@@ -322,6 +334,50 @@ comparar('imágenes', 'se fue del contenido', 0, (await imagenesDelPdf(sinImagen
 // Lo que más importa: sacar la imagen no puede llevarse lo de al lado.
 comparar('imágenes', 'el texto sigue intacto', textoDe(bytesImagen), textoDe(sinImagen));
 comparar('imágenes', 'las formas siguen ahí', (await formasDelPdf(bytesImagen, 0)).length, (await formasDelPdf(sinImagen, 0)).length);
+
+// ---------- Caminos: curvas y dibujos de varios trazos ----------
+
+// Lo que se comprueba es la vuelta completa: un círculo del PDF se detecta como camino, se
+// convierte en elemento y al exportarlo vuelve a caer en el mismo lugar y del mismo tamaño. Es lo
+// único que delata un error de normalización o de ancla, que las medidas sueltas no cuentan.
+{
+  const doc = await PDFDocument.create();
+  const pagina = doc.addPage([300, ALTO]);
+  // Una elipse: pdf-lib la dibuja con curvas de Bézier, así que entra como camino.
+  pagina.drawEllipse({ x: 150, y: 300, xScale: 50, yScale: 30, borderWidth: 2, borderColor: rgb(0, 0, 0) });
+  const bytes = new Uint8Array(await doc.save());
+  await writeFile(`${SALIDA}camino-partida.pdf`, bytes);
+
+  const detectadas = await formasDelPdf(bytes, 0);
+  const camino = detectadas.find((f) => f.clase === 'camino');
+
+  comparar('camino', 'la curva se detecta', true, Boolean(camino));
+  comparar('camino', 'tiene tramos curvos', true, (camino?.camino ?? []).some((t) => t.t === 'C'));
+  // La caja sale de los puntos de control, que contienen a la curva: por eso puede ser un poco
+  // mayor que los 100x60 exactos de la elipse. Se comprueba que la contenga y no se dispare.
+  comparar('camino', 'la caja contiene la elipse', true, (camino?.w ?? 0) >= 100 && (camino?.w ?? 0) <= 108);
+  comparar('camino', 'y no se dispara de alto', true, (camino?.h ?? 0) >= 60 && (camino?.h ?? 0) <= 68);
+  // Todos los tramos quedan normalizados dentro de su caja.
+  const dentro = (camino?.camino ?? []).every((t) =>
+    t.t === 'Z' ? true : [t.x, t.y, ...(t.t === 'C' ? [t.x1, t.y1, t.x2, t.y2] : [])].every((v) => v >= -0.001 && v <= 1.001)
+  );
+  comparar('camino', 'los tramos van de 0 a 1', true, dentro);
+
+  // La vuelta completa: convertirlo y exportarlo tiene que devolver la curva donde estaba.
+  await establecerHojas(lienzo, [hojaEnBlanco()], 0);
+  await agregarAlLienzo(lienzo, elementoDesdeForma(camino!));
+  const exportado = await exportarPdf(lienzo, { conFormulario: false });
+  await writeFile(`${SALIDA}camino-exportado.pdf`, exportado);
+
+  const devuelta = (await formasDelPdf(exportado, 0)).find((f) => f.clase === 'camino');
+  comparar('camino', 'al exportar sigue siendo curva', true, Boolean(devuelta));
+  comparar(
+    'camino',
+    'vuelve al mismo lugar y tamaño',
+    { x: Math.round(camino!.x), y: Math.round(camino!.y), w: Math.round(camino!.w), h: Math.round(camino!.h) },
+    { x: Math.round(devuelta?.x ?? -1), y: Math.round(devuelta?.y ?? -1), w: Math.round(devuelta?.w ?? -1), h: Math.round(devuelta?.h ?? -1) }
+  );
+}
 
 console.log(filas.join('\n'));
 console.log(`\nPDFs en ${SALIDA}`);

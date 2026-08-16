@@ -28,8 +28,8 @@ function nombreDe(elemento: Elemento): string {
   if (elemento.nombre) return elemento.nombre;
   if (elemento.clase === 'campo') return elemento.name;
   if (elemento.clase === 'texto') return `"${elemento.text.slice(0, 24)}"`;
-  // Las cuatro figuras son una sola clase, pero en la lista se nombran por lo que son: decir
-  // "Forma" cuatro veces no ayudaría a encontrar ninguna.
+  // Las figuras son una sola clase, pero en la lista se nombran por lo que son: repetir "Forma"
+  // en cada una no ayudaría a encontrar ninguna.
   if (elemento.clase === 'forma') return t(`tipo.forma.${elemento.figura}` as never);
   return t(`tipo.${elemento.clase}` as never);
 }
@@ -42,6 +42,7 @@ const ICONO: Record<string, string> = {
   triangulo: '►',
   flecha: '➔',
   estrella: '★',
+  camino: '〰',
   tabla: '▦',
   imagen: '🖼',
   qr: '▪',

@@ -1,3 +1,5 @@
+import type { Segmento } from './figuras';
+
 export type Familia = string;
 export type EstiloLinea = 'solido' | 'punteado' | 'doble';
 
@@ -79,8 +81,14 @@ export interface ElementoRect {
   debajoDeLaPagina?: boolean;
 }
 
-/** Las figuras que dibuja el elemento 'forma'. El recuadro y la línea son elementos aparte. */
-export type Figura = 'elipse' | 'triangulo' | 'flecha' | 'estrella';
+/**
+ * Las figuras que dibuja el elemento 'forma'. El recuadro y la línea son elementos aparte.
+ *
+ * `camino` es la que no se dibuja desde el menú: la traen los PDF cuando se convierte algo que no
+ * es un rectángulo ni una línea —una curva, un logo, un dibujo de varios trazos— y lleva sus tramos
+ * en `camino`. Sobre 120 PDF reales es el 11% de lo que hay dibujado.
+ */
+export type Figura = 'elipse' | 'triangulo' | 'flecha' | 'estrella' | 'camino';
 
 /**
  * Elipse, triángulo, flecha y estrella en un solo elemento, distinguidas por `figura`.
@@ -109,6 +117,16 @@ export interface ElementoForma {
   rellenoColor: string;
   /** Cuántas puntas tiene la estrella. Las demás figuras lo ignoran. */
   puntas: number;
+  /**
+   * Los tramos del dibujo, normalizados de 0 a 1 sobre su caja. Solo lo lleva `figura: 'camino'`;
+   * las demás calculan su contorno con `puntosDeFigura`.
+   */
+  camino?: Segmento[];
+  /**
+   * Se dibuja *debajo* de la página del PDF, como las líneas y recuadros que salen de él: allá
+   * estaban debajo del texto y ahí tienen que seguir. Solo lo traen las convertidas.
+   */
+  debajoDeLaPagina?: boolean;
 }
 
 export interface ElementoQr {
@@ -310,6 +328,9 @@ const MEDIDAS_FIGURA: Record<Figura, { w: number; h: number }> = {
   triangulo: { w: 120, h: 110 },
   flecha: { w: 160, h: 50 },
   estrella: { w: 110, h: 110 },
+  // El camino no se crea desde el menú —viene de convertir algo de un PDF— y quien lo arma le pone
+  // las medidas que traía. Estas son solo para que el tipo quede completo.
+  camino: { w: 100, h: 100 },
 };
 
 export function crearElementoForma(figura: Figura): ElementoForma {

@@ -15,7 +15,7 @@ import {
   type EstiloLinea,
 } from './elemento';
 import { dimensionesDeHoja, elementoVisible, hojasDelDocumento } from './documento';
-import { puntosDeFigura } from './figuras';
+import { puntosDeFigura, recorrerCamino } from './figuras';
 import { bytesDeFuente } from './fuentes';
 import { bytesDelPdf } from './pdfExistente';
 import { generarQr } from './objetosFabric';
@@ -173,6 +173,23 @@ function dibujarForma(pagina: PDFPage, el: ElementoForma, ubi: Ubicador): void {
     ...(el.conRelleno ? { color: color(el.rellenoColor) } : { opacity: 0 }),
   };
 
+  const esquina = ubi.punto(0, 0);
+
+  // Un camino libre: sus tramos se arman como camino SVG, que es justo lo que pdf-lib sabe dibujar
+  // —curvas incluidas— y en el mismo sistema en que vienen (Y hacia abajo desde la esquina).
+  if (el.figura === 'camino') {
+    const partes: string[] = [];
+    const n = (v: number) => Math.round(v * 100) / 100;
+    recorrerCamino(el.camino ?? [], el.w, el.h, {
+      mover: (x, y) => partes.push(`M ${n(x)} ${n(y)}`),
+      linea: (x, y) => partes.push(`L ${n(x)} ${n(y)}`),
+      curva: (x1, y1, x2, y2, x, y) => partes.push(`C ${n(x1)} ${n(y1)} ${n(x2)} ${n(y2)} ${n(x)} ${n(y)}`),
+      cerrar: () => partes.push('Z'),
+    });
+    if (partes.length) pagina.drawSvgPath(partes.join(' '), { ...comun, x: esquina.x, y: esquina.y });
+    return;
+  }
+
   const puntos = puntosDeFigura(el);
   if (!puntos) {
     const centro = ubi.punto(el.w / 2, el.h / 2);
@@ -180,7 +197,6 @@ function dibujarForma(pagina: PDFPage, el: ElementoForma, ubi: Ubicador): void {
     return;
   }
 
-  const esquina = ubi.punto(0, 0);
   const camino = `M ${puntos.map((p) => `${p.x} ${p.y}`).join(' L ')} Z`;
   pagina.drawSvgPath(camino, { ...comun, x: esquina.x, y: esquina.y });
 }

@@ -24,7 +24,7 @@ function nombreDe(el: Elemento): string {
   if (el.clase === 'firma') return `la firma "${el.name}"`;
   if (el.clase === 'texto') return `el texto "${el.text.slice(0, 20)}"`;
   if (el.clase === 'forma') {
-    const figuras: Record<string, string> = { elipse: 'una elipse', triangulo: 'un triángulo', flecha: 'una flecha', estrella: 'una estrella' };
+    const figuras: Record<string, string> = { elipse: 'una elipse', triangulo: 'un triángulo', flecha: 'una flecha', estrella: 'una estrella', camino: 'un dibujo' };
     return figuras[el.figura] ?? 'una forma';
   }
   const etiquetas: Record<string, string> = { linea: 'una línea', rect: 'un recuadro', tabla: 'una tabla', qr: 'un QR', imagen: 'una imagen' };

@@ -31,9 +31,10 @@ for (let p = 0; p < paginas; p++) {
   totalFormas += formas.length;
 
   const giradas = formas.filter((f) => f.angulo !== 0).length;
+  const caminos = formas.filter((f) => f.clase === "camino").length;
   console.log(
     `página ${p + 1}: ${imagenes.length} imagen(es), ${formas.length} forma(s)` +
-      (giradas ? ` (${giradas} girada(s))` : '')
+      (giradas ? ` (${giradas} girada(s))` : '') + (caminos ? ` (${caminos} camino(s))` : '')
   );
   for (const i of imagenes) {
     console.log(

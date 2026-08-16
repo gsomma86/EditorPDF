@@ -16,6 +16,22 @@ export interface Punto {
   y: number;
 }
 
+/**
+ * Un tramo de un camino libre, el que traen las curvas y los dibujos compuestos de un PDF.
+ *
+ * Se guarda como lista de tramos y no como cadena SVG a propósito: así se escala multiplicando
+ * números —el lienzo y el exportador lo hacen cada uno a su manera— sin tener que interpretar una
+ * cadena, y viaja al `.json` del proyecto como datos y no como texto que haya que volver a parsear.
+ *
+ * Las coordenadas van **normalizadas de 0 a 1** sobre la caja del camino. Estirar la forma es
+ * entonces multiplicar por su ancho y su alto, y no hace falta recordar el tamaño original.
+ */
+export type Segmento =
+  | { t: 'M'; x: number; y: number }
+  | { t: 'L'; x: number; y: number }
+  | { t: 'C'; x1: number; y1: number; x2: number; y2: number; x: number; y: number }
+  | { t: 'Z' };
+
 /** Cuántas puntas admite una estrella: menos de 3 no cierra y más de 20 no se distingue. */
 export const PUNTAS_MIN = 3;
 export const PUNTAS_MAX = 20;
@@ -24,14 +40,53 @@ export const PUNTAS_MAX = 20;
 const HUNDIDO_ESTRELLA = 0.42;
 
 /**
- * El contorno de la figura como polígono cerrado, o `null` para la elipse, que no es un polígono:
- * ahí cada lado usa su primitiva (`ctx.ellipse` en el lienzo, `drawEllipse` en el PDF).
+ * Recorre los tramos de un camino llevándolos a la caja del elemento: los guarda normalizados de 0
+ * a 1, así que estirarlo es multiplicar por su ancho y su alto.
+ *
+ * Existe para que el lienzo y el exportador recorran **lo mismo**: uno lo pasa a `ctx.bezierCurveTo`
+ * y el otro a un camino SVG para pdf-lib, pero la geometría se calcula una sola vez y acá.
+ */
+export function recorrerCamino(
+  camino: Segmento[],
+  w: number,
+  h: number,
+  acciones: {
+    mover(x: number, y: number): void;
+    linea(x: number, y: number): void;
+    curva(x1: number, y1: number, x2: number, y2: number, x: number, y: number): void;
+    cerrar(): void;
+  }
+): void {
+  for (const tramo of camino) {
+    switch (tramo.t) {
+      case 'M':
+        acciones.mover(tramo.x * w, tramo.y * h);
+        break;
+      case 'L':
+        acciones.linea(tramo.x * w, tramo.y * h);
+        break;
+      case 'C':
+        acciones.curva(tramo.x1 * w, tramo.y1 * h, tramo.x2 * w, tramo.y2 * h, tramo.x * w, tramo.y * h);
+        break;
+      case 'Z':
+        acciones.cerrar();
+        break;
+    }
+  }
+}
+
+/**
+ * El contorno de la figura como polígono cerrado, o `null` para la elipse y para un camino, que no
+ * son polígonos: la elipse usa su primitiva (`ctx.ellipse` / `drawEllipse`) y el camino sus tramos.
  */
 export function puntosDeFigura(el: ElementoForma): Punto[] | null {
   const { w, h } = el;
 
   switch (el.figura) {
     case 'elipse':
+    // Un camino tampoco se describe con puntos: lleva sus propios tramos en `el.camino`, y quien
+    // dibuja lo recorre con `recorrerCamino`.
+    case 'camino':
       return null;
 
     case 'triangulo':
