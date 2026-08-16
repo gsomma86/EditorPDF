@@ -1441,13 +1441,18 @@ button {
   color: var(--acento);
   flex-shrink: 0;
 }
-/* El triángulo de plegar. Angosto y sin fondo: es el control que más se usa de la cabecera, pero
-   no tiene que competir con el nombre de la capa. */
+/* El triángulo de plegar. Va bastante más grande que el resto de los botones de la cabecera y no
+   es un capricho: los demás son emoji (👁 🔒), que se dibujan grandes para su cuerpo de fuente, y
+   un carácter geométrico como ▾ al mismo cuerpo queda de cuatro píxeles y no se ve. */
 .ed-capa-plegar {
   flex-shrink: 0;
-  width: 14px;
-  font-size: 9px;
-  opacity: 0.75;
+  font-size: 15px;
+  opacity: 0.85;
+  /* Centrado explícito: con el cuerpo de la fuente igual al alto del botón, dejarlo librado al
+     `line-height` deja el triángulo apoyado contra un borde. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .ed-capa-plegar:hover {
   opacity: 1;
