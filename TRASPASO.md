@@ -107,7 +107,12 @@ quedan sin empezar Capas, Firma digital y Más formas geométricas.
 9. ~~Asignar elementos a una capa~~ — **hecho (16/08/2026)**: capa destino para los nuevos, y para
     los que ya están el desplegable de Propiedades, arrastrar la fila y el clic derecho. Se puede
     borrar una capa sin perder lo que tiene adentro. Detalle en ROADMAP.md fase 4.
-10. **Lo que queda**: la alternativa a SmartScreen y la documentación de contribución.
+10. ~~README y documentación de contribución~~ — **hecho (16/08/2026)**: README reescrito (qué
+    hace hoy, instalación, comandos de verificación, stack, estado real) y CONTRIBUTING.md nuevo
+    —issues sí, PR solo después de charlarlo en uno—. `componerIcono.cjs` pasó del scratchpad a
+    `scripts/`, documentado. Metadatos de `package.json` completos (description, license, author,
+    repository, bugs).
+11. **Lo que queda**: la alternativa a SmartScreen.
 
 ## Cómo verificar
 

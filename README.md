@@ -1,29 +1,105 @@
-# Editor PDF (nombre provisorio)
+# EditorPDF
 
-Editor de PDF real, gratuito y open source — al estilo Sejda PDF / Nitro PDF / GoPDF. Pensado para
-editar PDFs preexistentes (no solo generarlos desde cero): texto, formularios AcroForm, dibujo,
-líneas, tablas, texto fijo, códigos QR.
+Editor de PDF real, gratuito y open source — al estilo Sejda PDF / Nitro PDF / GoPDF. Edita PDFs
+**preexistentes** (no solo genera desde cero): su texto, sus formas, y además arma formularios
+AcroForm, dibujo, líneas, tablas, imágenes y códigos QR sobre cualquier hoja.
 
-## Por qué
+## Por qué existe
 
-Nace de las limitaciones de un editor público anterior (proyecto cerrado/propietario), que solo podía
-generar y anotar PDFs pero no editar el contenido real de un PDF creado en otra herramienta — esa
-capacidad requiere motores con licencia AGPL, inviables en un producto cerrado. Este proyecto es open
-source desde el día uno, así que esa restricción no aplica.
+Editar el contenido real de un PDF hecho en otra herramienta —no solo superponerle cosas encima—
+requiere un motor con licencia AGPL. Eso es incompatible con un producto cerrado, así que este
+proyecto nace open source desde el día uno.
+
+## Qué hace hoy
+
+- **Abre un PDF real** y deja editar su texto y sus formas (líneas, recuadros) sin perder que siga
+  siendo vectorial — no una foto pegada encima.
+- **Formularios AcroForm** completos: campos de texto, repetibles (una fila por registro de un
+  CSV), campos de firma, importación desde un PDF existente y exportación con el formulario
+  funcionando en cualquier lector.
+- **Documentos de varias hojas**: cada una con su propio tamaño y orientación, se agregan, se
+  duplican, se reordenan y se borran sin tocar las demás.
+- **Capas** al estilo InDesign, del documento entero (no de cada hoja): se apagan, se traban, y
+  cualquier elemento se puede mandar a la que corresponda.
+- **Dibujo**: texto, líneas, recuadros, elipses, triángulos, flechas, estrellas, tablas, imágenes
+  y códigos QR.
+- **Exportación verificada**: lo que se ve en el lienzo es lo que sale en el PDF, comprobado con
+  arneses automáticos y no solo a ojo (ver [Verificar cambios](#verificar-cambios)).
+- **Escritorio**: se empaqueta con [Tauri](https://tauri.app/) para Windows sin backend propio —
+  la misma app web, instalada.
+
+Lo que falta y lo que sigue está en [ROADMAP.md](ROADMAP.md).
+
+## Instalación y uso
+
+Requiere [Node.js](https://nodejs.org/) 20 o más nuevo.
+
+```bash
+npm install
+npm run dev
+```
+
+Abre `http://localhost:5173`. Todo corre del lado del cliente (WebAssembly en el navegador) — no
+hace falta ningún servidor propio.
+
+### Build de producción (web)
+
+```bash
+npm run build
+```
+
+### App de escritorio (Windows, con Tauri)
+
+```bash
+npm run escritorio        # levanta la app en una ventana nativa, para probar
+npm run escritorio-build  # genera los instaladores (.exe NSIS y .msi) en src-tauri/target/
+```
+
+El instalador no está firmado, así que Windows SmartScreen va a advertir la primera vez que se
+ejecuta ("Windows protegió su PC" → "Más información" → "Ejecutar de todas formas").
+
+## Verificar cambios
+
+El proyecto se apoya en arneses headless (Node + Vite, sin navegador) en vez de solo probar a
+mano. Corren un caso real, lo comparan contra lo esperado y fallan con el detalle exacto de qué no
+coincidió:
+
+```bash
+npx tsc --noEmit          # chequeo de tipos — correr siempre antes de un commit
+npm run verificar-export  # el PDF exportado coincide con lo que dibuja el lienzo (pixel a pixel)
+npm run verificar-pdf     # borrar texto de un PDF real no deja nada tapado debajo
+npm run verificar-campos  # los campos de un formulario real vuelven idénticos tras exportar
+npm run verificar-hojas   # documentos de varias hojas: ninguna se mezcla ni se pierde al deshacer
+npm run verificar-formas  # elipse, triángulo, flecha y estrella bajan al PDF con su geometría real
+npm run medir-rendimiento # cuánto tarda el lienzo con 50, 200, 500 y 1000 elementos
+```
+
+Antes de un PR, correr al menos `npx tsc --noEmit` y `npm run verificar-export`; si el cambio
+toca el exportador, campos AcroForm, hojas o formas, correr también el arnés específico.
 
 ## Stack
 
-- **Motor PDF**: [pdf.js](https://github.com/mozilla/pdf.js) (render/extracción) + [mupdf.js](https://github.com/ArtifexSoftware/mupdf.js) (edición real de contenido existente) + [pdf-lib](https://github.com/Hopding/pdf-lib) (operaciones de bajo nivel: AcroForm, páginas, metadata).
-- **App**: TypeScript + Vite + [Fabric.js](http://fabricjs.com/) para la superficie de edición interactiva.
-- **Escritorio**: empaquetado con [Tauri](https://tauri.app/) sobre el mismo frontend web, sin backend propio.
-
-Todo corre 100% del lado del cliente (WASM en el navegador o en Tauri) — no requiere servidor.
+| Pieza | Qué hace |
+|---|---|
+| [Fabric.js](http://fabricjs.com/) v7 | Superficie de edición interactiva (el lienzo y sus objetos) |
+| [pdf.js](https://github.com/mozilla/pdf.js) | Dibuja la página del PDF abierto para verla de fondo mientras se edita |
+| [mupdf](https://github.com/ArtifexSoftware/mupdf.js) | Lee y edita el contenido real de un PDF existente |
+| [@cantoo/pdf-lib](https://github.com/Hopding/pdf-lib) | Genera el PDF final: dibujo, AcroForm, fuentes incrustadas |
+| [qrcode](https://github.com/soldair/node-qrcode) | Generación de QR |
+| [@fontsource/*](https://fontsource.org/) | Familias tipográficas OFL, cargadas on-demand |
+| [Vite](https://vite.dev/) + TypeScript | Build |
+| [Tauri](https://tauri.app/) | Empaquetado de escritorio, sobre el mismo frontend web |
 
 ## Estado
 
-En desarrollo — Fase 1 (MVP) en curso. Ver [ROADMAP.md](ROADMAP.md) para el detalle de fases.
+Fase 4 completa (multipágina, capas, campo de firma, formas) y la app de escritorio funcionando.
+Ver [ROADMAP.md](ROADMAP.md) para el detalle fase por fase.
+
+## Contribuir
+
+Ver [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Licencia
 
-[AGPL-3.0](LICENSE) — heredada de `mupdf.js`. Cualquiera que reciba este software (compilado o no)
+[AGPL-3.0](LICENSE) — heredada de `mupdf`. Cualquiera que reciba este software, compilado o no,
 tiene derecho a pedir el código fuente completo correspondiente a esa versión.
