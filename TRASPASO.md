@@ -228,8 +228,16 @@ Con un PDF real, no con uno armado en el arnés (lección 32 y 55):
   ajusta el grupo que ya existe. Ojo si se lo toca: los hijos de un grupo de Fabric se ubican
   respecto de su **centro**, no de su esquina, y la etiqueta hay que volver a recortarla al ancho
   nuevo. Cubierto por `npm run verificar-objetos`.
-- **Las fuentes se incrustan sin subsetear** (`subset: false`): fontkit no puede subsetear woff.
-  Cada familia usada suma ~20 KB al PDF. La salida sería convertir a TTF antes de embeber.
+- **Las fuentes se incrustan sin subsetear** (`subset: false`). **Medido el 16/08/2026** con
+  `npm run medir-fuentes`: cada familia cuesta **~38 KB**, no los ~20 KB que se creía (un PDF con
+  tres familias y una línea cada una pesa 113,8 KB).
+  **El arreglo obvio no funciona.** El motivo que figuraba antes —que a fontkit se le pasaba un
+  woff— ya no aplica: `bytesDeFuente` devuelve el sfnt reconstruido y fontkit lo **lee** sin
+  problema. Lo que se rompe es su *subsetter*: con `subset: true` tira
+  `Cannot read properties of undefined (reading 'pos')` en las tres familias probadas.
+  O sea que la salida no es convertir a TTF (ya se convierte), sino averiguar qué le falta a
+  nuestro sfnt para que el subsetter lo trague, o subsetear con otra herramienta. **No lo intentes
+  sin medir antes**: el script ya está y deja la línea base.
 - ~~Las tablas no bajan al PDF con el mismo código que las dibuja en pantalla~~ — **resuelto
   (16/08/2026)**: las líneas internas salen de `internasDeTabla` en `editor/figuras.ts`, el mismo
   módulo que ya compartían las formas. `tablaObjeto.ts` y `exportarPdf.ts` solo las trazan.

@@ -70,9 +70,11 @@ function creadorDeFuentes(doc: PDFDocument) {
     if (!pedido) {
       pedido = (async () => {
         const bytes = await bytesDeFuente(familia, negrita, cursiva);
-        // Sin subset: fontkit no puede subsetear fuentes comprimidas (woff/woff2) y revienta con
-        // "Index out of range". Tampoco hace falta: los archivos de @fontsource ya vienen
-        // separados por alfabeto, así que el "latin" pesa ~20 KB.
+        // Sin subset, y no por el motivo que decía antes este comentario. Ya no se le pasa un woff
+        // —`bytesDeFuente` devuelve el sfnt reconstruido— y fontkit lo **lee** sin problema: lo que
+        // se rompe es su subsetter, con `Cannot read properties of undefined (reading 'pos')`.
+        // Probado el 16/08/2026 con `pruebas/medirFuentes.ts`, que además dejó la medida real:
+        // incrustar entera cuesta ~38 KB por familia, no los ~20 KB que se creía.
         if (bytes) return doc.embedFont(bytes, { subset: false });
         return doc.embedFont(fuenteEstandar(familia, negrita, cursiva));
       })();
