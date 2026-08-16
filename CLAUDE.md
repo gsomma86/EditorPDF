@@ -496,3 +496,11 @@ validada — ver la sección Fase 0 del roadmap.
     El campo estaba bien puesto —se veía cargando el documento y mirando el diccionario—. **Las
     comprobaciones sobre un PDF se hacen sobre los objetos, nunca sobre los bytes**; si un arnés
     busca una cadena en el archivo, el resultado no significa lo que parece.
+53. **Un panel que se refresca por eventos del lienzo se queda viejo cuando el cambio no pasa por el
+    lienzo.** El panel de capas se redibujaba en `object:added`/`object:removed`, que alcanza
+    mientras haya elementos entrando y saliendo. Al recuperar la sesión de un diseño **sin
+    elementos**, no se dispara ninguno: las capas guardadas estaban bien en el modelo, pero la lista
+    seguía mostrando las de antes, y recién aparecían al crear una capa nueva —que sí redibuja—. Lo
+    mismo con "Nuevo proyecto", que vaciaba las hojas pero se olvidaba las capas. **Todo lo que
+    reemplaza el documento entero —restaurar, importar, empezar de nuevo— tiene que refrescar cada
+    panel a mano**, no esperar que un evento lo haga.

@@ -1,6 +1,7 @@
 import type { Canvas, FabricObject } from 'fabric';
 import { FabricImage } from 'fabric';
-import { elementoDe, moverEnLaPila, reemplazarObjeto, agregarAlLienzo, generarQr, prepararFuente, sincronizarGeometria, textoParaDibujar } from '../editor/objetosFabric';
+import { aplicarMarcas, elementoDe, moverEnLaPila, reemplazarObjeto, agregarAlLienzo, generarQr, prepararFuente, sincronizarGeometria, textoParaDibujar } from '../editor/objetosFabric';
+import { capaDe, capasDelDocumento } from '../editor/documento';
 import { alturaRenglonFabric, duplicarElemento, type Elemento } from '../editor/elemento';
 import { FAMILIAS_BASE, FAMILIAS_WEB } from '../editor/fuentes';
 import { registrarSnapshot } from '../editor/historial';
@@ -170,6 +171,17 @@ export function mostrarMultiSeleccion(
       <div><label class="ed-lbl" data-i18n="props.multi.angulo"></label><input type="number" id="ed-multi-angulo" class="mono" value="${anguloComun(objetos) ?? ''}" step="1" data-i18n-placeholder="props.multi.anguloPlaceholder"></div>
       <p class="nota" data-i18n="props.multi.anguloNota"></p>
     </div>
+    ${
+      capasDelDocumento().length > 1
+        ? `<div class="ed-sec">
+             <div class="ed-sec-tit" data-i18n="props.capa"></div>
+             <select id="ed-multi-capa">
+               <option value="" data-i18n="props.multi.capaSinCambio"></option>
+               ${capasDelDocumento().map((c) => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('')}
+             </select>
+           </div>`
+        : ''
+    }
     <div class="ed-acciones2">
       <button type="button" id="ed-multi-duplicar" data-i18n="props.acciones.duplicar"></button>
       <button type="button" id="ed-multi-borrar" class="peligro" data-i18n="props.acciones.borrar"></button>
@@ -187,6 +199,22 @@ export function mostrarMultiSeleccion(
     lienzo.requestRenderAll();
     return lista;
   };
+
+  // Mandar todos los seleccionados a la misma capa. Arranca en "sin cambio" porque los elegidos
+  // pueden estar repartidos en varias capas y no habría un valor honesto que mostrar.
+  panel.querySelector<HTMLSelectElement>('#ed-multi-capa')?.addEventListener('change', (e) => {
+    const capaId = (e.target as HTMLSelectElement).value;
+    if (!capaId) return;
+    for (const objeto of objetos) {
+      const el = elementoDe(objeto);
+      if (!el) continue;
+      el.capa = capaId;
+      aplicarMarcas(objeto, el);
+    }
+    lienzo.requestRenderAll();
+    registrarSnapshot(lienzo);
+    document.dispatchEvent(new CustomEvent('ed-capas-cambiadas'));
+  });
 
   panel.querySelectorAll<HTMLButtonElement>('[data-alinear]').forEach((boton) => {
     boton.addEventListener('click', async () => {
@@ -302,8 +330,22 @@ function seccionPosicion(elemento: Elemento): string {
           : ''
       }
       <div><label class="ed-lbl" data-i18n="props.multi.angulo"></label><input type="number" id="ed-p-angulo" class="mono" value="${elemento.angulo}" step="1"></div>
-    </div>`
+    </div>
+    ${bloqueCapa(elemento)}`
   );
+}
+
+/**
+ * A qué capa pertenece el elemento. Va acá, con el resto de lo que ubica al elemento en la hoja, y
+ * solo aparece si hay más de una capa: con una sola sería un desplegable de una opción.
+ */
+function bloqueCapa(elemento: Elemento): string {
+  const capas = capasDelDocumento();
+  if (capas.length < 2) return '';
+  const actual = capaDe(elemento).id;
+  return `<div><label class="ed-lbl" data-i18n="props.capa"></label><select id="ed-p-capa">
+    ${capas.map((c) => `<option value="${c.id}" ${c.id === actual ? 'selected' : ''}>${escapeHtml(c.nombre)}</option>`).join('')}
+  </select></div>`;
 }
 
 function campoTexto(elemento: Elemento & { clase: 'texto' }): string {
@@ -574,6 +616,15 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
     objeto.set({ left: elemento.x });
     objeto.setCoords();
     repintar();
+  });
+  // Mandar el elemento a otra capa. Puede llevarlo a una apagada o trabada, así que hay que
+  // reaplicar las marcas: si no, sigue viéndose y tocándose hasta el próximo redibujado.
+  $('#ed-p-capa')?.addEventListener('change', (e) => {
+    elemento.capa = (e.target as HTMLSelectElement).value;
+    aplicarMarcas(objeto, elemento);
+    repintar();
+    registrarSnapshot(lienzo);
+    document.dispatchEvent(new CustomEvent('ed-capas-cambiadas'));
   });
   $('#ed-p-angulo')!.addEventListener('input', (e) => {
     elemento.angulo = Number((e.target as HTMLInputElement).value);

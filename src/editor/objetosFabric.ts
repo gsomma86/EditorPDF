@@ -1,7 +1,7 @@
 import { cache, FabricImage, FabricObject, FabricText, Group, Rect, Textbox, type Canvas } from 'fabric';
 import QRCode from 'qrcode';
 import { alturaRenglonFabric, PASO_RENGLON, type Elemento, type ElementoQr } from './elemento';
-import { elementoBloqueado, elementoVisible } from './documento';
+import { capaDestino, elementoBloqueado, elementoVisible } from './documento';
 import { asegurarFuenteCargada } from './fuentes';
 import { TablaObjeto } from './tablaObjeto';
 import { LineaObjeto } from './lineaObjeto';
@@ -341,6 +341,9 @@ async function construirObjeto(elemento: Elemento): Promise<FabricObject> {
 }
 
 export async function agregarAlLienzo(lienzo: import('fabric').Canvas, elemento: Elemento): Promise<FabricObject> {
+  // Un elemento nuevo cae en la capa marcada como destino. Si ya trae una anotada se respeta: los
+  // que llegan de deshacer, de pegar o de importar un proyecto vienen con la suya.
+  elemento.capa ??= capaDestino().id;
   const objeto = await crearObjetoFabric(elemento);
   datosPorObjeto.set(objeto, elemento);
   lienzo.add(objeto);

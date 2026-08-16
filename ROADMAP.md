@@ -398,7 +398,16 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
       es una vista temporal y los campos igual salen en el PDF—. La capa, el ocultar y el bloquear
       viven en el modelo (`Marcas` en `elemento.ts`), y `elementoVisible()` / `elementoBloqueado()`
       son los dos únicos lugares donde se resuelve, para que el lienzo y la exportación no puedan
-      contradecirse. Las capas son del documento y no de cada hoja.
+      contradecirse. **Las capas son del documento y no de cada hoja**, como en InDesign: una capa
+      "Marcas de agua" se apaga de una vez para las veinte hojas, y una hoja nueva no obliga a
+      rearmar nada. Lo de cada hoja son los elementos.
+      **Asignar capas** (16/08/2026), que era lo que faltaba para que sirvieran de algo: hasta acá
+      se podían crear pero todo caía en la primera. Hay una **capa destino** —marcada con ◉, se
+      elige con un clic en su nombre y es donde nacen los elementos nuevos; una capa recién creada
+      pasa a serlo—, y tres formas de mover lo que ya está: el desplegable "Capa" en Propiedades
+      (que con varios seleccionados los manda a todos), arrastrar la fila a otra capa, y el clic
+      derecho sobre el objeto. **Borrar una capa no borra lo que tiene adentro**: pasa a la primera
+      que quede, avisando antes. Una capa es una forma de ordenar, no una bolsa.
       Como era una cuarta barra para tres lugares, **los costados pasan a aceptar dos barras
       apiladas** con su separador, y el botón de colapsar salió de las cabeceras a una **lengüeta
       sobre la línea** del costado, que es donde se lee que colapsa el costado entero. Colapsado, el

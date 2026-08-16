@@ -71,10 +71,15 @@ export interface Capa {
   nombre: string;
   visible: boolean;
   bloqueada: boolean;
+  /**
+   * La capa donde caen los elementos nuevos. Es una sola en todo el documento, y vive acá —y no en
+   * una variable del módulo— para que se guarde con el proyecto sin agregar nada al formato.
+   */
+  destino?: boolean;
 }
 
 /** Siempre hay al menos una: un elemento sin capa pertenece a la primera y nunca queda huérfano. */
-let capas: Capa[] = [{ id: 'base', nombre: 'Capa 1', visible: true, bloqueada: false }];
+let capas: Capa[] = [{ id: 'base', nombre: 'Capa 1', visible: true, bloqueada: false, destino: true }];
 
 export function capasDelDocumento(): Capa[] {
   return capas;
@@ -82,6 +87,21 @@ export function capasDelDocumento(): Capa[] {
 
 export function establecerCapas(nuevas: Capa[]): void {
   capas = nuevas.length ? nuevas : [{ id: 'base', nombre: 'Capa 1', visible: true, bloqueada: false }];
+  // La marca de destino tiene que ser de una sola capa: un proyecto viejo no trae ninguna y uno
+  // manipulado a mano podría traer dos.
+  if (capas.filter((c) => c.destino).length !== 1) {
+    capas.forEach((c, i) => (c.destino = i === 0));
+  }
+}
+
+/** La capa a la que van a parar los elementos nuevos. */
+export function capaDestino(): Capa {
+  return capas.find((c) => c.destino) ?? capas[0];
+}
+
+export function establecerCapaDestino(id: string): void {
+  if (!capas.some((c) => c.id === id)) return;
+  for (const capa of capas) capa.destino = capa.id === id;
 }
 
 /** La capa de un elemento, resolviendo el caso de los que no tienen ninguna anotada. */

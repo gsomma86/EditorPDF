@@ -104,8 +104,10 @@ quedan sin empezar Capas, Firma digital y Más formas geométricas.
    certificado y no lo hace el editor. Detalle en ROADMAP.md fase 4.
 8. ~~Más formas geométricas~~ — **hecho (15/08/2026)**: elipse, triángulo, flecha y estrella, en un
    solo elemento `forma`. Detalle en ROADMAP.md fase 4.
-9. **Lo que queda**: arrastrar en el panel de capas para reordenar o cambiar de capa, la alternativa
-   a SmartScreen y la documentación de contribución.
+9. ~~Asignar elementos a una capa~~ — **hecho (16/08/2026)**: capa destino para los nuevos, y para
+    los que ya están el desplegable de Propiedades, arrastrar la fila y el clic derecho. Se puede
+    borrar una capa sin perder lo que tiene adentro. Detalle en ROADMAP.md fase 4.
+10. **Lo que queda**: la alternativa a SmartScreen y la documentación de contribución.
 
 ## Cómo verificar
 
@@ -138,6 +140,9 @@ dar ningún error, como si fuera un bug de la app.
 - **El PDF de base vive en tres lugares**: memoria mientras se trabaja, IndexedDB para sobrevivir a
   una recarga, y dentro del `.json` al guardar el proyecto. En el autoguardado no, porque
   localStorage no aguanta un PDF.
+- **Las capas son del documento, no de cada hoja** (como en InDesign): una capa se apaga de una vez
+  para todas las hojas. La marca de cuál recibe los elementos nuevos vive en la capa misma
+  (`destino`), así se guarda con el proyecto sin agregar nada al formato.
 - **Las cuatro figuras son un solo elemento** (`forma`), distinguidas por `figura`. Si hay que sumar
   otra —hexágono, rombo—, alcanza con agregarla al tipo `Figura`, darle sus puntos en
   `editor/figuras.ts` y ponerla en el menú: el exportador, el panel y las capas ya la dibujan.

@@ -1424,7 +1424,51 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  cursor: text;
+  cursor: pointer;
+}
+/* La capa donde caen los elementos nuevos. Se marca fuerte porque contesta una pregunta que se
+   hace todo el tiempo: "esto que estoy por dibujar, ¿dónde va a parar?". */
+.ed-capa.destino .ed-capa-head {
+  background: #d8e9fb;
+  box-shadow: inset 2px 0 0 var(--acento);
+}
+.ed-capa-marca {
+  font-size: 10px;
+  color: var(--acento);
+  flex-shrink: 0;
+}
+.ed-obj-btn.borrar {
+  color: var(--err-texto);
+}
+/* Arrastrar un objeto de una capa a otra. */
+.ed-obj.arrastrando {
+  opacity: 0.5;
+}
+.ed-capa.sobre {
+  outline: 2px dashed var(--acento);
+  outline-offset: 1px;
+  border-radius: 8px;
+}
+/* El menú de clic derecho sobre un objeto de la lista. */
+.ed-capas-menu {
+  position: fixed;
+  z-index: 60;
+  min-width: 160px;
+  background: var(--fondo);
+  border: 1px solid var(--borde-fuerte);
+  border-radius: 8px;
+  padding: 5px;
+  box-shadow: 0 8px 22px rgba(4, 44, 83, 0.15);
+  font-size: 12.5px;
+}
+.ed-capas-menu div[data-mover] {
+  padding: 6px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ed-capas-menu div[data-mover]:hover {
+  background: var(--card-1);
 }
 .ed-obj {
   display: flex;

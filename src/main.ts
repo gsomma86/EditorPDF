@@ -15,7 +15,7 @@ import { cablearAyuda } from './ui/ayuda';
 import { montarPaneles } from './ui/paneles';
 import { deshacer, inicializarHistorial, puedeDeshacer, puedeRehacer, registrarSnapshot, rehacer } from './editor/historial';
 import { alCambiarIdioma, aplicarIdioma, t, type ClaveI18n } from './ui/i18n';
-import { agregarHoja, aplicarConfigPagina, cantidadDeHojas, configActual, eliminarHoja, establecerFondoDeLaHoja, fondoDeLaHoja, establecerHojas, hojaActual, hojaEnBlanco, hojasDesdePdf, irAHoja, medidasDeLaHoja, miniaturaDeHoja, moverHoja, olvidarPaginasDibujadas, paginaDeLaHoja, refrescarPaginaDibujada } from './editor/documento';
+import { agregarHoja, aplicarConfigPagina, cantidadDeHojas, configActual, eliminarHoja, establecerCapas, establecerFondoDeLaHoja, fondoDeLaHoja, establecerHojas, hojaActual, hojaEnBlanco, hojasDesdePdf, irAHoja, medidasDeLaHoja, miniaturaDeHoja, moverHoja, olvidarPaginasDibujadas, paginaDeLaHoja, refrescarPaginaDibujada } from './editor/documento';
 import { activarVista, configurarVista, establecerZoom, vistaActual } from './editor/vista';
 import { configPorDefecto, type Orientacion, type TamanoPagina } from './editor/pagina';
 import { cargarProyecto, descargarProyecto, leerProyecto, serializarProyecto } from './editor/proyecto';
@@ -170,6 +170,10 @@ function alSeleccionar(e: { selected?: FabricObject[] }): void {
  * que no pasan por el panel ni por `object:modified`: por ejemplo hacer repetible un campo, donde
  * el clic del botón ocurre antes de confirmar el modal y después ya no hay ningún evento.
  */
+// El panel de propiedades avisa por acá cuando manda un elemento a otra capa: es el único cambio
+// de capa que no nace en el panel de capas, que se refresca solo.
+document.addEventListener('ed-capas-cambiadas', () => panelCapas.refrescar());
+
 lienzo.on('object:added', () => { guardar(); panelCapas.refrescar(); });
 lienzo.on('object:removed', () => { guardar(); panelCapas.refrescar(); });
 
@@ -1296,6 +1300,9 @@ document.getElementById('ed-nuevo')!.addEventListener('click', async () => {
   // y seguirían saliendo en el PDF.
   await establecerHojas(lienzo, [hojaEnBlanco()], 0);
   panelCampos.establecerCatalogo([]);
+  // Las capas son del documento: un proyecto nuevo arranca con una sola, como recién instalado.
+  establecerCapas([]);
+  panelCapas.refrescar();
   mostrarSinSeleccion(espacio.panelPropiedades);
   reflejarPagina();
   reflejarHojas();
@@ -1369,6 +1376,7 @@ inputProyecto.addEventListener('change', async () => {
     mostrarSinSeleccion(espacio.panelPropiedades);
     reflejarPagina();
     reflejarHojas();
+    panelCapas.refrescar();
     inicializarHistorial(lienzo);
   } catch (error) {
     await confirmar(
@@ -1413,6 +1421,9 @@ if (hayAutoguardado()) {
       reflejarPagina();
       reflejarHojas();
       reflejarCantidadDePaginas();
+      // El panel de capas se redibuja solo cuando entra o sale un objeto del lienzo, y restaurar un
+      // diseño sin elementos no dispara ninguno: sin esto quedaban a la vista las capas de antes.
+      panelCapas.refrescar();
       inicializarHistorial(lienzo);
     }
     if (recuperado) {
