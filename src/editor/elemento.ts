@@ -170,6 +170,12 @@ export interface ElementoImagen {
   src: string;
   opacidad: number;
   proporcion: boolean;
+  /**
+   * Se dibuja *debajo* de la página del PDF. Lo llevan las imágenes sacadas de uno: allá estaban
+   * debajo del texto y ahí tienen que seguir, o al convertirlas taparían el renglón que tenían
+   * encima.
+   */
+  debajoDeLaPagina?: boolean;
 }
 
 export type TipoDato = 'Texto' | 'Numero' | 'Moneda' | 'Fecha';

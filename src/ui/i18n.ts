@@ -327,6 +327,8 @@ const ES = {
   'props.campo.hacerRepetible': 'Hacer repetible…',
   'props.campo.editarRepeticion': 'Editar repetición (×{n})',
 
+  'props.debajoDeLaPagina': 'Debajo del contenido del PDF',
+  'props.debajoDeLaPaginaNota': 'Lo que sale de un PDF nace debajo, donde estaba. Los botones de apilado solo ordenan dentro de cada grupo: para cruzar de uno al otro, usá esta casilla.',
   'props.conRelleno': 'Con relleno',
   'props.colorRelleno': 'Color de relleno',
 
@@ -707,6 +709,8 @@ const EN: Record<ClaveI18n, string> = {
   'props.campo.hacerRepetible': 'Make repeatable…',
   'props.campo.editarRepeticion': 'Edit repetition (×{n})',
 
+  'props.debajoDeLaPagina': 'Under the PDF content',
+  'props.debajoDeLaPaginaNota': 'Anything taken from a PDF starts underneath, where it was. The stacking buttons only order within each group: use this box to cross from one to the other.',
   'props.conRelleno': 'Filled',
   'props.colorRelleno': 'Fill color',
 
@@ -1085,6 +1089,8 @@ const PT: Record<ClaveI18n, string> = {
   'props.campo.hacerRepetible': 'Tornar repetível…',
   'props.campo.editarRepeticion': 'Editar repetição (×{n})',
 
+  'props.debajoDeLaPagina': 'Abaixo do conteúdo do PDF',
+  'props.debajoDeLaPaginaNota': 'O que sai de um PDF nasce abaixo, onde estava. Os botões de empilhamento só ordenam dentro de cada grupo: para cruzar de um ao outro, use esta caixa.',
   'props.conRelleno': 'Com preenchimento',
   'props.colorRelleno': 'Cor de preenchimento',
 
