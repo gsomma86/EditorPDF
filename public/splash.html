@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>EditorPDF</title>
+<style>
+  /*
+   * Pantalla de bienvenida de la versión de escritorio. Vive en `public/` y no en `src/`: se copia
+   * tal cual, sin pasar por el bundler, así se dibuja apenas abre la ventana en vez de esperar a
+   * que cargue el JavaScript del editor — que es justamente lo que esta ventana viene a tapar.
+   * Por eso también va todo acá adentro: nada de archivos aparte que haya que ir a buscar.
+   */
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; overflow: hidden; }
+
+  body {
+    /* Los colores en variables, para que la versión oscura sea lo mismo con otros valores. */
+    --fondo: #ffffff; --texto: #042c53; --suave: #5c7c9c;
+    --banda-1: #0c2e52; --banda-2: #185fa5; --banda-3: #2f8fe0;
+    --riel: #e6eef7; --acento: #378add; --hecho: #2f6b45; --falta: #b9c6d3;
+    --avion-medio: #9fcbf2; --avion-sombra: #6ba5dc; --avion-claro: #ffffff;
+
+    display: flex;
+    background: var(--fondo);
+    color: var(--texto);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    user-select: none;
+    /* El desvanecido: lo dispara el proceso de Tauri agregando la clase `yendo`. */
+    opacity: 1;
+    transition: opacity .75s ease;
+  }
+  body.yendo { opacity: 0; }
+
+  /* El tema del sistema, sin una línea de código: el WebView responde esta consulta igual que un
+     navegador, y la responde desde el primer instante — a diferencia del tema del editor, que se
+     sabe recién cuando cargó. */
+  @media (prefers-color-scheme: dark) {
+    body {
+      --fondo: #171c24; --texto: #e6edf3; --suave: #8b98a5;
+      --banda-1: #061524; --banda-2: #0d2f52; --banda-3: #17538f;
+      --riel: #2b3440; --acento: #58a6ff; --hecho: #4fb37a; --falta: #4a5561;
+      --avion-medio: #7fb3e8; --avion-sombra: #4e86c4; --avion-claro: #dcebfa;
+    }
+  }
+
+  .lateral {
+    width: 152px;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, var(--banda-1), var(--banda-2) 65%, var(--banda-3));
+  }
+  /* El avión de ReciboMail, el mismo de Pages/Shared/_Logo.cshtml: tres polígonos, tres tonos.
+     Va como SVG y no como PNG para que se vea nítido en cualquier pantalla y a cualquier escala. */
+  .lateral svg { width: 104px; height: 78px; }
+
+  .derecha { flex: 1; display: flex; flex-direction: column; padding: 22px 22px 14px; min-width: 0; }
+  .nombre { font-size: 25px; font-weight: 800; letter-spacing: -.5px; line-height: 1.1; }
+  .version { font-size: 11.5px; color: var(--suave); margin-top: 10px; }
+
+  /* Los pasos van pegados abajo y crecen hacia arriba: así la ventana no se sacude a medida que
+     se van tildando. */
+  .pasos { margin-top: auto; font-size: 11px; line-height: 1.75; }
+  .pasos div { display: flex; gap: 6px; align-items: baseline; }
+  .pasos .hecho { color: var(--hecho); }
+  .pasos .ahora { color: var(--texto); font-weight: 600; }
+  .pasos .falta { color: var(--falta); }
+  .pasos .ic { width: 10px; flex: none; }
+
+  .pie { margin-top: 12px; }
+  .riel { height: 3px; background: var(--riel); border-radius: 2px; overflow: hidden; margin-bottom: 8px; }
+  /* Indeterminada a propósito: no se sabe cuánto falta, y una barra que finge saberlo miente. */
+  .riel i { display: block; height: 100%; width: 38%; border-radius: 2px; background: var(--acento); animation: correr 1.1s ease-in-out infinite; }
+  @keyframes correr { 0% { transform: translateX(-110%); } 100% { transform: translateX(370%); } }
+  .marca { font-size: 10px; color: var(--suave); opacity: .85; text-align: right; }
+</style>
+</head>
+<body>
+  <div class="lateral">
+    <svg viewBox="0 0 60 45" role="img" aria-label="EditorPDF">
+      <polygon points="12,25 55,7 39,38 30,29" fill="var(--avion-medio)" />
+      <polygon points="30,29 39,38 32,40" fill="var(--avion-sombra)" />
+      <polygon points="12,25 55,7 30,29" fill="var(--avion-claro)" />
+    </svg>
+  </div>
+
+  <div class="derecha">
+    <div class="nombre">EditorPDF</div>
+    <div class="version">Versión 1.0.0 · Germán Ezequiel Somma</div>
+    <div class="pasos" id="pasos"></div>
+    <div class="pie">
+      <div class="riel"><i></i></div>
+      <div class="marca">Powered by ReciboMail.net.ar</div>
+    </div>
+  </div>
+
+<script>
+  /*
+   * Dos pasos, y los dos son ciertos.
+   *
+   * El primero es el que de verdad tarda: descargar e interpretar el JavaScript del editor, que
+   * pesa varios megas. Mientras eso pasa, ninguna línea de código del editor corrió todavía — por
+   * eso esta ventana es un HTML suelto y no parte del bundle.
+   *
+   * El segundo lo avisa el editor cuando ya se está armando. El mockup traía un tercero,
+   * "recuperando tu último trabajo", y se cayó al implementarlo: eso ocurre **después** de
+   * preguntarle al usuario si quiere seguir donde dejó, o sea con esta ventana ya cerrada. Ponerlo
+   * igual habría sido decorado.
+   */
+  const PASOS = [
+    { clave: 'arranque', curso: 'Cargando…', hecho: 'Componentes' },
+    { clave: 'editor', curso: 'Preparando el editor…', hecho: 'Editor listo' },
+  ];
+
+  let enCurso = 0;
+
+  function pintar() {
+    document.getElementById('pasos').innerHTML = PASOS
+      .map((paso, i) => {
+        if (i < enCurso) return `<div class="hecho"><span class="ic">✓</span><span>${paso.hecho}</span></div>`;
+        if (i === enCurso) return `<div class="ahora"><span class="ic">→</span><span>${paso.curso}</span></div>`;
+        return `<div class="falta"><span class="ic">·</span><span>${paso.hecho}</span></div>`;
+      })
+      .join('');
+  }
+  pintar();
+
+  const tauri = window.__TAURI__;
+  if (tauri) {
+    const aplicar = (clave) => {
+      const i = PASOS.findIndex((p) => p.clave === clave);
+      if (i >= 0) {
+        enCurso = i;
+        pintar();
+      }
+    };
+
+    // Se escucha, y **además** se pregunta en qué paso va. Lo segundo no sobra: el editor avisa
+    // apenas arranca, y registrar el oyente cruza el puente de Tauri, así que el aviso puede
+    // llegar antes de que haya alguien escuchando. Sin esta consulta, el paso se perdía y la
+    // ventana se quedaba con "Cargando…" hasta el final.
+    tauri.event.listen('splash-paso', ({ payload }) => aplicar(payload));
+    tauri.core.invoke('paso_actual').then(aplicar).catch(() => {});
+
+    // El desvanecido lo dispara el proceso principal cuando el editor ya está listo, para que
+    // empiece justo antes de cerrar esta ventana y mostrar la otra.
+    tauri.event.listen('splash-desvanecer', () => {
+      enCurso = PASOS.length; // todos tildados
+      pintar();
+      document.body.classList.add('yendo');
+    });
+  }
+</script>
+</body>
+</html>

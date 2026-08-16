@@ -18,6 +18,9 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.6.3", features = [] }
 
 [dependencies]
+# Solo para los tiempos de la pantalla de bienvenida. Tauri ya usa tokio por dentro, asi que
+# no suma peso: se declara para poder llamar a sleep desde nuestro codigo.
+tokio = { version = "1", features = ["time"] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
