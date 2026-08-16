@@ -388,6 +388,10 @@ export function capturarMiniatura(lienzo: Canvas, indice = hojaVigente): void {
   const hoja = hojas[indice];
   if (!hoja) return;
 
+  // Fuera del navegador —los arneses— el lienzo es un doble sin `toDataURL`: no hay miniatura que
+  // sacar y tampoco hace falta. Se comprueba antes de tocar nada, para no dejarlo a medio cambiar.
+  if (typeof lienzo.toDataURL !== 'function') return;
+
   // Sin el zoom puesto: `toDataURL` respeta la vista, así que trabajando al 220% la miniatura
   // saldría recortada. Se lo saca, se captura la hoja entera y se lo devuelve como estaba.
   const vista = lienzo.viewportTransform;
@@ -399,7 +403,9 @@ export function capturarMiniatura(lienzo: Canvas, indice = hojaVigente): void {
     // se sigue usando la de la página del PDF: peor, pero no rompe nada.
   } finally {
     lienzo.viewportTransform = vista;
-    lienzo.requestRenderAll();
+    // El `finally` corre igual que haya fallado el intento, así que no puede dar por sentado nada:
+    // fue justamente lo que rompió el arnés de campos, cuyo lienzo no tiene este método.
+    lienzo.requestRenderAll?.();
   }
 }
 
