@@ -420,6 +420,12 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
       **Interfaz**: tira de pestañas entre el lienzo y la barra de estado (`shell.ts`/`main.ts`) —
       clic para cambiar de hoja, "+"/"⧉" para agregar o duplicar, la `×` de cada pestaña para
       borrar (oculta si solo queda una), arrastrar para reordenar (drag and drop nativo).
+      Las miniaturas se dibujan como hojas de papel y no como tarjetas de la interfaz (16/08/2026):
+      borde gris —el celeste queda para marcar la que se está editando—, el pliegue de la esquina
+      superior derecha y una segunda hoja asomando atrás. La hoja de atrás son dos sombras sólidas
+      corridas, no un pseudo-elemento, así respeta el radio de la esquina y no pelea con el
+      `overflow: hidden` de la miniatura. Los botones de duplicar y eliminar pasaron a la izquierda,
+      que es donde el pliegue deja lugar.
       Verificado con `npm run verificar-hojas` (arma tres hojas, confirma que ir y volver no
       mezcla nada, que reordenar mantiene la hoja a la vista, que deshacer recupera una borrada,
       que la última no se puede borrar, y que el PDF sale con una página por hoja).

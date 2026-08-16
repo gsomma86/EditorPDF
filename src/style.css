@@ -8,6 +8,12 @@
   --acento: #378add;
   --borde: #dce9f7;
   --borde-fuerte: #b5d4f4;
+  /* Gris, no celeste: es el contorno de una hoja de papel, no de un control de la interfaz. */
+  --borde-papel: #cfd8e2;
+  /* La hoja de atrás son dos sombras sólidas corridas —una blanca que hace de papel y otra gris
+     que asoma como su borde—, y no un pseudo-elemento: así respeta el radio de la esquina y no
+     hay que pelear con el `overflow: hidden` que recorta la miniatura. */
+  --sombra-papel: 3px 3px 0 0 #fff, 3px 3px 0 1px var(--borde-papel), 2px 3px 5px rgba(4, 44, 83, 0.13);
   --card-1: #eef5fc;
   --pagina: #f3f7fb;
   --err-texto: #a12626;
@@ -601,14 +607,29 @@ button {
   display: flex;
   flex-direction: column;
 }
+/* La miniatura tiene que leerse como una hoja y no como una tarjeta de la interfaz: borde gris
+   —el celeste queda reservado para marcar la que se está editando—, una sombra corta que la apoya
+   sobre la tira, y el pliegue de la esquina, que es como se dibuja un documento en todos lados. */
 .ed-hoja-papel {
   flex: 1;
   min-height: 0;
   background: #fff;
-  border: 1px solid var(--borde-fuerte);
+  border: 1px solid var(--borde-papel);
   border-radius: 3px;
+  box-shadow: var(--sombra-papel);
   position: relative;
   overflow: hidden;
+}
+/* El pliegue: un cuadrado en la esquina partido en diagonal — la mitad de afuera pintada del color
+   de la tira, para que se vea como papel que falta, con su línea de doblez. */
+.ed-hoja-papel::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 14px;
+  height: 14px;
+  background: linear-gradient(225deg, var(--fondo-suave) 0 50%, var(--borde-papel) 50% calc(50% + 1px), #fff calc(50% + 1px) 100%);
 }
 .ed-hoja-papel img {
   width: 100%;
@@ -621,13 +642,19 @@ button {
 }
 .ed-hoja.activa .ed-hoja-papel {
   border-color: var(--acento);
-  box-shadow: 0 0 0 2px rgba(55, 138, 221, 0.35);
+  box-shadow: 0 0 0 2px rgba(55, 138, 221, 0.35), var(--sombra-papel);
+}
+/* En la hoja activa el doblez acompaña al borde, o quedaría una esquina gris sobre un marco azul. */
+.ed-hoja.activa .ed-hoja-papel::after,
+.ed-hoja:hover .ed-hoja-papel::after {
+  background: linear-gradient(225deg, var(--fondo-suave) 0 50%, var(--acento) 50% calc(50% + 1px), #fff calc(50% + 1px) 100%);
 }
 .ed-hoja-et {
   font-size: 10px;
   text-align: center;
   color: var(--texto-suave);
-  margin-top: 3px;
+  /* Deja pasar la hoja de atrás, que asoma unos pixeles por abajo. */
+  margin-top: 6px;
   white-space: nowrap;
 }
 .ed-hoja.activa .ed-hoja-et {
@@ -640,10 +667,11 @@ button {
 }
 /* Duplicar y eliminar viven sobre la miniatura: siempre a la vista en la hoja activa, y al pasar
    el mouse en las demás. El resto de las acciones está en el menú de clic derecho. */
+/* A la izquierda: a la derecha está el pliegue de la esquina, y los botones lo taparían. */
 .ed-hoja-acciones {
   position: absolute;
   top: 2px;
-  right: 2px;
+  left: 2px;
   display: none;
   gap: 2px;
 }
@@ -676,13 +704,19 @@ button {
   opacity: 0.35;
   cursor: default;
 }
+/* La de "+" no es una hoja todavía: ni sombra ni pliegue, solo el recuadro punteado. */
 .ed-hoja-nueva .ed-hoja-papel {
   border-style: dashed;
+  border-color: var(--borde-fuerte);
+  box-shadow: none;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--texto-2);
   font-size: 20px;
+}
+.ed-hoja-nueva .ed-hoja-papel::after {
+  content: none;
 }
 .ed-hoja-nueva:hover .ed-hoja-papel {
   background: var(--card-1);
