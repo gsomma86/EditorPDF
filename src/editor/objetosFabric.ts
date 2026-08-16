@@ -536,6 +536,42 @@ export async function reemplazarObjeto(lienzo: import('fabric').Canvas, viejo: F
 }
 
 /**
+ * Lleva un campo a sus medidas nuevas **sin rehacer el objeto**.
+ *
+ * El campo es un grupo de tres hijos: el fondo, el contorno de ayuda y la etiqueta con su ID. Los
+ * hijos de un grupo de Fabric se ubican respecto de su **centro**, no de su esquina, así que lo que
+ * al construirlo va de 0 a w/h acá va de -w/2 a w/2. Es la parte fácil de equivocar.
+ *
+ * La etiqueta se vuelve a recortar: entra un ID más largo o más corto según el ancho nuevo, y sin
+ * esto un campo que se achica queda con el texto saliéndose de su caja.
+ */
+function reajustarCampo(grupo: Group, elemento: Elemento & { clase: 'campo' }): void {
+  const [fondo, ayuda, etiqueta] = grupo.getObjects();
+  if (!fondo || !ayuda || !etiqueta) return;
+
+  const { w, h } = elemento;
+
+  for (const rect of [fondo, ayuda]) {
+    rect.set({ left: -w / 2, top: -h / 2, width: w, height: h });
+    rect.setCoords();
+  }
+
+  etiqueta.set({
+    text: recortarAlAncho(elemento.name, elemento),
+    // El mismo anclaje que al construirlo, corrido al sistema del grupo.
+    left: (elemento.align === 'right' ? w - 4 : elemento.align === 'center' ? w / 2 : 4) - w / 2,
+    top: 0,
+  } as Partial<FabricObject>);
+  etiqueta.setCoords();
+
+  // La escala vuelve a 1 y las medidas pasan a la caja: si quedara escalado, el borde y la etiqueta
+  // se deformarían con ella, que es justo lo que un campo no tiene que hacer.
+  grupo.set({ width: w, height: h, scaleX: 1, scaleY: 1 });
+  grupo.setCoords();
+  grupo.dirty = true;
+}
+
+/**
  * Después de mover/redimensionar un objeto arrastrando sus controles, Fabric deja el cambio como
  * una transformación (left/top/scaleX/scaleY) y no toca las medidas del modelo. Hay que volcarlo,
  * porque el modelo es la fuente de verdad para el panel, para Duplicar, para deshacer/rehacer y
@@ -590,6 +626,14 @@ export async function sincronizarGeometria(lienzo: import('fabric').Canvas, obje
       // aparte del texto, igual que en el editor público.
       elemento.w = Math.round(elemento.w * escalaX);
       elemento.h = Math.round(elemento.h * escalaY);
+      // En su lugar, sin rehacer el objeto: reemplazarlo lo saca y lo vuelve a poner en el lienzo
+      // —con un `await` en el medio para la tipografía— y eso, en cada tirón del control, se ve
+      // como un parpadeo. En modo Completar el objeto es un `Textbox` y no un grupo, así que ahí
+      // se sigue rehaciendo, que es un caso donde ni siquiera se puede redimensionar.
+      if (!modoCompletar && objeto instanceof Group) {
+        reajustarCampo(objeto, elemento);
+        return objeto;
+      }
       return reemplazarObjeto(lienzo, objeto, elemento);
     }
     return objeto;

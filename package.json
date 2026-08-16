@@ -20,15 +20,16 @@
     "preview": "vite preview",
     "verificar-export": "vite build --config pruebas/vite.fabric.config.ts && node pruebas/dist-fabric/arnesFabric.js && vite build --config pruebas/vite.ssr.config.ts && node pruebas/dist/arnes.js",
     "verificar-pdf": "vite build --config pruebas/vite.fabric.config.ts --ssr pruebas/arnesPdfExistente.ts --outDir pruebas/dist-pdf && node pruebas/dist-pdf/arnesPdfExistente.js",
-    "medir-rendimiento": "vite build --config pruebas/vite.fabric.config.ts --ssr pruebas/rendimiento.ts --outDir pruebas/dist-rend && node pruebas/dist-rend/rendimiento.js",
     "verificar-campos": "vite build --config pruebas/vite.campos.config.ts && node pruebas/dist-campos/arnesCampos.js",
     "verificar-hojas": "vite build --config pruebas/vite.hojas.config.ts && node pruebas/dist-hojas/arnesHojas.js",
     "verificar-formas": "vite build --config pruebas/vite.formas.config.ts && node pruebas/dist-formas/arnesFormas.js",
     "verificar-apilado": "vite build --config pruebas/vite.apilado.config.ts && node pruebas/dist-apilado/arnesApilado.js",
+    "verificar-objetos": "vite build --config pruebas/vite.objetos.config.ts && node pruebas/dist-objetos/arnesObjetos.js",
+    "medir-rendimiento": "vite build --config pruebas/vite.fabric.config.ts --ssr pruebas/rendimiento.ts --outDir pruebas/dist-rend && node pruebas/dist-rend/rendimiento.js",
+    "inspeccionar": "vite build --config pruebas/vite.formas.config.ts --ssr pruebas/inspeccionar.ts --outDir pruebas/dist-inspeccionar && node pruebas/dist-inspeccionar/inspeccionar.js",
     "tauri": "tauri",
     "escritorio": "tauri dev",
-    "escritorio-build": "tauri build",
-    "inspeccionar": "vite build --config pruebas/vite.formas.config.ts --ssr pruebas/inspeccionar.ts --outDir pruebas/dist-inspeccionar && node pruebas/dist-inspeccionar/inspeccionar.js"
+    "escritorio-build": "tauri build"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.11.4",
