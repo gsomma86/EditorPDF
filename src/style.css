@@ -18,6 +18,10 @@
   --pagina: #f3f7fb;
   --err-texto: #a12626;
   --err-fondo: #fcebeb;
+  /* La barra superior. Los pinta ui/temas.ts al arrancar; acá quedan por si algo la mira antes. */
+  --barra-1: #0c2e52;
+  --barra-2: #185fa5;
+  --barra-3: #2f8fe0;
 }
 
 * {
@@ -56,7 +60,7 @@ button {
   padding: 9px 16px;
   flex-shrink: 0;
   color: #fff;
-  background: linear-gradient(120deg, #0c2e52, #185fa5, #2f8fe0);
+  background: linear-gradient(120deg, var(--barra-1), var(--barra-2), var(--barra-3));
   min-height: 48px;
 }
 .ed-marca {
@@ -129,7 +133,7 @@ button {
   top: calc(100% + 3px);
   left: 0;
   min-width: 200px;
-  background: #fff;
+  background: var(--fondo);
   border: 1px solid var(--borde-fuerte);
   border-radius: 10px;
   box-shadow: 0 12px 32px rgba(4, 44, 83, 0.18);
@@ -185,7 +189,7 @@ button {
   padding: 3px 5px;
   font-size: 11.5px;
   font-family: inherit;
-  background: #fff;
+  background: var(--fondo-suave);
   color: var(--texto);
   width: 112px;
   flex-shrink: 0;
@@ -729,7 +733,7 @@ button {
 .ed-hoja-menu {
   position: fixed;
   z-index: 40;
-  background: #fff;
+  background: var(--fondo);
   border: 1px solid var(--borde-fuerte);
   border-radius: 6px;
   box-shadow: 0 6px 18px rgba(4, 44, 83, 0.14);
@@ -816,7 +820,7 @@ button {
   padding: 2px 4px;
   font-size: 11px;
   font-family: inherit;
-  background: #fff;
+  background: var(--fondo-suave);
   color: var(--texto-2);
 }
 .ed-status-peso {
@@ -835,7 +839,7 @@ button {
   height: 20px;
   border: 1px solid var(--borde-fuerte);
   border-radius: 5px;
-  background: #fff;
+  background: var(--fondo-suave);
   color: var(--texto-2);
   font-size: 13px;
   line-height: 1;
@@ -925,6 +929,30 @@ button {
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-bottom: 4px;
+}
+/* Los catorce colores del tema personalizado, agrupados por sección y en dos columnas: en una sola
+   el cuadro se hacía más alto que la ventana. */
+.ed-tema-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 18px;
+  margin-bottom: 6px;
+}
+.ed-tema-grupo {
+  margin-bottom: 6px;
+}
+.ed-tema-color {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  padding: 2px 0;
+}
+.ed-tema-color input[type='color'] {
+  width: 34px;
+  height: 22px;
+  padding: 0;
+  flex-shrink: 0;
 }
 .ed-modal-acciones {
   display: flex;
@@ -1388,7 +1416,7 @@ button {
 /* La capa donde caen los elementos nuevos. Se marca fuerte porque contesta una pregunta que se
    hace todo el tiempo: "esto que estoy por dibujar, ¿dónde va a parar?". */
 .ed-capa.destino .ed-capa-head {
-  background: #d8e9fb;
+  background: var(--card-1);
   box-shadow: inset 2px 0 0 var(--acento);
 }
 .ed-capa-marca {
@@ -1408,7 +1436,19 @@ button {
   outline-offset: 1px;
   border-radius: 8px;
 }
-/* El menú de clic derecho sobre un objeto de la lista. */
+/* Reordenar capas arrastrando: la línea marca dónde va a caer la que se está moviendo. */
+.ed-capa.sobre-capa {
+  box-shadow: inset 0 2px 0 var(--acento);
+  border-radius: 6px;
+}
+.ed-capa.arrastrando {
+  opacity: 0.5;
+}
+.ed-capa-menu-btn {
+  font-size: 12px;
+  letter-spacing: -1px;
+}
+/* El menú de la capa (⋯) y el de clic derecho sobre un objeto comparten el cuadro. */
 .ed-capas-menu {
   position: fixed;
   z-index: 60;
@@ -1420,14 +1460,35 @@ button {
   box-shadow: 0 8px 22px rgba(4, 44, 83, 0.15);
   font-size: 12.5px;
 }
-.ed-capas-menu div[data-mover] {
+.ed-capas-menu div[data-mover],
+.ed-capas-menu .it {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 6px 9px;
   border-radius: 6px;
   cursor: pointer;
   white-space: nowrap;
 }
-.ed-capas-menu div[data-mover]:hover {
+.ed-capas-menu div[data-mover]:hover,
+.ed-capas-menu .it:not(.apagada):hover {
   background: var(--card-1);
+}
+.ed-capas-menu .it .ic {
+  width: 14px;
+  text-align: center;
+  color: var(--texto-2);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.ed-capas-menu .it.roja,
+.ed-capas-menu .it.roja .ic {
+  color: var(--err-texto);
+}
+/* Apagada: se muestra igual —así el menú no cambia de forma entre una capa y otra— pero no responde. */
+.ed-capas-menu .it.apagada {
+  opacity: 0.38;
+  cursor: default;
 }
 .ed-obj {
   display: flex;
@@ -1441,7 +1502,7 @@ button {
   background: var(--fondo-suave);
 }
 .ed-obj.sel {
-  background: #e3f0fc;
+  background: var(--card-1);
   box-shadow: inset 2px 0 0 var(--acento);
 }
 .ed-obj-ic {
@@ -1479,7 +1540,7 @@ button {
   border-radius: 3px;
 }
 .ed-obj-btn:hover {
-  background: #fff;
+  background: var(--fondo-suave);
 }
 .ed-capas-acciones {
   margin-top: 8px;
@@ -1488,7 +1549,7 @@ button {
   width: 100%;
   padding: 4px;
   border: 1px solid var(--borde-fuerte);
-  background: #fff;
+  background: var(--fondo-suave);
   border-radius: 6px;
   color: var(--texto-2);
   font-size: 11px;
@@ -1509,7 +1570,7 @@ button {
   height: 44px;
   padding: 0;
   border: 1px solid var(--borde-fuerte);
-  background: #fff;
+  background: var(--fondo);
   color: var(--texto-2);
   font-size: 10px;
   display: flex;

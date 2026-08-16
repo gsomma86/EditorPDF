@@ -1,6 +1,11 @@
 import { TAMANOS, type ConfigPagina, type Margenes, type Orientacion, type TamanoPagina } from '../editor/pagina';
 import { t, type ClaveI18n } from './i18n';
 
+/** Local a propósito: importarlo de `panelPropiedades` armaría un ciclo, porque ese importa de acá. */
+function escapeHtml(texto: string): string {
+  return texto.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 /**
  * `alMontar` corre con el modal ya en pantalla y recibe su raíz: sirve para los que muestran algo
  * en vivo mientras se escribe, como la vista previa del campo repetible.
@@ -101,6 +106,25 @@ export function pedirNombreArchivo(titulo: string, subtitulo: string, sugerido: 
        <button type="button" class="primario" data-confirmar>${t('modal.btn.guardar')}</button>
      </div>`,
     (raiz) => raiz.querySelector<HTMLInputElement>('[data-nombre]')!.value
+  ) as Promise<string | null>;
+}
+
+/**
+ * Un texto corto, con lo que ya había escrito. Se usa para renombrar una capa; existe en vez del
+ * `prompt()` del navegador porque ese cuadro no se puede traducir ni tiene los estilos de la app,
+ * y en el WebView de la versión de escritorio se comporta distinto que en un navegador.
+ */
+export function pedirTexto(titulo: string, etiqueta: string, actual: string): Promise<string | null> {
+  return abrir(
+    `<div class="ed-modal-tit">${titulo}</div>
+     <label class="ed-lbl">${etiqueta}</label>
+     <input type="text" data-texto value="${escapeHtml(actual)}" maxlength="60">
+     <div class="ed-modal-acciones">
+       <button type="button" data-cancelar>${t('modal.btn.cancelar')}</button>
+       <button type="button" class="primario" data-confirmar>${t('modal.btn.aceptar')}</button>
+     </div>`,
+    (raiz) => raiz.querySelector<HTMLInputElement>('[data-texto]')!.value,
+    (raiz) => raiz.querySelector<HTMLInputElement>('[data-texto]')!.select()
   ) as Promise<string | null>;
 }
 
@@ -240,6 +264,112 @@ export function mostrarAyuda(titulo: string, html: string): Promise<unknown> {
      </div>`,
     () => true
   );
+}
+
+/**
+ * El editor del tema personalizado: los catorce colores agrupados por sección.
+ *
+ * Arranca con los del tema que se esté usando, así se retoca en vez de armar uno de cero, y pinta
+ * en vivo mientras se elige —un color sin ver el resultado no dice nada—. Cancelar deja todo como
+ * estaba, incluso lo que se llegó a ver mientras se probaba.
+ */
+export function pedirTemaPersonalizado(
+  paleta: Record<string, string>,
+  grupos: { titulo: ClaveI18n; claves: string[] }[],
+  alProbar: (paleta: Record<string, string>) => void,
+  alCancelar: () => void
+): Promise<Record<string, string> | null> {
+  const trabajo = { ...paleta };
+
+  return abrir(
+    `<div class="ed-modal-tit">${t('temas.personalizarTitulo')}</div>
+     <div class="ed-modal-sub">${t('temas.personalizarSub')}</div>
+     <div class="ed-tema-grid">
+       ${grupos
+         .map(
+           (g) => `<div class="ed-tema-grupo"><div class="ed-sec-tit">${t(g.titulo)}</div>
+             ${g.claves
+               .map(
+                 (c) => `<label class="ed-tema-color">
+                   <input type="color" data-color="${c}" value="${trabajo[c]}">
+                   <span>${t(`temas.color.${c}` as ClaveI18n)}</span>
+                 </label>`
+               )
+               .join('')}
+           </div>`
+         )
+         .join('')}
+     </div>
+     <div class="ed-modal-acciones">
+       <button type="button" data-cancelar>${t('modal.btn.cancelar')}</button>
+       <button type="button" data-restaurar>${t('temas.restaurar')}</button>
+       <button type="button" class="primario" data-confirmar>${t('modal.btn.aceptar')}</button>
+     </div>`,
+    () => ({ ...trabajo }),
+    (raiz) => {
+      const pintarTodo = () => alProbar({ ...trabajo });
+      for (const input of raiz.querySelectorAll<HTMLInputElement>('[data-color]')) {
+        input.addEventListener('input', () => {
+          trabajo[input.dataset.color!] = input.value;
+          pintarTodo();
+        });
+      }
+      raiz.querySelector<HTMLButtonElement>('[data-restaurar]')!.addEventListener('click', () => {
+        for (const input of raiz.querySelectorAll<HTMLInputElement>('[data-color]')) {
+          trabajo[input.dataset.color!] = paleta[input.dataset.color!];
+          input.value = paleta[input.dataset.color!];
+        }
+        pintarTodo();
+      });
+      // Cancelar tiene que devolver lo que había: si no, el vistazo en vivo quedaría pegado.
+      raiz.querySelector<HTMLButtonElement>('[data-cancelar]')!.addEventListener('click', alCancelar);
+    }
+  ) as Promise<Record<string, string> | null>;
+}
+
+/** Qué hacer con los elementos de una capa que se está por borrar. */
+export type DestinoAlBorrarCapa = { accion: 'mover'; capa: string } | { accion: 'todo' };
+
+/**
+ * Pregunta qué pasa con el contenido de una capa que se borra: pasarlo a otra —eligiendo cuál— o
+ * borrarlo también. Son dos respuestas igual de válidas (los editores clásicos borran, mover es más
+ * conservador) y deshacer cubre las dos, así que decide quien está usando el editor y no el editor.
+ */
+export function pedirDestinoAlBorrarCapa(
+  nombre: string,
+  cuantos: number,
+  candidatas: { id: string; nombre: string }[]
+): Promise<DestinoAlBorrarCapa | null> {
+  let elegida: DestinoAlBorrarCapa | null = null;
+
+  return abrir(
+    `<div class="ed-modal-tit">${t('capas.borrarTitulo')}</div>
+     <div class="ed-modal-sub">${t('capas.borrarMensaje', { nombre, n: cuantos })}</div>
+     <label class="ed-lbl">${t('capas.borrarDestinoLbl')}</label>
+     <select data-destino>
+       ${candidatas.map((c) => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('')}
+     </select>
+     <div class="ed-modal-acciones">
+       <button type="button" data-cancelar>${t('modal.btn.cancelar')}</button>
+       <button type="button" class="peligro" data-todo>${t('capas.borrarTodo')}</button>
+       <button type="button" class="primario" data-mover>${t('capas.borrarMover')}</button>
+       <button type="button" data-confirmar hidden></button>
+     </div>`,
+    () => elegida,
+    (raiz) => {
+      // `abrir` resuelve con lo que devuelva el confirmador, y solo conoce un botón de confirmar:
+      // cada uno de los dos anota su respuesta y después dispara ese, que está escondido.
+      const confirmar = raiz.querySelector<HTMLButtonElement>('[data-confirmar]')!;
+      raiz.querySelector<HTMLButtonElement>('[data-mover]')!.addEventListener('click', () => {
+        elegida = { accion: 'mover', capa: raiz.querySelector<HTMLSelectElement>('[data-destino]')!.value };
+        confirmar.click();
+      });
+      raiz.querySelector<HTMLButtonElement>('[data-todo]')!.addEventListener('click', () => {
+        elegida = { accion: 'todo' };
+        confirmar.click();
+      });
+    }
+  ) as Promise<DestinoAlBorrarCapa | null>;
 }
 
 export function confirmar(titulo: string, mensaje: string, etiquetaAceptar = t('modal.btn.aceptar')): Promise<boolean> {

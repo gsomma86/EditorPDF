@@ -29,6 +29,12 @@ const MENU_VER = `
   <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-reglas" /> <span data-i18n="menu.ver.reglas"></span> <span class="ed-dd-tecla">Ctrl+Alt+R</span></label>
   <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-guias" checked /> <span data-i18n="menu.ver.alineacion"></span> <span class="ed-dd-tecla">Ctrl+;</span></label>
   <div class="ed-dd-sep"></div>
+  <div class="ed-dd-item ed-dd-persistente">
+    <span data-i18n="menu.ver.tema"></span>
+    <select id="ed-tema"></select>
+  </div>
+  <div class="ed-dd-item" id="ed-tema-personalizar"><span data-i18n="menu.ver.temaPersonalizar"></span></div>
+  <div class="ed-dd-sep"></div>
   <div class="ed-dd-nota" data-i18n="menu.ver.barras"></div>
   <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" data-barra="campos" checked /> <span data-i18n="menu.ver.barraCampos"></span></label>
   <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" data-barra="props" checked /> <span data-i18n="menu.ver.barraProps"></span></label>

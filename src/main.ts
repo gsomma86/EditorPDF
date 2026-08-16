@@ -7,7 +7,7 @@ import { escapeHtml, mostrarMultiSeleccion, mostrarPropiedades, mostrarSinSelecc
 import { ActiveSelection, type FabricObject } from 'fabric';
 import { borrarAutoguardado, hayAutoguardado, programarAutoguardado, restaurarAutoguardado } from './editor/autoguardado';
 import { camposDesdeCsv, csvDesdeCampos, descargarCsv } from './editor/csvCampos';
-import { confirmar, mostrarAyuda, mostrarPreflight, pedirExportarPdf, pedirFilasColumnas, pedirMargenes, pedirNombreArchivo, pedirNuevoProyecto } from './ui/modales';
+import { confirmar, mostrarAyuda, mostrarPreflight, pedirExportarPdf, pedirFilasColumnas, pedirMargenes, pedirNombreArchivo, pedirNuevoProyecto, pedirTemaPersonalizado } from './ui/modales';
 import { formatearPeso, pesoDelPdf, verificarDiseno } from './editor/preflight';
 import { montarPanelCampos } from './ui/panelCampos';
 import { montarPanelCapas } from './ui/panelCapas';
@@ -18,10 +18,14 @@ import { alCambiarIdioma, aplicarIdioma, t, type ClaveI18n } from './ui/i18n';
 import { agregarHoja, aplicarConfigPagina, cantidadDeHojas, configActual, eliminarHoja, establecerCapas, establecerFondoDeLaHoja, fondoDeLaHoja, establecerHojas, hojaActual, hojaEnBlanco, hojasDesdePdf, irAHoja, medidasDeLaHoja, miniaturaDeHoja, moverHoja, olvidarPaginasDibujadas, paginaDeLaHoja, refrescarPaginaDibujada } from './editor/documento';
 import { activarVista, configurarVista, establecerZoom, vistaActual } from './editor/vista';
 import { configPorDefecto, type Orientacion, type TamanoPagina } from './editor/pagina';
+import { GRUPOS, TEMAS, aplicarTema, establecerCustom, iniciarTema, paletaActual, previsualizar, repintar, temaActual, type NombreTema, type Paleta } from './ui/temas';
 import { cargarProyecto, descargarProyecto, leerProyecto, serializarProyecto } from './editor/proyecto';
 import type { CampoDelPdf, FirmaDelPdf } from './editor/pdfExistente';
 
 const raiz = document.querySelector<HTMLDivElement>('#app')!;
+// Antes de montar nada: el tema guardado se pinta de entrada para que la interfaz no aparezca un
+// instante con los colores del tema claro y salte al que corresponde.
+iniciarTema();
 const espacio = montarEspacioTrabajo(raiz);
 const lienzo = crearLienzo(espacio.lienzoCont);
 const panelCampos = montarPanelCampos(espacio.panelCampos, async (nombre) => {
@@ -33,6 +37,42 @@ const panelCampos = montarPanelCampos(espacio.panelCampos, async (nombre) => {
 const panelCapas = montarPanelCapas(document.getElementById('ed-panel-capas')!, lienzo, () => guardar());
 const ayuda = cablearAyuda();
 montarPaneles(espacio.raiz);
+
+// ---------- Tema de color ----------
+
+const selectorTema = document.getElementById('ed-tema') as HTMLSelectElement;
+
+/** Rearma el desplegable: los nombres de los temas se traducen, así que se rehace al cambiar idioma. */
+function reflejarTemas(): void {
+  selectorTema.innerHTML =
+    TEMAS.map((nombre) => `<option value="${nombre}">${t(`temas.${nombre}` as ClaveI18n)}</option>`).join('') +
+    `<option value="custom">${t('temas.custom')}</option>`;
+  selectorTema.value = temaActual();
+}
+reflejarTemas();
+alCambiarIdioma(reflejarTemas);
+
+selectorTema.addEventListener('change', () => {
+  aplicarTema(selectorTema.value as NombreTema);
+});
+
+document.getElementById('ed-tema-personalizar')!.addEventListener('click', async () => {
+  // Arranca del que se esté viendo: retocar es más fácil que armar uno de cero.
+  const partida = paletaActual();
+  const elegida = await pedirTemaPersonalizado(
+    { ...partida },
+    GRUPOS,
+    // Mientras se prueba solo se pinta, sin guardar nada: así cancelar deshace de verdad.
+    (prueba) => previsualizar(prueba as unknown as Paleta),
+    () => repintar()
+  );
+  if (elegida) {
+    establecerCustom(elegida as unknown as Paleta);
+    reflejarTemas();
+  } else {
+    repintar();
+  }
+});
 activarVista(lienzo);
 aplicarConfigPagina(lienzo, configPorDefecto());
 inicializarHistorial(lienzo);
