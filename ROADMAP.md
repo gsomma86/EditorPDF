@@ -312,9 +312,22 @@ Hallazgos técnicos que siguen valiendo:
       cálculo del peso, un temporizador desde `guardar()`. Con respiro de 600 ms, porque capturarla
       en cada tecla sería redibujar la hoja entera por letra; y tocando solo la imagen de la hoja
       vigente, porque rehacer la tira perdería el desplazamiento.
-- [ ] Curvas y paths compuestos quedan afuera: no hay elemento del modelo que represente una curva
-      o un polígono libre, habría que inventar uno. Se pospuso a propósito hasta tener un PDF real
-      donde importe — la fase 3 ya se equivocó una vez decidiendo sin medir la muestra correcta.
+- [x] **Curvas y dibujos compuestos** (16/08/2026), lo último que quedaba fuera de alcance.
+      **Se midió antes de construir**, que es la regla que el proyecto se puso: sobre 120 PDF reales
+      y 28.512 caminos dibujados, 89,2% son rectas y rectángulos —ya se editaban—, 6,9% traen
+      curvas, 4,0% son compuestos y **0% tienen sesgo real**. Quedaba afuera un 11% del dibujo,
+      presente en el 15% de los archivos; y el 0% de sesgo confirmó que ese caso no había que
+      resolverlo.
+      Entran como `figura: 'camino'` del elemento `forma`, que ya compartía caja, color, relleno y
+      estilo: lo único propio son sus tramos. Se guardan como **lista de tramos y no como cadena
+      SVG**, así escalarlos es multiplicar números —sin interpretar una cadena— y viajan al `.json`
+      como datos; y van **normalizados de 0 a 1** sobre su caja, con lo que estirar la forma no
+      necesita recordar el tamaño original. `recorrerCamino` la recorren los dos lados: el lienzo la
+      pasa a `bezierCurveTo` y el exportador a un camino SVG de pdf-lib, que dibuja curvas de
+      fábrica.
+      Verificado con la vuelta completa —detectar, convertir, exportar y volver a detectar—: un
+      círculo vuelve al mismo lugar y tamaño. Y sobre el manual real, el círculo del número de
+      página se reproduce exacto, con su color y su relleno.
 
 **Repaso de diseño de la fase (15/08/2026).** Además de lo de arriba salieron tres cosas menores,
 ya corregidas: claves de idioma huérfanas de la conversión masiva que se descartó (18 líneas en
@@ -535,6 +548,39 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
       Verificado con `npm run verificar-hojas` sobre el contenido del PDF exportado: cuatro caminos
       cerrados, la elipse con curvas, 17 rectas entre triángulo, flecha y estrella, y el relleno
       solo en la figura que lo pide.
+
+- [ ] **Un solo apilado, y que las capas manden** (pendiente grande, anotado el 16/08/2026 tras
+      encontrarlo probando). **Hoy hay dos órdenes que no se hablan y el panel de Capas miente.**
+
+      *El problema.* Lo que se convierte de un PDF se dibuja con `globalCompositeOperation:
+      'destination-over'` para quedar donde estaba: **debajo de la página entera**. Un objeto así
+      nunca puede quedar sobre uno normal, ni uno normal meterse debajo de él. Son dos grupos que
+      "Al frente" y "Enviar atrás" no pueden cruzar, y desde afuera se vive como que los botones no
+      andan. Lo comprobó Germán: un recuadro blanco propio, enviado atrás, pasa detrás de una imagen
+      convertida —las dos son objetos normales— pero **no** detrás de un dibujo convertido. Y el
+      panel de Capas lista **todo junto en una sola columna**, dando a entender un orden único que
+      el lienzo no respeta. La casilla "Debajo del contenido del PDF" es un parche para cruzar de
+      grupo a mano, no la solución.
+
+      *La salida.* Dejar de usar `destination-over` y poner **la página del PDF como un objeto más
+      del apilado** —fijo, no seleccionable, sin entrada en el modelo, así lo ignoran
+      `elementosDelLienzo` y el panel de Capas— en vez de como fondo del lienzo. Con eso hay un
+      solo orden: lo convertido se coloca por debajo de ese objeto, lo demás por encima, y cualquier
+      cosa se puede mover a cualquier lado con la misma regla.
+
+      *El requisito que pidió Germán y hoy no se cumple.* **El orden de las capas manda sobre el
+      apilado**: algo de la capa 1 nunca puede quedar detrás de algo de la capa 2. Hoy
+      `aplicarOrdenDeCapas()` lo garantiza solo cuando se reordenan las capas, y después "Al frente"
+      lo rompe, porque `bringObjectToFront` salta por encima de los objetos de las otras capas. Al
+      rehacer esto, mover en la pila tiene que quedar **acotado a la banda de su capa**, y el cambio
+      tiene que verse reflejado en la lista de Capas.
+
+      *Lo que hay que cuidar.* Toca el fondo de la hoja (`aplicarFondo`), el zoom
+      (`setDimensions`/`setZoom`), la captura de miniaturas —que hoy sale de `toDataURL` del lienzo
+      y tendría que seguir incluyendo la página— y la reconstrucción del lienzo al cambiar de hoja,
+      que tendría que reinsertar el objeto-página en el lugar correcto. La exportación no se toca:
+      arma el PDF desde el archivo de base, no desde el lienzo. Verificar con `verificar-hojas`,
+      `verificar-formas` y `verificar-export` antes de darlo por bueno.
 
 ## Fase 5 — Empaquetado y distribución
 

@@ -122,7 +122,22 @@ quedan sin empezar Capas, Firma digital y Más formas geométricas.
     aparte, y la miniatura que nunca mostró lo dibujado). Para eso quedó
     `npm run inspeccionar -- archivo.pdf`. **Si se toca cualquier cosa que lea PDF ajeno, probar con
     archivos de verdad antes de darlo por bueno.**
-13. **SmartScreen — solicitud enviada a SignPath Foundation (16/08/2026), esperando revisión.** Se
+13. **LO PRIMERO QUE HAY QUE HACER: un solo apilado, y que las capas manden.** Es el pendiente más
+    grande y el único que hoy se nota usando la aplicación. Lo encontró Germán probando:
+    - Lo convertido de un PDF se dibuja **debajo de la página** (`destination-over`), y eso parte el
+      apilado en **dos grupos que "Al frente" y "Enviar atrás" no pueden cruzar**. Un recuadro
+      propio enviado atrás pasa detrás de una imagen convertida pero no detrás de un dibujo
+      convertido.
+    - El panel de Capas muestra **una sola lista**, dando a entender un orden único que el lienzo no
+      respeta: la lista miente.
+    - **El orden de las capas tiene que mandar**: algo de la capa 1 nunca puede quedar detrás de
+      algo de la capa 2. Hoy solo se garantiza al reordenar capas, y "Al frente" lo rompe enseguida.
+    La salida propuesta —la página del PDF como un objeto más del apilado en vez de como fondo— y
+    todo lo que hay que cuidar están en ROADMAP.md, al final de la fase 4. La casilla "Debajo del
+    contenido del PDF" que hay hoy es un parche para cruzar de grupo a mano, no la solución.
+    **Se dejó para una sesión nueva a propósito**: es un cambio de arquitectura de tamaño medio que
+    toca cosas que hoy funcionan bien, y conviene encararlo con la cabeza fresca.
+14. **SmartScreen — solicitud enviada a SignPath Foundation (16/08/2026), esperando revisión.** Se
     investigó y se descartaron antes Azure Trusted Signing (no admite Argentina) y un certificado
     EV (pide empresa registrada). El camino elegido es **SignPath Foundation** (firma OV gratis
     para OSS), y ya está el CI que compila los instaladores
