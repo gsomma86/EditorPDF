@@ -12,9 +12,10 @@
 
 import type { Canvas, FabricObject } from 'fabric';
 import { capaDe, capasDelDocumento, elementoBloqueado, elementoVisible, establecerCapaDestino, establecerCapas, type Capa } from '../editor/documento';
-import { aplicarMarcas, elementoDe } from '../editor/objetosFabric';
-import type { Elemento } from '../editor/elemento';
-import { confirmar } from './modales';
+import { agregarAlLienzo, aplicarMarcas, elementoDe } from '../editor/objetosFabric';
+import { duplicarElemento, type Elemento } from '../editor/elemento';
+import { registrarSnapshot } from '../editor/historial';
+import { pedirDestinoAlBorrarCapa, pedirTexto } from './modales';
 import { t } from './i18n';
 
 export interface PanelCapas {
@@ -78,13 +79,13 @@ export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: 
 
         return `
           <div class="ed-capa ${capa.destino ? 'destino' : ''}" data-capa="${capa.id}">
-            <div class="ed-capa-head">
+            <div class="ed-capa-head" draggable="true" data-arrastrar-capa="${capa.id}">
               <button type="button" class="ed-obj-btn" data-capa-ver="${capa.id}" title="${t('capas.verTt')}">${capa.visible ? '👁' : '⃠'}</button>
               <button type="button" class="ed-obj-btn" data-capa-trabar="${capa.id}" title="${t('capas.trabarTt')}">${capa.bloqueada ? '🔒' : '🔓'}</button>
-              <span class="ed-capa-nom" data-renombrar="${capa.id}" title="${t('capas.destinoTt')}">${capa.nombre}</span>
+              <span class="ed-capa-nom" data-destino="${capa.id}" title="${t('capas.destinoTt')}">${capa.nombre}</span>
               ${capa.destino ? `<span class="ed-capa-marca" title="${t('capas.destinoTt')}">◉</span>` : ''}
               <span class="ed-col-n">${suyos.length}</span>
-              ${capas.length > 1 ? `<button type="button" class="ed-obj-btn borrar" data-capa-borrar="${capa.id}" title="${t('capas.borrarTt')}">✕</button>` : ''}
+              <button type="button" class="ed-obj-btn ed-capa-menu-btn" data-capa-menu="${capa.id}" title="${t('capas.menuTt')}">⋯</button>
             </div>
             ${objetos}
           </div>`;
@@ -137,46 +138,18 @@ export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: 
       establecerCapaDestino(nueva.id);
       refrescar();
       alCambiar();
+      registrarSnapshot(lienzo);
       return;
     }
 
-    // Borrar una capa. Lo que tenga adentro **no se borra**: se pasa a la primera que quede. Una
-    // capa es una forma de ordenar, no una bolsa: perder cincuenta campos por cerrarla sería caro
-    // y sorprendente. Si tenía algo, se avisa antes adónde va a parar.
-    const borrarCapa = destino.dataset.capaBorrar;
-    if (borrarCapa) {
-      void (async () => {
-        if (capas.length < 2) return;
-        const capa = capas.find((c) => c.id === borrarCapa)!;
-        const quedan = capas.filter((c) => c.id !== borrarCapa);
-        const suyos = lienzo.getObjects().filter((o) => {
-          const el = elementoDe(o);
-          return el && capaDe(el).id === borrarCapa;
-        });
-
-        if (
-          suyos.length &&
-          !(await confirmar(
-            t('capas.borrarTitulo'),
-            t('capas.borrarMensaje', { nombre: capa.nombre, n: suyos.length, destino: quedan[0].nombre }),
-            t('capas.borrarAceptar')
-          ))
-        ) {
-          return;
-        }
-
-        for (const objeto of suyos) {
-          const el = elementoDe(objeto);
-          if (el) el.capa = quedan[0].id;
-        }
-        establecerCapas(quedan);
-        refrescarObjetos();
-      })();
+    const abrirMenu = destino.dataset.capaMenu;
+    if (abrirMenu) {
+      menuDeCapa(abrirMenu, destino);
       return;
     }
 
     // Clic en el nombre de la capa: pasa a ser la que recibe los elementos nuevos.
-    const marcar = destino.dataset.renombrar;
+    const marcar = destino.dataset.destino;
     if (marcar) {
       establecerCapaDestino(marcar);
       refrescar();
@@ -195,6 +168,16 @@ export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: 
     }
   });
 
+  /**
+   * Como `refrescarObjetos`, pero además deja un paso en el historial. Lo usan las operaciones que
+   * cambian la estructura del documento —crear, mover, duplicar o borrar una capa—, que sí se
+   * tienen que poder deshacer. Apagar o trabar no: son de vista, como en el resto del editor.
+   */
+  function refrescarConHistorial(): void {
+    refrescarObjetos();
+    registrarSnapshot(lienzo);
+  }
+
   /** Vuelve a aplicar al lienzo lo que dice el modelo y redibuja la lista. */
   function refrescarObjetos(): void {
     for (const objeto of lienzo.getObjects()) {
@@ -208,6 +191,152 @@ export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: 
     lienzo.requestRenderAll();
     refrescar();
     alCambiar();
+  }
+
+  /** Los objetos del lienzo que pertenecen a una capa, de atrás hacia adelante. */
+  const objetosDe = (capaId: string) =>
+    lienzo.getObjects().filter((o) => {
+      const el = elementoDe(o);
+      return el && capaDe(el).id === capaId;
+    });
+
+  /**
+   * Rehace el apilado del lienzo para que respete el orden de las capas: la primera de la lista es
+   * la que se ve más adelante, como se la muestra. Sin esto, mover una capa cambiaría la lista pero
+   * no lo que se ve, y la lista estaría mintiendo.
+   *
+   * Ojo con las formas sacadas de un PDF: se dibujan con `destination-over` y su apilado real es el
+   * inverso (ver `moverEnLaPila` en objetosFabric). Viven todas en la capa de base, así que
+   * mientras no se las reparta entre capas esto no las afecta.
+   */
+  function aplicarOrdenDeCapas(): void {
+    const capas = capasDelDocumento();
+    // De la última a la primera, mandando cada una al frente: al terminar, la primera de la lista
+    // quedó adelante de todas.
+    for (let i = capas.length - 1; i >= 0; i--) {
+      for (const objeto of objetosDe(capas[i].id)) lienzo.bringObjectToFront(objeto);
+    }
+  }
+
+  /** Cambia una capa de lugar en la lista y reordena el lienzo para que se vea el cambio. */
+  function moverCapa(id: string, hasta: number): void {
+    const capas = [...capasDelDocumento()];
+    const desde = capas.findIndex((c) => c.id === id);
+    if (desde < 0 || hasta < 0 || hasta >= capas.length || desde === hasta) return;
+    const [capa] = capas.splice(desde, 1);
+    capas.splice(hasta, 0, capa);
+    establecerCapas(capas);
+    aplicarOrdenDeCapas();
+    refrescarConHistorial();
+  }
+
+  /** El menú de una capa: renombrar, duplicar, mover y eliminar. */
+  function menuDeCapa(id: string, boton: HTMLElement): void {
+    const capas = capasDelDocumento();
+    const indice = capas.findIndex((c) => c.id === id);
+    const capa = capas[indice];
+    if (!capa) return;
+
+    // Las opciones que no se pueden usar se muestran apagadas y no se sacan: si desaparecieran, el
+    // resto del menú cambiaría de lugar entre una capa y otra.
+    const item = (accion: string, icono: string, clave: Parameters<typeof t>[0], habilitada: boolean, roja = false) =>
+      `<div class="it ${habilitada ? '' : 'apagada'} ${roja ? 'roja' : ''}" ${habilitada ? `data-accion="${accion}"` : ''}>
+         <span class="ic">${icono}</span>${t(clave)}
+       </div>`;
+
+    const menu = document.createElement('div');
+    menu.className = 'ed-capas-menu';
+    menu.innerHTML =
+      item('renombrar', '✎', 'capas.menu.renombrar', true) +
+      item('duplicar', '⧉', 'capas.menu.duplicar', true) +
+      '<div class="ed-dd-sep"></div>' +
+      item('subir', '↑', 'capas.menu.subir', indice > 0) +
+      item('bajar', '↓', 'capas.menu.bajar', indice < capas.length - 1) +
+      '<div class="ed-dd-sep"></div>' +
+      item('borrar', '✕', 'capas.menu.borrar', capas.length > 1, true);
+
+    const caja = boton.getBoundingClientRect();
+    menu.style.left = `${Math.max(4, caja.right - 190)}px`;
+    menu.style.top = `${caja.bottom + 2}px`;
+    document.body.appendChild(menu);
+
+    const cerrar = () => {
+      menu.remove();
+      document.removeEventListener('pointerdown', afuera, true);
+    };
+    const afuera = (ev: PointerEvent) => {
+      if (!menu.contains(ev.target as Node)) cerrar();
+    };
+    // En `pointerdown`, no en `click`: el que cierra el menú también lo es y llega antes, así que
+    // con `click` la opción no se llegaba a ejecutar nunca (lección 33).
+    menu.addEventListener('pointerdown', (ev) => {
+      const opcion = (ev.target as HTMLElement).closest<HTMLElement>('[data-accion]');
+      if (!opcion) return;
+      cerrar();
+      void ejecutar(opcion.dataset.accion!, id, indice);
+    });
+    document.addEventListener('pointerdown', afuera, true);
+  }
+
+  async function ejecutar(accion: string, id: string, indice: number): Promise<void> {
+    const capas = capasDelDocumento();
+    const capa = capas.find((c) => c.id === id);
+    if (!capa) return;
+
+    if (accion === 'subir') return moverCapa(id, indice - 1);
+    if (accion === 'bajar') return moverCapa(id, indice + 1);
+
+    if (accion === 'renombrar') {
+      const nuevo = await pedirTexto(t('capas.menu.renombrar'), t('capas.nombreLbl'), capa.nombre);
+      if (nuevo === null) return;
+      capa.nombre = nuevo.trim() || capa.nombre;
+      refrescar();
+      alCambiar();
+      registrarSnapshot(lienzo);
+      return;
+    }
+
+    if (accion === 'duplicar') {
+      // Con lo que tiene adentro: una capa vacía con el mismo nombre no le sirve a nadie. Los
+      // objetos se clonan como al duplicar uno suelto —corridos unos puntos— y van a la capa nueva.
+      const nueva: Capa = { id: `c${Date.now()}`, nombre: t('capas.nombreCopia', { nombre: capa.nombre }), visible: capa.visible, bloqueada: capa.bloqueada };
+      const copias = objetosDe(id).map((o) => elementoDe(o)!).filter(Boolean);
+      establecerCapas([...capas.slice(0, indice + 1), nueva, ...capas.slice(indice + 1)]);
+      for (const original of copias) {
+        const clon = duplicarElemento(original);
+        clon.capa = nueva.id;
+        await agregarAlLienzo(lienzo, clon);
+      }
+      aplicarOrdenDeCapas();
+      refrescarConHistorial();
+      return;
+    }
+
+    if (accion === 'borrar') {
+      if (capas.length < 2) return;
+      const quedan = capas.filter((c) => c.id !== id);
+      const suyos = objetosDe(id);
+
+      // Con algo adentro se pregunta qué hacer, en vez de decidir por el otro: las dos respuestas
+      // son razonables. Photoshop y compañía se llevan el contenido; mover a otra capa es más
+      // conservador. Deshacer cubre las dos, así que ninguna es una trampa.
+      if (suyos.length) {
+        const que = await pedirDestinoAlBorrarCapa(capa.nombre, suyos.length, quedan);
+        if (!que) return;
+
+        if (que.accion === 'todo') lienzo.remove(...suyos);
+        else {
+          for (const objeto of suyos) {
+            const el = elementoDe(objeto);
+            if (el) el.capa = que.capa;
+          }
+        }
+      }
+
+      establecerCapas(quedan);
+      aplicarOrdenDeCapas();
+      refrescarConHistorial();
+    }
   }
 
   /**
@@ -224,14 +353,24 @@ export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: 
       const el = elementoDe(uno);
       if (el) el.capa = capaId;
     }
-    refrescarObjetos();
+    refrescarConHistorial();
   }
 
-  // ---------- Arrastrar un objeto a otra capa ----------
+  // ---------- Arrastrar: un objeto a otra capa, o una capa a otra posición ----------
 
+  // Dos arrastres distintos comparten los mismos eventos, así que se distingue por dónde empezó:
+  // agarrando la fila de un objeto se lo cambia de capa; agarrando la cabecera se reordena la capa.
   let arrastrado: number | null = null;
+  let capaArrastrada: string | null = null;
 
   panel.addEventListener('dragstart', (e) => {
+    const cabecera = (e.target as HTMLElement).closest<HTMLElement>('[data-arrastrar-capa]');
+    if (cabecera) {
+      capaArrastrada = cabecera.dataset.arrastrarCapa!;
+      cabecera.closest('.ed-capa')!.classList.add('arrastrando');
+      e.dataTransfer?.setData('text/plain', capaArrastrada);
+      return;
+    }
     const fila = (e.target as HTMLElement).closest<HTMLElement>('.ed-obj');
     if (!fila) return;
     arrastrado = Number(fila.dataset.id);
@@ -242,23 +381,38 @@ export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: 
 
   panel.addEventListener('dragend', () => {
     arrastrado = null;
-    panel.querySelectorAll('.arrastrando, .sobre').forEach((n) => n.classList.remove('arrastrando', 'sobre'));
+    capaArrastrada = null;
+    panel.querySelectorAll('.arrastrando, .sobre, .sobre-capa').forEach((n) => n.classList.remove('arrastrando', 'sobre', 'sobre-capa'));
   });
 
   panel.addEventListener('dragover', (e) => {
     const caja = (e.target as HTMLElement).closest<HTMLElement>('.ed-capa');
-    if (arrastrado === null || !caja) return;
+    if (!caja || (arrastrado === null && capaArrastrada === null)) return;
     e.preventDefault(); // sin esto el navegador no deja soltar
-    panel.querySelectorAll('.sobre').forEach((n) => n.classList.remove('sobre'));
-    caja.classList.add('sobre');
+    panel.querySelectorAll('.sobre, .sobre-capa').forEach((n) => n.classList.remove('sobre', 'sobre-capa'));
+    // Reordenando se marca solo la línea de arriba, que es donde va a caer; cambiando un objeto de
+    // capa se marca la capa entera, que es lo que lo va a recibir.
+    if (capaArrastrada && caja.dataset.capa !== capaArrastrada) caja.classList.add('sobre-capa');
+    else if (arrastrado !== null) caja.classList.add('sobre');
   });
 
   panel.addEventListener('drop', (e) => {
     const caja = (e.target as HTMLElement).closest<HTMLElement>('.ed-capa');
-    if (arrastrado === null || !caja) return;
+    if (!caja) return;
     e.preventDefault();
-    moverACapa(arrastrado, caja.dataset.capa!);
-    arrastrado = null;
+
+    if (capaArrastrada) {
+      const capas = capasDelDocumento();
+      const hasta = capas.findIndex((c) => c.id === caja.dataset.capa);
+      moverCapa(capaArrastrada, hasta);
+      capaArrastrada = null;
+      return;
+    }
+
+    if (arrastrado !== null) {
+      moverACapa(arrastrado, caja.dataset.capa!);
+      arrastrado = null;
+    }
   });
 
   // ---------- Clic derecho: mover a la capa que se elija ----------
@@ -274,6 +428,11 @@ export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: 
     const menu = document.createElement('div');
     menu.className = 'ed-capas-menu';
     menu.innerHTML =
+      // Renombrar arriba: con dos QR o tres líneas, el nombre automático los llama igual y no hay
+      // forma de distinguirlos en la lista. El nombre a mano ya vivía en el modelo (`Marcas`) y se
+      // guardaba con el proyecto; lo que faltaba era dónde escribirlo.
+      `<div class="it" data-renombrar-obj><span class="ic">✎</span>${t('capas.menu.renombrar')}</div>` +
+      '<div class="ed-dd-sep"></div>' +
       `<div class="ed-dd-nota">${t('capas.moverA')}</div>` +
       capasDelDocumento()
         .map((c) => `<div data-mover="${c.id}">${c.nombre}${capaDe(el).id === c.id ? ' ✓' : ''}</div>`)
@@ -292,6 +451,19 @@ export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: 
     // Las opciones se atienden en `pointerdown` y no en `click`: el que cierra el menú también es
     // un `pointerdown`, que llega antes que el `click` y se llevaría la opción puesta (lección 33).
     menu.addEventListener('pointerdown', (ev) => {
+      if ((ev.target as HTMLElement).closest('[data-renombrar-obj]')) {
+        cerrar();
+        void (async () => {
+          // Se ofrece el nombre que se está mostrando —el puesto a mano o el automático—, así
+          // renombrar "QR" a "QR de la factura" no arranca de un campo vacío.
+          const nuevo = await pedirTexto(t('capas.menu.renombrar'), t('capas.nombreObjLbl'), nombreDe(el));
+          if (nuevo === null) return;
+          // Vacío borra el nombre a mano y vuelve al automático, que es la forma de deshacerlo.
+          el.nombre = nuevo.trim() || undefined;
+          refrescarConHistorial();
+        })();
+        return;
+      }
       const opcion = (ev.target as HTMLElement).closest<HTMLElement>('[data-mover]');
       if (!opcion) return;
       moverACapa(id, opcion.dataset.mover!);
@@ -301,16 +473,9 @@ export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: 
   });
 
   // Renombrar una capa con doble clic, en su lugar.
-  panel.addEventListener('dblclick', (e) => {
-    const destino = (e.target as HTMLElement).closest<HTMLElement>('[data-renombrar]');
-    if (!destino) return;
-    const capa = capasDelDocumento().find((c) => c.id === destino.dataset.renombrar) as Capa;
-    const nuevo = prompt(t('capas.renombrar'), capa.nombre);
-    if (nuevo === null) return;
-    capa.nombre = nuevo.trim() || capa.nombre;
-    refrescar();
-    alCambiar();
-  });
+  // Renombrar ya no se hace con doble clic: el primer clic marca la capa destino y redibuja la
+  // lista entera, así que el segundo caía sobre un elemento nuevo y el doble clic nunca llegaba.
+  // Vive en el menú de la capa (⋯), donde además no compite con nada.
 
   refrescar();
   return { refrescar };

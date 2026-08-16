@@ -1,15 +1,22 @@
 import type { Canvas } from 'fabric';
 import type { Elemento } from './elemento';
-import { establecerHojas, hojaActual, hojasDelDocumento } from './documento';
+import { capasDelDocumento, establecerCapas, establecerHojas, hojaActual, hojasDelDocumento, type Capa } from './documento';
 
 /**
- * Cada paso guarda el documento entero —todas las hojas y cuál se estaba viendo— y no solo lo que
- * hay en el lienzo. Es lo que hace que deshacer alcance también a las operaciones de hoja: sin
- * esto, borrar una hoja con diez elementos sería lo único del editor que no se puede deshacer.
+ * Cada paso guarda el documento entero —todas las hojas, cuál se estaba viendo y las capas— y no
+ * solo lo que hay en el lienzo. Es lo que hace que deshacer alcance también a las operaciones de
+ * hoja: sin esto, borrar una hoja con diez elementos sería lo único del editor que no se puede
+ * deshacer.
+ *
+ * Las capas entran por lo mismo: un elemento anota su capa por id, así que un paso que restaure los
+ * elementos sin restaurar las capas los dejaría apuntando a una que ya no existe. Y desde que se
+ * pueden reordenar, el orden de las capas y el apilado de los objetos tienen que volver juntos o el
+ * documento queda contándose dos historias distintas.
  */
 interface Instantanea {
   hojas: Elemento[][];
   actual: number;
+  capas: Capa[];
 }
 
 let hist: Instantanea[] = [];
@@ -20,6 +27,7 @@ function clonar(lienzo: Canvas): Instantanea {
   return {
     hojas: JSON.parse(JSON.stringify(hojasDelDocumento(lienzo))),
     actual: hojaActual(),
+    capas: JSON.parse(JSON.stringify(capasDelDocumento())),
   };
 }
 
@@ -43,6 +51,9 @@ async function restaurar(lienzo: Canvas, paso: Instantanea): Promise<void> {
   restaurando = true;
   // Se clona al restaurar: si no, el historial entregaría sus propias listas y editar el lienzo
   // terminaría cambiando el paso guardado.
+  // Las capas primero: los objetos se arman mirando si la suya está apagada o trabada, así que con
+  // las capas viejas todavía puestas nacerían con las marcas equivocadas.
+  establecerCapas(JSON.parse(JSON.stringify(paso.capas)));
   await establecerHojas(lienzo, JSON.parse(JSON.stringify(paso.hojas)), paso.actual);
   restaurando = false;
 }
