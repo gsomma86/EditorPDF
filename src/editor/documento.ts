@@ -158,6 +158,8 @@ function elementosDelLienzo(lienzo: Canvas): Elemento[] {
 /** Vuelca al modelo lo que hay en el lienzo. Hay que llamarlo antes de leer o guardar las hojas. */
 export function asentarHoja(lienzo: Canvas): void {
   hojas[hojaVigente].elementos = elementosDelLienzo(lienzo);
+  // Se aprovecha para anotar cómo quedó viéndose: es justo el momento en que se la deja.
+  capturarMiniatura(lienzo);
 }
 
 /** Todas las hojas, con la vigente ya actualizada desde el lienzo. */
@@ -367,10 +369,49 @@ export function olvidarPaginasDibujadas(pagina?: number): void {
   }
 }
 
-/** La imagen chica de una hoja para la tira: su página del PDF, su fondo propio, o nada. */
+/**
+ * La miniatura tomada del lienzo, que es la única que muestra **la hoja entera**: el fondo y encima
+ * lo que se haya dibujado. Las de `miniaturas` salen de la página del PDF sola, así que no incluyen
+ * ni un texto reemplazado ni una imagen convertida ni nada que se haya agregado.
+ *
+ * Va en un `WeakMap` sobre la hoja y no en el modelo: acompaña a la hoja si se la reordena, se va
+ * sola cuando la hoja deja de existir, y no termina dentro del `.json` del proyecto —una imagen en
+ * base64 por hoja lo haría engordar sin necesidad—.
+ */
+const miniaturasDeLienzo = new WeakMap<Hoja, string>();
+
+/**
+ * Anota cómo se ve ahora la hoja que está en el lienzo. Se llama al dejarla y después de tocarle el
+ * contenido al PDF: son los momentos en que lo que se ve dejó de coincidir con la página sola.
+ */
+export function capturarMiniatura(lienzo: Canvas, indice = hojaVigente): void {
+  const hoja = hojas[indice];
+  if (!hoja) return;
+
+  // Sin el zoom puesto: `toDataURL` respeta la vista, así que trabajando al 220% la miniatura
+  // saldría recortada. Se lo saca, se captura la hoja entera y se lo devuelve como estaba.
+  const vista = lienzo.viewportTransform;
+  try {
+    lienzo.viewportTransform = [1, 0, 0, 1, 0, 0];
+    miniaturasDeLienzo.set(hoja, lienzo.toDataURL({ format: 'png', multiplier: ESCALA_MINIATURA }));
+  } catch {
+    // Un lienzo "sucio" —con una imagen de otro origen— no se deja exportar. Sin miniatura propia
+    // se sigue usando la de la página del PDF: peor, pero no rompe nada.
+  } finally {
+    lienzo.viewportTransform = vista;
+    lienzo.requestRenderAll();
+  }
+}
+
+/** La imagen chica de una hoja para la tira: lo que se ve en ella, su página del PDF, o nada. */
 export async function miniaturaDeHoja(indice: number): Promise<string | null> {
   const hoja = hojas[indice];
   if (!hoja) return null;
+
+  // Primero la del lienzo: es la que incluye lo dibujado encima del fondo.
+  const propia = miniaturasDeLienzo.get(hoja);
+  if (propia) return propia;
+
   if (hoja.paginaPdf === null) return hoja.fondo;
 
   const guardada = miniaturas.get(hoja.paginaPdf);
@@ -390,6 +431,10 @@ export async function miniaturaDeHoja(indice: number): Promise<string | null> {
  */
 export async function refrescarPaginaDibujada(lienzo: Canvas, pagina: number, fondo: string): Promise<void> {
   paginasDibujadas.set(pagina, fondo);
+  // La miniatura de esa página también quedó vieja. No se reescala la grande —se dibuja aparte, a
+  // su tamaño— así que acá solo se la olvida y se rehace sola la próxima vez que la tira se dibuje.
+  // Sin esto, la tira seguía mostrando el texto o la imagen que se acababa de sacar.
+  miniaturas.delete(pagina);
   await aplicarFondo(lienzo);
 }
 

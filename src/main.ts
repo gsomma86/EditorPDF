@@ -15,7 +15,7 @@ import { cablearAyuda } from './ui/ayuda';
 import { montarPaneles } from './ui/paneles';
 import { deshacer, inicializarHistorial, puedeDeshacer, puedeRehacer, registrarSnapshot, rehacer } from './editor/historial';
 import { alCambiarIdioma, aplicarIdioma, t, type ClaveI18n } from './ui/i18n';
-import { agregarHoja, aplicarConfigPagina, cantidadDeHojas, configActual, eliminarHoja, establecerCapas, establecerFondoDeLaHoja, fondoDeLaHoja, establecerHojas, hojaActual, hojaEnBlanco, hojasDesdePdf, irAHoja, medidasDeLaHoja, miniaturaDeHoja, moverHoja, olvidarPaginasDibujadas, paginaDeLaHoja, refrescarPaginaDibujada } from './editor/documento';
+import { agregarHoja, aplicarConfigPagina, cantidadDeHojas, capturarMiniatura, configActual, eliminarHoja, establecerCapas, establecerFondoDeLaHoja, fondoDeLaHoja, establecerHojas, hojaActual, hojaEnBlanco, hojasDesdePdf, irAHoja, medidasDeLaHoja, miniaturaDeHoja, moverHoja, olvidarPaginasDibujadas, paginaDeLaHoja, refrescarPaginaDibujada } from './editor/documento';
 import { activarVista, configurarVista, establecerZoom, vistaActual } from './editor/vista';
 import { configPorDefecto, type Orientacion, type TamanoPagina } from './editor/pagina';
 import { GRUPOS, TEMAS, aplicarTema, establecerCustom, iniciarTema, paletaActual, previsualizar, repintar, temaActual, type NombreTema, type Paleta } from './ui/temas';
@@ -698,6 +698,16 @@ async function trasCambiarHojas(conHistorial: boolean): Promise<void> {
  * van colocando a medida que salen: con un PDF de doce páginas, dibujarlas todas antes de mostrar
  * nada dejaría la tira vacía varios segundos.
  */
+/**
+ * Vuelve a mirar la hoja que está en el lienzo y redibuja la tira. Se llama cuando lo que se ve
+ * cambió respecto de la página del PDF sola: al convertir un texto, una forma o una imagen, que
+ * salen del fondo y vuelven como elementos.
+ */
+function actualizarMiniatura(): void {
+  capturarMiniatura(lienzo);
+  reflejarHojas();
+}
+
 function reflejarHojas(): void {
   const total = cantidadDeHojas();
   const actual = hojaActual();
@@ -1138,6 +1148,9 @@ lienzo.on('mouse:dblclick', async (e) => {
       lienzo.setActiveObject(nuevo);
       lienzo.requestRenderAll();
       mostrarPropiedades(espacio.panelPropiedades, lienzo, nuevo);
+      // La miniatura, recién ahora: la imagen salió del fondo y volvió como elemento, así que
+      // capturarla antes de agregarlo mostraría la hoja sin ella.
+      actualizarMiniatura();
       registrarSnapshot(lienzo);
       guardar();
       return;
@@ -1170,6 +1183,8 @@ lienzo.on('mouse:dblclick', async (e) => {
       lienzo.setActiveObject(elegido);
       mostrarPropiedades(espacio.panelPropiedades, lienzo, elegido);
     }
+    // Recién con las formas ya colocadas: salieron del fondo y volvieron como elementos.
+    actualizarMiniatura();
     registrarSnapshot(lienzo);
     guardar();
     return;
@@ -1177,7 +1192,6 @@ lienzo.on('mouse:dblclick', async (e) => {
 
   const fondo = await borrarTextoDelPdf(original);
   await refrescarPaginaDibujada(lienzo, paginaDeLaHoja() ?? 0, fondo);
-
   const elemento = crearElemento('texto') as Elemento & { clase: 'texto' };
   elemento.text = original.texto;
   elemento.size = original.size;
@@ -1195,6 +1209,8 @@ lienzo.on('mouse:dblclick', async (e) => {
 
   const objeto = await agregarAlLienzo(lienzo, elemento);
   mostrarPropiedades(espacio.panelPropiedades, lienzo, objeto);
+  // Con el texto de reemplazo ya puesto: salió del fondo y volvió como elemento.
+  actualizarMiniatura();
   registrarSnapshot(lienzo);
   guardar();
 });
