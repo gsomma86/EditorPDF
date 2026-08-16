@@ -9,11 +9,13 @@ import {
   pasoRepeticion,
   PASO_RENGLON,
   type Elemento,
+  type ElementoForma,
   type ElementoLinea,
   type ElementoTabla,
   type EstiloLinea,
 } from './elemento';
 import { dimensionesDeHoja, elementoVisible, hojasDelDocumento } from './documento';
+import { puntosDeFigura } from './figuras';
 import { bytesDeFuente } from './fuentes';
 import { bytesDelPdf } from './pdfExistente';
 import { generarQr } from './objetosFabric';
@@ -152,6 +154,37 @@ function dibujarRectangulo(
   pagina.drawRectangle({ ...comun, ...caja(0, 0, ancho, alto), borderWidth: el.grosor });
 }
 
+/**
+ * Elipse, triángulo, flecha y estrella. Los puntos salen de `figuras.ts`, el mismo módulo que usa
+ * el lienzo, así que el PDF no puede quedar dibujando otra cosa que la pantalla.
+ *
+ * El polígono se manda como camino SVG: pdf-lib lo ancla en el punto que se le pasa y mide la Y
+ * hacia abajo desde ahí, que es justo el sistema en el que vienen los puntos. La elipse no es un
+ * polígono y usa su primitiva, que se ancla en el centro.
+ */
+function dibujarForma(pagina: PDFPage, el: ElementoForma, ubi: Ubicador): void {
+  if (el.w <= 0 || el.h <= 0) return;
+
+  const comun = {
+    borderColor: color(el.color),
+    borderWidth: el.grosor,
+    borderDashArray: guion(el.estilo, el.grosor),
+    rotate: ubi.grados,
+    ...(el.conRelleno ? { color: color(el.rellenoColor) } : { opacity: 0 }),
+  };
+
+  const puntos = puntosDeFigura(el);
+  if (!puntos) {
+    const centro = ubi.punto(el.w / 2, el.h / 2);
+    pagina.drawEllipse({ ...comun, x: centro.x, y: centro.y, xScale: el.w / 2, yScale: el.h / 2 });
+    return;
+  }
+
+  const esquina = ubi.punto(0, 0);
+  const camino = `M ${puntos.map((p) => `${p.x} ${p.y}`).join(' L ')} Z`;
+  pagina.drawSvgPath(camino, { ...comun, x: esquina.x, y: esquina.y });
+}
+
 function dibujarTabla(pagina: PDFPage, el: ElementoTabla, alturaPagina: number): void {
   const ubi = ubicador(el, alturaPagina);
   const ancho = anchoTotalTabla(el);
@@ -274,6 +307,10 @@ async function dibujarHoja(
 
       case 'rect':
         dibujarRectangulo(pagina, ubi, 0, 0, el.w, el.h, el);
+        break;
+
+      case 'forma':
+        dibujarForma(pagina, el, ubi);
         break;
 
       case 'tabla':

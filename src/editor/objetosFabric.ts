@@ -5,6 +5,7 @@ import { elementoBloqueado, elementoVisible } from './documento';
 import { asegurarFuenteCargada } from './fuentes';
 import { TablaObjeto } from './tablaObjeto';
 import { LineaObjeto } from './lineaObjeto';
+import { FormaObjeto } from './formaObjeto';
 import { RectObjeto } from './rectObjeto';
 
 /**
@@ -199,6 +200,8 @@ async function construirObjeto(elemento: Elemento): Promise<FabricObject> {
       return new LineaObjeto(elemento);
     case 'rect':
       return new RectObjeto(elemento);
+    case 'forma':
+      return new FormaObjeto(elemento);
     case 'qr': {
       const dataUrl = await generarQr(elemento);
       const imagen = await FabricImage.fromURL(dataUrl);
@@ -450,6 +453,11 @@ export async function sincronizarGeometria(lienzo: import('fabric').Canvas, obje
     elemento.h = altoVisible;
     objeto.set({ scaleX: 1, scaleY: 1 });
     (objeto as RectObjeto).refrescarDesdeDatos();
+  } else if (elemento.clase === 'forma') {
+    elemento.w = anchoVisible;
+    elemento.h = altoVisible;
+    objeto.set({ scaleX: 1, scaleY: 1 });
+    (objeto as FormaObjeto).refrescarDesdeDatos();
   } else {
     // QR e imagen: el objeto de Fabric se dimensiona con scaleX/scaleY sobre el bitmap,
     // así que la escala se conserva y solo se registran las medidas resultantes.

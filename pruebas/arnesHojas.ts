@@ -13,7 +13,7 @@ import { agregarHoja, cantidadDeHojas, eliminarHoja, establecerHojas, hojaActual
 import { inicializarHistorial, deshacer, registrarSnapshot, rehacer } from '../src/editor/historial';
 import { agregarAlLienzo } from '../src/editor/objetosFabric';
 import { exportarPdf } from '../src/editor/exportarPdf';
-import { crearElemento, crearElementoFirma, type Elemento } from '../src/editor/elemento';
+import { crearElemento, crearElementoFirma, crearElementoForma, type Elemento } from '../src/editor/elemento';
 
 // fabric/node arma su propio DOM, pero el catalogo de fuentes pide las web al navegador: en Node
 // no hacen falta y alcanza con que no reviente.
@@ -341,6 +341,39 @@ comparar('reabrir la firma', 'vuelve como firma', ['firma_empleador'], reabierto
 comparar('reabrir la firma', 'en el mismo lugar', [60, 700, 150, 55], reabierto.firmas.map((f) => [f.x, f.y, f.w, f.h])[0]);
 comparar('reabrir la firma', 'no se cuela entre los de texto', [], reabierto.campos.map((c) => c.name));
 cerrarPdf();
+
+// ---------- Formas geométricas ----------
+
+// Que las cuatro figuras bajen dibujadas al PDF, cada una con la geometría que le corresponde. Se
+// mide sobre el contenido de la página —los operadores de dibujo— porque una figura no deja campos
+// ni texto que mirar: si el camino no está, no está.
+await establecerHojas(lienzo, [hojaEnBlanco()], 0);
+for (const [i, figura] of (['elipse', 'triangulo', 'flecha', 'estrella'] as const).entries()) {
+  const forma = crearElementoForma(figura);
+  forma.x = 40;
+  forma.y = 40 + i * 140;
+  forma.conRelleno = figura === 'estrella';
+  await agregarAlLienzo(lienzo, forma);
+}
+
+const conFormas = await exportarPdf(lienzo, { conFormulario: false });
+await writeFile(`${SALIDA}formas.pdf`, conFormas);
+
+const paginaFormas = mupdf.PDFDocument.openDocument(conFormas, 'application/pdf').loadPage(0) as any;
+// `/Contents` puede ser un stream o un arreglo de streams —pdf-lib escribe un arreglo—, así que se
+// juntan todos antes de mirar los operadores.
+const contents = paginaFormas.getObject().get('Contents') as any;
+const partes: any[] = contents.isArray() ? Array.from({ length: contents.length }, (_, i) => contents.get(i)) : [contents];
+const contenido = partes.map((p) => new TextDecoder().decode(p.readStream().asUint8Array())).join('\n');
+// Un camino cerrado por figura: `m` lo abre y `h` lo cierra. La elipse se dibuja con curvas (`c`)
+// y las otras tres solo con rectas (`l`), con tantas como vértices tiene cada una.
+const cuantos = (patron: RegExp) => contenido.match(patron)?.length ?? 0;
+comparar('formas', 'cuatro caminos cerrados', 4, cuantos(/(^|\s)h(\s|$)/g));
+comparar('formas', 'la elipse va con curvas', true, cuantos(/(^|\s)c(\s|$)/g) >= 4);
+// Triángulo (3) + flecha (7) + estrella de 5 puntas (10) = 20 vértices, menos el primero de cada
+// figura, que lo pone `m`: 17 rectas.
+comparar('formas', 'rectas de las tres poligonales', 17, cuantos(/(^|\s)l(\s|$)/g));
+comparar('formas', 'solo la estrella va rellena', 1, cuantos(/(^|\s)B(\s|$)/g));
 
 console.log(filas.join('\n'));
 console.log(`\nPDF en ${SALIDA}multipagina.pdf`);

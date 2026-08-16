@@ -1,7 +1,7 @@
 import './style.css';
 import { montarEspacioTrabajo } from './ui/shell';
 import { crearLienzo } from './editor/lienzo';
-import { crearElemento, crearElementoCampo, crearElementoFirma, crearElementoImagen, crearElementoTabla, duplicarElemento, type ClaseSimple, type Elemento } from './editor/elemento';
+import { crearElemento, crearElementoCampo, crearElementoFirma, crearElementoForma, crearElementoImagen, crearElementoTabla, duplicarElemento, type ClaseSimple, type Elemento, type Figura } from './editor/elemento';
 import { activarModoCompletar, agregarAlLienzo, camposEstanOcultos, elementoDe, enModoCompletar, ocultarCampos, reconstruirLienzo, sincronizarGeometria } from './editor/objetosFabric';
 import { escapeHtml, mostrarMultiSeleccion, mostrarPropiedades, mostrarSinSeleccion } from './ui/panelPropiedades';
 import { ActiveSelection, type FabricObject } from 'fabric';
@@ -263,6 +263,11 @@ document.addEventListener('click', async (evento) => {
       return;
     }
 
+    if (clase === 'forma') {
+      await dibujarForma(figuraVigente);
+      return;
+    }
+
     if ((SIMPLES as string[]).includes(clase ?? '')) {
       const elemento = crearElemento(clase as ClaseSimple);
       await agregarAlLienzo(lienzo, elemento);
@@ -270,6 +275,53 @@ document.addEventListener('click', async (evento) => {
       guardar();
     }
   }
+});
+
+// ---------- Formas: un botón con menú, que recuerda la última figura ----------
+
+/**
+ * Qué figura dibuja la parte ancha del botón. Se recuerda dentro de la sesión, como en cualquier
+ * editor: quien está dibujando estrellas hace clic varias veces seguidas y no quiere volver a
+ * abrir el menú cada vez. No se persiste, que sería memoria de más para lo que aporta.
+ */
+let figuraVigente: Figura = 'elipse';
+
+const cajaFormas = document.getElementById('ed-forma-caja')!;
+const menuFormas = document.getElementById('ed-forma-menu')!;
+const botonForma = document.getElementById('ed-forma-btn')!;
+
+function cerrarMenuFormas(): void {
+  menuFormas.hidden = true;
+  cajaFormas.classList.remove('abierto');
+}
+
+async function dibujarForma(figura: Figura): Promise<void> {
+  figuraVigente = figura;
+  // El botón queda mostrando la última usada, así se ve de qué figura es el próximo clic.
+  botonForma.querySelector('span')!.setAttribute('data-i18n', `forma.${figura}`);
+  aplicarIdioma(botonForma);
+  cerrarMenuFormas();
+  await agregarAlLienzo(lienzo, crearElementoForma(figura));
+  registrarSnapshot(lienzo);
+  guardar();
+}
+
+document.getElementById('ed-forma-abrir')!.addEventListener('click', (evento) => {
+  // Sin esto el clic sigue viaje hasta el delegado de abajo, que cerraría el menú recién abierto.
+  evento.stopPropagation();
+  menuFormas.hidden = !menuFormas.hidden;
+  cajaFormas.classList.toggle('abierto', !menuFormas.hidden);
+});
+
+// Delegado en el documento, como el de `data-dib`: las mismas figuras están en el menú Campos y en
+// el menú del botón, y los atajos de teclado hacen clic sobre esos mismos ítems.
+document.addEventListener('click', (evento) => {
+  const opcion = (evento.target as HTMLElement | null)?.closest<HTMLElement>('[data-figura]');
+  if (opcion) void dibujarForma(opcion.dataset.figura as Figura);
+});
+
+document.addEventListener('click', (evento) => {
+  if (!menuFormas.hidden && !cajaFormas.contains(evento.target as Node)) cerrarMenuFormas();
 });
 
 async function accionDeshacer(): Promise<void> {
@@ -331,6 +383,8 @@ const ATAJOS: { combo: string; donde: string }[] = [
   { combo: 't', donde: '[data-dib="texto"]' },
   { combo: 'l', donde: '[data-dib="linea"]' },
   { combo: 'r', donde: '[data-dib="rect"]' },
+  { combo: 'e', donde: '[data-figura="elipse"]' },
+  { combo: 'f', donde: '[data-figura="flecha"]' },
   { combo: 'b', donde: '[data-dib="tabla"]' },
   { combo: 'i', donde: '[data-dib="imagen"]' },
   { combo: 'q', donde: '[data-dib="qr"]' },

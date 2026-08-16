@@ -26,6 +26,9 @@ function nombreDe(elemento: Elemento): string {
   if (elemento.nombre) return elemento.nombre;
   if (elemento.clase === 'campo') return elemento.name;
   if (elemento.clase === 'texto') return `"${elemento.text.slice(0, 24)}"`;
+  // Las cuatro figuras son una sola clase, pero en la lista se nombran por lo que son: decir
+  // "Forma" cuatro veces no ayudaría a encontrar ninguna.
+  if (elemento.clase === 'forma') return t(`tipo.forma.${elemento.figura}` as never);
   return t(`tipo.${elemento.clase}` as never);
 }
 
@@ -33,10 +36,15 @@ const ICONO: Record<string, string> = {
   texto: '✏',
   linea: '➖',
   rect: '▭',
+  elipse: '⬭',
+  triangulo: '►',
+  flecha: '➔',
+  estrella: '★',
   tabla: '▦',
   imagen: '🖼',
   qr: '▪',
   campo: '⌸',
+  firma: '✒',
 };
 
 export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: () => void): PanelCapas {
@@ -59,7 +67,7 @@ export function montarPanelCapas(panel: HTMLElement, lienzo: Canvas, alCambiar: 
             const clases = ['ed-obj', el.oculto ? 'oculto' : '', el.bloqueado ? 'bloq' : '', objeto === activo ? 'sel' : ''];
             return `
               <div class="${clases.filter(Boolean).join(' ')}" data-id="${el.id}" title="${nombreDe(el)}">
-                <span class="ed-obj-ic">${ICONO[el.clase] ?? '▫'}</span>
+                <span class="ed-obj-ic">${ICONO[el.clase === 'forma' ? el.figura : el.clase] ?? '▫'}</span>
                 <span class="ed-obj-nom">${nombreDe(el)}</span>
                 <button type="button" class="ed-obj-btn" data-ver="${el.id}" data-i18n-title="capas.verTt" title="${t('capas.verTt')}">${el.oculto ? '⃠' : '👁'}</button>
                 <button type="button" class="ed-obj-btn" data-trabar="${el.id}" data-i18n-title="capas.trabarTt" title="${t('capas.trabarTt')}">${el.bloqueado ? '🔒' : '🔓'}</button>

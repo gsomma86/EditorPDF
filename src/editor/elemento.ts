@@ -79,6 +79,38 @@ export interface ElementoRect {
   debajoDeLaPagina?: boolean;
 }
 
+/** Las figuras que dibuja el elemento 'forma'. El recuadro y la línea son elementos aparte. */
+export type Figura = 'elipse' | 'triangulo' | 'flecha' | 'estrella';
+
+/**
+ * Elipse, triángulo, flecha y estrella en un solo elemento, distinguidas por `figura`.
+ *
+ * Son una clase sola y no cuatro a propósito: comparten caja, color, relleno y estilo de línea, y
+ * cada clase nueva del modelo se paga en el exportador, el panel de propiedades, las capas y el
+ * preflight. Lo único propio es `puntas`, que solo mira la estrella.
+ *
+ * Todas se dibujan dentro de su caja y se estiran con ella; la flecha apunta a la derecha y se
+ * orienta con `angulo`, como cualquier otro elemento.
+ */
+export interface ElementoForma {
+  clase: 'forma';
+  figura: Figura;
+  id: number;
+  x: number;
+  y: number;
+  angulo: number;
+  w: number;
+  h: number;
+  color: string;
+  /** Solo sólido o punteado: "doble" necesitaría dos caminos paralelos y no vale lo que cuesta. */
+  estilo: EstiloLinea;
+  grosor: number;
+  conRelleno: boolean;
+  rellenoColor: string;
+  /** Cuántas puntas tiene la estrella. Las demás figuras lo ignoran. */
+  puntas: number;
+}
+
 export interface ElementoQr {
   clase: 'qr';
   id: number;
@@ -206,7 +238,7 @@ export interface ElementoFirma {
   obligatorio: boolean;
 }
 
-export type Elemento = (ElementoTexto | ElementoLinea | ElementoRect | ElementoQr | ElementoTabla | ElementoImagen | ElementoCampo | ElementoFirma) &
+export type Elemento = (ElementoTexto | ElementoLinea | ElementoRect | ElementoForma | ElementoQr | ElementoTabla | ElementoImagen | ElementoCampo | ElementoFirma) &
   Marcas;
 export type ClaseDibujo = Elemento['clase'];
 export type ClaseSimple = 'texto' | 'linea' | 'rect' | 'qr';
@@ -270,6 +302,35 @@ export function crearElemento(clase: ClaseSimple): Elemento {
       return { clase, id, x, y, angulo: 0, w: 80, h: 80, texto: 'https://recibomail.net.ar', color: '#000000', conFondo: true, fondoColor: '#ffffff' };
     }
   }
+}
+
+/** Medidas de arranque de cada figura: la estrella y el triángulo salen cuadrados, la flecha ancha. */
+const MEDIDAS_FIGURA: Record<Figura, { w: number; h: number }> = {
+  elipse: { w: 160, h: 90 },
+  triangulo: { w: 120, h: 110 },
+  flecha: { w: 160, h: 50 },
+  estrella: { w: 110, h: 110 },
+};
+
+export function crearElementoForma(figura: Figura): ElementoForma {
+  const { w, h } = MEDIDAS_FIGURA[figura];
+  const { x, y } = nuevaPosicion(w, h);
+  return {
+    clase: 'forma',
+    figura,
+    id: secuencia++,
+    x,
+    y,
+    angulo: 0,
+    w,
+    h,
+    color: '#111111',
+    estilo: 'solido',
+    grosor: 1,
+    conRelleno: false,
+    rellenoColor: '#ffffff',
+    puntas: 5,
+  };
 }
 
 export function crearElementoTabla(filas: number, columnas: number): ElementoTabla {

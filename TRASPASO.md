@@ -102,8 +102,10 @@ quedan sin empezar Capas, Firma digital y Más formas geométricas.
    lo trata igual que un navegador. No hace falta el diálogo nativo de Tauri.
 7. ~~Campo de firma~~ — **hecho (15/08/2026)**. El editor prepara el recuadro; firmar necesita un
    certificado y no lo hace el editor. Detalle en ROADMAP.md fase 4.
-8. **Lo que queda**: más formas geométricas, arrastrar en el panel de capas para reordenar o cambiar
-   de capa, la alternativa a SmartScreen y la documentación de contribución.
+8. ~~Más formas geométricas~~ — **hecho (15/08/2026)**: elipse, triángulo, flecha y estrella, en un
+   solo elemento `forma`. Detalle en ROADMAP.md fase 4.
+9. **Lo que queda**: arrastrar en el panel de capas para reordenar o cambiar de capa, la alternativa
+   a SmartScreen y la documentación de contribución.
 
 ## Cómo verificar
 
@@ -136,6 +138,9 @@ dar ningún error, como si fuera un bug de la app.
 - **El PDF de base vive en tres lugares**: memoria mientras se trabaja, IndexedDB para sobrevivir a
   una recarga, y dentro del `.json` al guardar el proyecto. En el autoguardado no, porque
   localStorage no aguanta un PDF.
+- **Las cuatro figuras son un solo elemento** (`forma`), distinguidas por `figura`. Si hay que sumar
+  otra —hexágono, rombo—, alcanza con agregarla al tipo `Figura`, darle sus puntos en
+  `editor/figuras.ts` y ponerla en el menú: el exportador, el panel y las capas ya la dibujan.
 - **El campo de firma se arma a mano**: pdf-lib no sabe crear campos `/Sig`, así que en
   `exportarPdf.ts` se construye el diccionario del widget, se lo anota en la página, se lo agrega al
   AcroForm y se pone `/SigFlags 3` en el catálogo. Queda **sin `/V`** a propósito: eso es lo que lo

@@ -441,7 +441,24 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
       Verificado con `npm run verificar-hojas`: el PDF exportado tiene el campo, lo ve el
       formulario, es de tipo firma, el documento se declara con `/SigFlags 3` y el campo sale vacío;
       y la vuelta completa —exportar y reabrir— lo devuelve como firma en las mismas coordenadas.
-- [ ] Más formas geométricas
+- [x] **Más formas geométricas** (15/08/2026). Elipse, triángulo, flecha y estrella. Son **un solo
+      elemento** (`ElementoForma`, con un campo `figura`) y no cuatro clases: comparten caja, color,
+      relleno y estilo de línea, y cada clase nueva del modelo se paga en el exportador, el panel,
+      las capas y el preflight. Lo único propio es `puntas`, que solo mira la estrella.
+      La geometría vive en `editor/figuras.ts` y **la usan los dos lados**: el objeto de Fabric
+      (`formaObjeto.ts`) y el exportador piden los mismos puntos, así que lo que se ve y lo que baja
+      al PDF no se pueden separar —al revés de la tabla, que tiene la geometría escrita dos veces—.
+      En el PDF el polígono baja como camino SVG (`drawSvgPath`, que se ancla arriba a la izquierda
+      y mide la Y hacia abajo, igual que los puntos) y la elipse con `drawEllipse`.
+      **Interfaz**: un botón partido en la sección Dibujo —la parte ancha dibuja la última figura
+      usada, la flechita abre el menú con las cuatro—, para no pasar la sección de 7 botones a 11.
+      Las cuatro están también en el menú Campos. Atajos `E` (elipse) y `F` (flecha); triángulo y
+      estrella no llevan, para no gastar teclas en lo que casi no se usa.
+      El estilo de línea es sólido o punteado: "doble" pediría trazar dos caminos paralelos en una
+      figura curva o en punta y no vale lo que cuesta, así que no se ofrece.
+      Verificado con `npm run verificar-hojas` sobre el contenido del PDF exportado: cuatro caminos
+      cerrados, la elipse con curvas, 17 rectas entre triángulo, flecha y estrella, y el relleno
+      solo en la figura que lo pide.
 
 ## Fase 5 — Empaquetado y distribución
 

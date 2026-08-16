@@ -100,9 +100,12 @@ src/
                           lienzo, el menú Campos, la carga de imágenes y los atajos de teclado.
   style.css               Todos los estilos. Copia fiel de la paleta del editor público.
   editor/
-    elemento.ts           EL MODELO. Tipos de cada elemento (texto/linea/rect/qr/tabla/imagen/
-                          campo/firma), sus constructores con valores por defecto, y el área útil
-                          que acota dónde caen los elementos nuevos.
+    elemento.ts           EL MODELO. Tipos de cada elemento (texto/linea/rect/forma/qr/tabla/
+                          imagen/campo/firma), sus constructores con valores por defecto, y el
+                          área útil que acota dónde caen los elementos nuevos.
+    figuras.ts            La geometría de las formas (elipse, triángulo, flecha, estrella) en
+                          coordenadas locales. La piden el lienzo y el exportador: una sola
+                          definición para lo que se ve y lo que baja al PDF.
     objetosFabric.ts      Traduce modelo -> objeto de Fabric. Mantiene el WeakMap objeto->modelo
                           (`elementoDe`), reconstruye el lienzo y sincroniza geometría. También
                           genera el QR (`generarQr`), compartido con el exportador.

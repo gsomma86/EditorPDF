@@ -6,7 +6,9 @@ import { FAMILIAS_BASE, FAMILIAS_WEB } from '../editor/fuentes';
 import { registrarSnapshot } from '../editor/historial';
 import type { TablaObjeto } from '../editor/tablaObjeto';
 import type { LineaObjeto } from '../editor/lineaObjeto';
+import type { FormaObjeto } from '../editor/formaObjeto';
 import type { RectObjeto } from '../editor/rectObjeto';
+import { PUNTAS_MAX, PUNTAS_MIN } from '../editor/figuras';
 import { GROSOR_MINIMO_DOBLE } from '../editor/trazos';
 import { confirmar, pedirCampoRepetible } from './modales';
 import { aplicarIdioma, t } from './i18n';
@@ -15,6 +17,7 @@ const ETIQUETA_TIPO: Record<Elemento['clase'], Parameters<typeof t>[0]> = {
   texto: 'tipo.texto',
   linea: 'tipo.linea',
   rect: 'tipo.rect',
+  forma: 'tipo.forma',
   qr: 'tipo.qr',
   tabla: 'tipo.tabla',
   imagen: 'tipo.imagen',
@@ -420,6 +423,28 @@ function campoRect(elemento: Elemento & { clase: 'rect' }): string {
   );
 }
 
+function campoForma(elemento: Elemento & { clase: 'forma' }): string {
+  return seccion(
+    'comun.formato',
+    // "Doble" no se ofrece: en una figura curva o en punta habría que trazar dos caminos paralelos,
+    // y no vale lo que cuesta. La estrella es la única que suma un control propio.
+    `${
+      elemento.figura === 'estrella'
+        ? `<div><label class="ed-lbl" data-i18n="props.forma.puntas"></label><input type="number" id="ed-p-puntas" class="mono" value="${elemento.puntas}" min="${PUNTAS_MIN}" max="${PUNTAS_MAX}"></div>`
+        : ''
+    }
+    <div class="ed-row2">
+      <div><label class="ed-lbl" data-i18n="comun.grosorBordePt"></label><input type="number" id="ed-p-grosor" class="mono" value="${elemento.grosor}" min="0.5" step="0.5"></div>
+      <div><label class="ed-lbl" data-i18n="comun.estilo"></label><select id="ed-p-estilo">
+        ${opcionesEstilo(elemento.estilo, ['solido', 'punteado'])}
+      </select></div>
+    </div>
+    <div><label class="ed-lbl" data-i18n="comun.colorBorde"></label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
+    <label class="ed-check"><input type="checkbox" id="ed-p-con-relleno" ${elemento.conRelleno ? 'checked' : ''}> <span data-i18n="props.conRelleno"></span></label>
+    <div><label class="ed-lbl" data-i18n="props.colorRelleno"></label><input type="color" id="ed-p-relleno-color" value="${elemento.rellenoColor}"></div>`
+  );
+}
+
 function campoQr(elemento: Elemento & { clase: 'qr' }): string {
   return (
     seccion(
@@ -479,6 +504,8 @@ function camposPara(elemento: Elemento): string {
       return campoLinea(elemento);
     case 'rect':
       return campoRect(elemento);
+    case 'forma':
+      return campoForma(elemento);
     case 'qr':
       return campoQr(elemento);
     case 'tabla':
@@ -492,13 +519,15 @@ function camposPara(elemento: Elemento): string {
   }
 }
 
-function opcionesEstilo(actual: string): string {
+/** `cuales` acota la lista: las formas no ofrecen "doble", que no saben dibujar. */
+function opcionesEstilo(actual: string, cuales?: string[]): string {
   const claves: Record<string, Parameters<typeof t>[0]> = {
     solido: 'comun.estiloSolida',
     punteado: 'comun.estiloPunteada',
     doble: 'comun.estiloDoble',
   };
   return Object.entries(claves)
+    .filter(([valor]) => !cuales || cuales.includes(valor))
     .map(([valor, clave]) => `<option value="${valor}" ${valor === actual ? 'selected' : ''} data-i18n="${clave}"></option>`)
     .join('');
 }
@@ -669,6 +698,41 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
     });
     $('#ed-p-radio')!.addEventListener('input', (e) => {
       elemento.radio = Number((e.target as HTMLInputElement).value);
+      refrescar();
+    });
+    $('#ed-p-con-relleno')!.addEventListener('change', (e) => {
+      elemento.conRelleno = (e.target as HTMLInputElement).checked;
+      refrescar();
+    });
+    $('#ed-p-relleno-color')!.addEventListener('input', (e) => {
+      elemento.rellenoColor = (e.target as HTMLInputElement).value;
+      if (elemento.conRelleno) refrescar();
+    });
+  }
+
+  if (elemento.clase === 'forma') {
+    // Igual que el recuadro: la forma se redibuja sola desde el modelo (FormaObjeto).
+    const refrescar = () => {
+      (objeto as FormaObjeto).refrescarDesdeDatos();
+      repintar();
+    };
+    const numero = (id: string, aplicar: (valor: number) => void) => {
+      $(id)?.addEventListener('input', (e) => {
+        aplicar(Number((e.target as HTMLInputElement).value));
+        refrescar();
+      });
+    };
+    numero('#ed-p-w', (v) => (elemento.w = v));
+    numero('#ed-p-h', (v) => (elemento.h = v));
+    numero('#ed-p-grosor', (v) => (elemento.grosor = v));
+    // Solo lo tiene la estrella; en las demás figuras el control no existe y `numero` no engancha.
+    numero('#ed-p-puntas', (v) => (elemento.puntas = Math.max(PUNTAS_MIN, Math.min(PUNTAS_MAX, Math.round(v) || 5))));
+    $('#ed-p-color')!.addEventListener('input', (e) => {
+      elemento.color = (e.target as HTMLInputElement).value;
+      refrescar();
+    });
+    $('#ed-p-estilo')!.addEventListener('change', (e) => {
+      elemento.estilo = (e.target as HTMLSelectElement).value as typeof elemento.estilo;
       refrescar();
     });
     $('#ed-p-con-relleno')!.addEventListener('change', (e) => {

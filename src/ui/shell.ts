@@ -72,6 +72,10 @@ const MENU_CAMPOS = `
   <div class="ed-dd-item" data-dib="texto"><span data-i18n="menu.campos.dibTexto"></span> <span class="ed-dd-tecla">T</span></div>
   <div class="ed-dd-item" data-dib="linea"><span data-i18n="menu.campos.dibLinea"></span> <span class="ed-dd-tecla">L</span></div>
   <div class="ed-dd-item" data-dib="rect"><span data-i18n="menu.campos.dibRect"></span> <span class="ed-dd-tecla">R</span></div>
+  <div class="ed-dd-item" data-figura="elipse"><span data-i18n="forma.elipse"></span> <span class="ed-dd-tecla">E</span></div>
+  <div class="ed-dd-item" data-figura="triangulo"><span data-i18n="forma.triangulo"></span> <span class="ed-dd-tecla"></span></div>
+  <div class="ed-dd-item" data-figura="flecha"><span data-i18n="forma.flecha"></span> <span class="ed-dd-tecla">F</span></div>
+  <div class="ed-dd-item" data-figura="estrella"><span data-i18n="forma.estrella"></span> <span class="ed-dd-tecla"></span></div>
   <div class="ed-dd-item" data-dib="tabla"><span data-i18n="menu.campos.dibTabla"></span> <span class="ed-dd-tecla">B</span></div>
   <div class="ed-dd-item" data-dib="imagen"><span data-i18n="menu.campos.dibImagen"></span> <span class="ed-dd-tecla">I</span></div>
   <div class="ed-dd-item" data-dib="qr"><span data-i18n="menu.campos.dibQr"></span> <span class="ed-dd-tecla">Q</span></div>
@@ -121,10 +125,31 @@ const PIEZAS: Record<string, { titulo: string; cuerpo: string }> = {
         <div class="ed-props-tit"><strong data-i18n="shell.herramientas.titulo"></strong></div>
         <div class="ed-col" data-seccion="dibujo"><span class="ed-col-ic">−</span><span class="ed-col-t" data-i18n="shell.dibujo.titulo"></span></div>
         <div class="ed-seccion ed-herramientas" data-cuerpo="dibujo">
-          ${['texto', 'linea', 'rect', 'tabla', 'imagen', 'qr']
+          ${['texto', 'linea', 'rect']
             .map((clase, i) => {
-              const claves = ['dibTexto', 'dibLinea', 'dibRect', 'dibTabla', 'dibImagen', 'dibQr'];
-              const teclas = ['T', 'L', 'R', 'B', 'I', 'Q'];
+              const claves = ['dibTexto', 'dibLinea', 'dibRect'];
+              const teclas = ['T', 'L', 'R'];
+              return `<button type="button" class="ed-herramienta" data-dib="${clase}" title="${teclas[i]}"><span data-i18n="menu.campos.${claves[i]}"></span></button>`;
+            })
+            .join('')}
+          <!-- Las cuatro figuras entran en un botón solo: el ancho dibuja la última usada y la
+               flechita abre el menú. Con un botón por figura la sección pasaba de 7 a 11. -->
+          <div class="ed-herr-part" id="ed-forma-caja">
+            <button type="button" class="ed-herramienta" id="ed-forma-btn" data-dib="forma" title="E"><span data-i18n="forma.elipse"></span></button>
+            <button type="button" class="ed-herr-flecha" id="ed-forma-abrir" data-i18n-title="menu.campos.dibForma">▾</button>
+            <div class="ed-dd-formas" id="ed-forma-menu" hidden>
+              ${(['elipse', 'triangulo', 'flecha', 'estrella'] as const)
+                .map((figura, i) => {
+                  const teclas = ['E', '', 'F', ''];
+                  return `<div class="ed-dd-item" data-figura="${figura}"><span data-i18n="forma.${figura}"></span><span class="ed-dd-tecla">${teclas[i]}</span></div>`;
+                })
+                .join('')}
+            </div>
+          </div>
+          ${['tabla', 'imagen', 'qr']
+            .map((clase, i) => {
+              const claves = ['dibTabla', 'dibImagen', 'dibQr'];
+              const teclas = ['B', 'I', 'Q'];
               return `<button type="button" class="ed-herramienta" data-dib="${clase}" title="${teclas[i]}"><span data-i18n="menu.campos.${claves[i]}"></span></button>`;
             })
             .join('')}

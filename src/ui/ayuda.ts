@@ -123,6 +123,8 @@ const FILAS_ATAJOS: { teclas: string[]; que: Record<Idioma, string> }[] = [
   { teclas: ['T'], que: { es: 'Dibujar un texto', en: 'Draw a text', pt: 'Desenhar um texto' } },
   { teclas: ['L'], que: { es: 'Dibujar una línea', en: 'Draw a line', pt: 'Desenhar uma linha' } },
   { teclas: ['R'], que: { es: 'Dibujar un recuadro', en: 'Draw a box', pt: 'Desenhar um retângulo' } },
+  { teclas: ['E'], que: { es: 'Dibujar una elipse', en: 'Draw an ellipse', pt: 'Desenhar uma elipse' } },
+  { teclas: ['F'], que: { es: 'Dibujar una flecha', en: 'Draw an arrow', pt: 'Desenhar uma seta' } },
   { teclas: ['B'], que: { es: 'Dibujar una tabla', en: 'Draw a table', pt: 'Desenhar uma tabela' } },
   { teclas: ['I'], que: { es: 'Insertar una imagen', en: 'Insert an image', pt: 'Inserir uma imagem' } },
   { teclas: ['Q'], que: { es: 'Insertar un QR', en: 'Insert a QR code', pt: 'Inserir um QR' } },
