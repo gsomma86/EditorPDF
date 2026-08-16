@@ -1,5 +1,6 @@
 import { Control, FabricObject, controlsUtils, type TPointerEvent, type Transform } from 'fabric';
 import { altoTotalTabla, anchoTotalTabla, type ElementoTabla } from './elemento';
+import { internasDeTabla } from './figuras';
 import { guionDe, trazarRectangulo } from './trazos';
 
 const MIN_COL = 8;
@@ -49,31 +50,16 @@ export class TablaObjeto extends FabricObject {
     ctx.strokeStyle = datos.color;
     trazarRectangulo(ctx, x0, y0, ancho, alto, datos.radio, datos.estiloContorno, datos.grosor);
 
-    // Divisiones internas
+    // Divisiones internas: la geometría sale de `figuras.ts`, el mismo módulo que usa el exportador.
     ctx.strokeStyle = datos.colorInterno;
-    const doble = datos.estiloInterno === 'doble';
-    // "Doble" son dos trazos finos separados que suman el grosor pedido, igual que el contorno.
-    const fino = doble ? Math.max(0.5, datos.grosor / 3) : datos.grosor;
-    const desplazamientos = doble ? [-fino, fino] : [0];
-    ctx.lineWidth = fino;
+    const internas = internasDeTabla(datos);
+    ctx.lineWidth = internas.grosor;
     ctx.setLineDash(guionDe(datos.estiloInterno, datos.grosor));
 
     ctx.beginPath();
-    let acumX = 0;
-    for (let i = 0; i < datos.cols.length - 1; i++) {
-      acumX += datos.cols[i];
-      for (const d of desplazamientos) {
-        ctx.moveTo(x0 + acumX + d, y0);
-        ctx.lineTo(x0 + acumX + d, y0 + alto);
-      }
-    }
-    let acumY = 0;
-    for (let i = 0; i < datos.rows.length - 1; i++) {
-      acumY += datos.rows[i];
-      for (const d of desplazamientos) {
-        ctx.moveTo(x0, y0 + acumY + d);
-        ctx.lineTo(x0 + ancho, y0 + acumY + d);
-      }
+    for (const t of internas.trazos) {
+      ctx.moveTo(x0 + t.x1, y0 + t.y1);
+      ctx.lineTo(x0 + t.x2, y0 + t.y2);
     }
     ctx.stroke();
     ctx.restore();

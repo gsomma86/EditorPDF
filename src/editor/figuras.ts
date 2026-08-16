@@ -1,15 +1,16 @@
 /**
- * La geometría de las formas, en un solo lugar.
+ * La geometría que comparten el lienzo y el exportador, en un solo lugar: las formas y las líneas
+ * internas de la tabla.
  *
- * El lienzo y el exportador dibujan **el mismo camino**: los dos piden acá los puntos y solo se
- * diferencian en cómo los trazan (canvas de un lado, pdf-lib del otro). Es a propósito, para no
- * repetir el problema de la tabla, que tiene la geometría escrita dos veces y hay que acordarse de
- * tocar las dos.
+ * El lienzo y el exportador dibujan **lo mismo**: los dos piden acá los puntos y solo se diferencian
+ * en cómo los trazan (canvas de un lado, pdf-lib del otro). Cuando cada uno se calculaba su propia
+ * geometría —como pasaba con la tabla— tocar una y olvidarse de la otra dejaba la pantalla y el PDF
+ * distintos, y eso no se descubre hasta abrir el archivo exportado.
  *
  * Los puntos vienen en coordenadas locales de la caja: (0,0) es su esquina superior izquierda y la
  * Y crece hacia abajo, como en pantalla. Quien dibuje se encarga de llevarlos a donde van.
  */
-import type { ElementoForma } from './elemento';
+import { altoTotalTabla, anchoTotalTabla, type ElementoForma, type ElementoTabla } from './elemento';
 
 export interface Punto {
   x: number;
@@ -129,4 +130,48 @@ export function puntosDeFigura(el: ElementoForma): Punto[] | null {
       return puntos;
     }
   }
+}
+
+/** Un trazo interno de la tabla, en coordenadas locales: (0,0) es su esquina superior izquierda. */
+export interface TrazoTabla {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
+/**
+ * Las líneas que dividen la tabla por dentro, con el grosor que le toca a cada una.
+ *
+ * Existe para que el lienzo y el exportador tracen **las mismas** líneas: antes cada uno acumulaba
+ * las columnas y las filas por su cuenta y repetía la cuenta del estilo "doble", así que tocar una
+ * y olvidarse de la otra dejaba la tabla distinta en pantalla y en el PDF.
+ *
+ * "Doble" son dos trazos finos separados que en conjunto suman el grosor pedido, igual que el
+ * contorno: por eso el grosor devuelto no siempre es el del modelo.
+ */
+export function internasDeTabla(el: ElementoTabla): { grosor: number; trazos: TrazoTabla[] } {
+  const ancho = anchoTotalTabla(el);
+  const alto = altoTotalTabla(el);
+
+  const doble = el.estiloInterno === 'doble';
+  const grosor = doble ? Math.max(0.5, el.grosor / 3) : el.grosor;
+  const desplazamientos = doble ? [-grosor, grosor] : [0];
+
+  const trazos: TrazoTabla[] = [];
+
+  // Las divisorias van entre columna y columna: la última no lleva, que es el borde de la tabla.
+  let acumX = 0;
+  for (let i = 0; i < el.cols.length - 1; i++) {
+    acumX += el.cols[i];
+    for (const d of desplazamientos) trazos.push({ x1: acumX + d, y1: 0, x2: acumX + d, y2: alto });
+  }
+
+  let acumY = 0;
+  for (let i = 0; i < el.rows.length - 1; i++) {
+    acumY += el.rows[i];
+    for (const d of desplazamientos) trazos.push({ x1: 0, y1: acumY + d, x2: ancho, y2: acumY + d });
+  }
+
+  return { grosor, trazos };
 }

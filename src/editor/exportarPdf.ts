@@ -15,7 +15,7 @@ import {
   type EstiloLinea,
 } from './elemento';
 import { dimensionesDeHoja, elementoVisible, hojasDelDocumento } from './documento';
-import { puntosDeFigura, recorrerCamino } from './figuras';
+import { internasDeTabla, puntosDeFigura, recorrerCamino } from './figuras';
 import { bytesDeFuente } from './fuentes';
 import { bytesDelPdf } from './pdfExistente';
 import { generarQr } from './objetosFabric';
@@ -208,26 +208,14 @@ function dibujarTabla(pagina: PDFPage, el: ElementoTabla, alturaPagina: number):
 
   dibujarRectangulo(pagina, ubi, 0, 0, ancho, alto, { color: el.color, estilo: el.estiloContorno, grosor: el.grosor });
 
-  const doble = el.estiloInterno === 'doble';
-  const fino = doble ? Math.max(0.5, el.grosor / 3) : el.grosor;
-  const desplazamientos = doble ? [-fino, fino] : [0];
-  const comun = { thickness: fino, color: color(el.colorInterno), dashArray: guion(el.estiloInterno, el.grosor) };
+  // Las internas salen de `figuras.ts`, el mismo módulo que usa el lienzo: acá solo se las traza.
+  const internas = internasDeTabla(el);
+  const comun = { thickness: internas.grosor, color: color(el.colorInterno), dashArray: guion(el.estiloInterno, el.grosor) };
 
-  // Las líneas internas se describen en coordenadas de la tabla y se rotan con ella; `drawLine`
-  // no acepta rotación, pero tampoco hace falta: los dos extremos ya salen girados.
-  let acumX = 0;
-  for (let i = 0; i < el.cols.length - 1; i++) {
-    acumX += el.cols[i];
-    for (const d of desplazamientos) {
-      pagina.drawLine({ ...comun, start: ubi.punto(acumX + d, 0), end: ubi.punto(acumX + d, alto) });
-    }
-  }
-  let acumY = 0;
-  for (let i = 0; i < el.rows.length - 1; i++) {
-    acumY += el.rows[i];
-    for (const d of desplazamientos) {
-      pagina.drawLine({ ...comun, start: ubi.punto(0, acumY + d), end: ubi.punto(ancho, acumY + d) });
-    }
+  // Vienen en coordenadas de la tabla y se rotan con ella; `drawLine` no acepta rotación, pero
+  // tampoco hace falta: los dos extremos ya salen girados de `ubi.punto`.
+  for (const t of internas.trazos) {
+    pagina.drawLine({ ...comun, start: ubi.punto(t.x1, t.y1), end: ubi.punto(t.x2, t.y2) });
   }
 }
 
