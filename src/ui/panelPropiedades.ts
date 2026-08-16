@@ -850,6 +850,18 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
       if (previa) previa.style.backgroundImage = `url(${dataUrl})`;
       repintar();
     };
+    /**
+     * Lo mismo pero con un respiro, para lo que se escribe letra por letra: un QR se rearma entero
+     * en cada tecla, y de "https://recibomail.net.ar" salían veintiséis. El contador de generación
+     * ya evitaba que se pisaran las respuestas, así que no era un error —solo trabajo tirado—.
+     * Los colores y el fondo siguen siendo inmediatos: ahí cada cambio es uno solo.
+     */
+    let respiro = 0;
+    const regenerarConRespiro = () => {
+      clearTimeout(respiro);
+      respiro = window.setTimeout(regenerar, 250);
+    };
+
     // La vista previa del panel arranca vacía: se llena con el QR ya generado, sin tocar el
     // objeto del lienzo (que ya lo tiene) ni esperar a que se edite algo.
     generarQr(elemento).then((dataUrl) => {
@@ -858,7 +870,7 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
 
     $('#ed-p-texto')!.addEventListener('input', (e) => {
       elemento.texto = (e.target as HTMLInputElement).value;
-      regenerar();
+      regenerarConRespiro();
     });
     $('#ed-p-color')!.addEventListener('input', (e) => {
       elemento.color = (e.target as HTMLInputElement).value;

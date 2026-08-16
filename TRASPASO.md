@@ -209,8 +209,8 @@ dar ningún error, como si fuera un bug de la app.
   Cada familia usada suma ~20 KB al PDF. La salida sería convertir a TTF antes de embeber.
 - **Las tablas no bajan al PDF con el mismo código que las dibuja en pantalla**: `tablaObjeto.ts`
   usa canvas y `exportarPdf.ts` rehace la geometría con pdf-lib. Si se cambia una, tocar la otra.
-- **El QR se regenera en cada tecla** al editar su contenido. Es correcto (hay un contador de
-  generación que descarta respuestas fuera de orden) pero podría llevar un respiro.
+- ~~El QR se regenera en cada tecla~~ — **resuelto (16/08/2026)**: el texto lleva un respiro de
+  250 ms. Los colores y el fondo siguen inmediatos, que ahí cada cambio es uno solo.
 
 ## Fuera del código
 
