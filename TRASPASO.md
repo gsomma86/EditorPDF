@@ -160,6 +160,7 @@ npm run verificar-export   # el PDF exportado contra lo que dibuja el lienzo
 npm run verificar-pdf      # que borrar un texto de un PDF lo borre, y no lo tape
 npm run verificar-campos   # importar los campos de una plantilla real, exportar y comparar que vuelvan iguales
 npm run verificar-apilado  # el orden real del lienzo: que las capas manden y nadie cruce de capa
+npm run verificar-objetos # redimensionar: que el modelo y el objeto del lienzo queden de acuerdo
 npm run medir-rendimiento  # 50, 200, 500 y 1000 elementos
 ```
 
@@ -223,12 +224,15 @@ Con un PDF real, no con uno armado en el arnés (lección 32 y 55):
 
 ## Deudas técnicas conocidas
 
-- **`sincronizarGeometria` para 'campo' reconstruye el objeto** en cada redimensionado. Funciona,
-  pero si se nota un parpadeo conviene actualizar el grupo en su lugar.
+- ~~`sincronizarGeometria` para 'campo' reconstruye el objeto~~ — **resuelto (16/08/2026)**: ahora
+  ajusta el grupo que ya existe. Ojo si se lo toca: los hijos de un grupo de Fabric se ubican
+  respecto de su **centro**, no de su esquina, y la etiqueta hay que volver a recortarla al ancho
+  nuevo. Cubierto por `npm run verificar-objetos`.
 - **Las fuentes se incrustan sin subsetear** (`subset: false`): fontkit no puede subsetear woff.
   Cada familia usada suma ~20 KB al PDF. La salida sería convertir a TTF antes de embeber.
-- **Las tablas no bajan al PDF con el mismo código que las dibuja en pantalla**: `tablaObjeto.ts`
-  usa canvas y `exportarPdf.ts` rehace la geometría con pdf-lib. Si se cambia una, tocar la otra.
+- ~~Las tablas no bajan al PDF con el mismo código que las dibuja en pantalla~~ — **resuelto
+  (16/08/2026)**: las líneas internas salen de `internasDeTabla` en `editor/figuras.ts`, el mismo
+  módulo que ya compartían las formas. `tablaObjeto.ts` y `exportarPdf.ts` solo las trazan.
 - ~~El QR se regenera en cada tecla~~ — **resuelto (16/08/2026)**: el texto lleva un respiro de
   250 ms. Los colores y el fondo siguen inmediatos, que ahí cada cambio es uno solo.
 

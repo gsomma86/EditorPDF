@@ -72,11 +72,14 @@ npm run verificar-campos  # los campos de un formulario real vuelven idénticos 
 npm run verificar-hojas   # documentos de varias hojas: ninguna se mezcla ni se pierde al deshacer
 npm run verificar-formas  # detectar y sacar las formas e imágenes del contenido de un PDF, sin
                           # llevarse por delante el texto ni lo de alrededor
+npm run verificar-apilado # el orden real del lienzo: que las capas manden y nadie cruce de capa
+npm run verificar-objetos # redimensionar deja el modelo y el objeto del lienzo de acuerdo
 npm run medir-rendimiento # cuánto tarda el lienzo con 50, 200, 500 y 1000 elementos
 ```
 
 Antes de un PR, correr al menos `npx tsc --noEmit` y `npm run verificar-export`; si el cambio
-toca el exportador, campos AcroForm, hojas o formas, correr también el arnés específico.
+toca el exportador, campos AcroForm, hojas, formas, capas o los objetos del lienzo, correr también
+el arnés específico.
 
 Los arneses arman sus propios PDF, así que prueban la lógica pero no el mundo: los PDF reales traen
 cosas que uno no inventaría (matrices con ruido de redondeo, imágenes espejadas, transparencias en

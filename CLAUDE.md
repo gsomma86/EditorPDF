@@ -8,9 +8,10 @@ Repo: [gsomma86/EditorPDF](https://github.com/gsomma86/EditorPDF). Autor: Germá
 
 ## Regla: mantener esta documentación al día
 
-Germán trabaja este proyecto con **varios agentes en paralelo**, y estos archivos son la única
-fuente de verdad compartida entre ellos. Al cerrar cada tanda de trabajo, antes de dar el tema por
-terminado y sin esperar a que te lo pidan:
+Germán trabaja con **un agente por vez**, pero no siempre el mismo: cuando se le corta el crédito le
+pasa una tarea puntual a otro. Estos archivos son la única fuente de verdad entre uno y el
+siguiente, que llega sin haber visto la conversación anterior. Al cerrar cada tanda de trabajo,
+antes de dar el tema por terminado y sin esperar a que te lo pidan:
 
 - Tildar en [ROADMAP.md](ROADMAP.md) lo que quedó listo, y agregar lo que se descubrió que falta.
 - Si apareció una decisión de arquitectura, una convención nueva o un bug con causa no obvia,
@@ -77,6 +78,7 @@ npm run verificar-export # compara el PDF exportado contra lo que dibuja el lien
 npm run verificar-pdf    # borra un texto de un PDF real y comprueba que no quedó tapado
 npm run verificar-campos # importa los campos de una plantilla real, exporta y compara que vuelvan iguales
 npm run verificar-apilado # el orden real del lienzo: que las capas manden y nadie cruce de capa
+npm run verificar-objetos # redimensionar: que el modelo y el objeto del lienzo queden de acuerdo
 npm run medir-rendimiento # cuánto tarda el lienzo con 50, 200, 500 y 1000 elementos
 ```
 
@@ -104,9 +106,11 @@ src/
     elemento.ts           EL MODELO. Tipos de cada elemento (texto/linea/rect/forma/qr/tabla/
                           imagen/campo/firma), sus constructores con valores por defecto, y el
                           área útil que acota dónde caen los elementos nuevos.
-    figuras.ts            La geometría de las formas (elipse, triángulo, flecha, estrella) en
-                          coordenadas locales. La piden el lienzo y el exportador: una sola
-                          definición para lo que se ve y lo que baja al PDF.
+    figuras.ts            La geometría que comparten el lienzo y el exportador, en coordenadas
+                          locales: las formas (elipse, triángulo, flecha, estrella, camino) y las
+                          líneas internas de la tabla. Una sola definición para lo que se ve y lo
+                          que baja al PDF — cuando cada lado calculaba la suya, tocar uno y
+                          olvidarse del otro dejaba pantalla y PDF distintos.
     ../ui/temas.ts        Las paletas de color. Un tema es otro juego de valores para las mismas
                           variables CSS de :root, escritas en el elemento raíz. El papel queda
                           blanco en todos: el tema pinta la aplicación, no el documento.
