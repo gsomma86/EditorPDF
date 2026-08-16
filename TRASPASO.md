@@ -112,19 +112,23 @@ quedan sin empezar Capas, Firma digital y Más formas geométricas.
     —issues sí, PR solo después de charlarlo en uno—. `componerIcono.cjs` pasó del scratchpad a
     `scripts/`, documentado. Metadatos de `package.json` completos (description, license, author,
     repository, bugs).
-11. **SmartScreen — falta un paso que solo puede hacer Germán.** Se investigó y se descartaron
-    Azure Trusted Signing (no admite Argentina) y un certificado EV (pide empresa registrada). El
-    camino elegido es **SignPath Foundation** (firma OV gratis para OSS). Ya está listo el CI que
-    compila los instaladores (`.github/workflows/build-windows.yml`), que es el requisito previo.
-    **Falta**: entrar a <https://signpath.org/apply> y completar la solicitud — pide confirmar que
-    controlás el repositorio y una cuenta con autenticación de dos factores, así que lo tiene que
-    hacer la persona dueña del repo, no un agente. Datos a mano para completarla:
-    - Proyecto: EditorPDF — <https://github.com/gsomma86/EditorPDF>
-    - Licencia: AGPL-3.0 (OSI-aprobada, sin doble licencia comercial)
-    - Qué firmar: los instaladores de escritorio (`.exe` NSIS y `.msi`) generados por Tauri
-    La revisión tarda de días a una semana. Una vez aprobada, la Foundation da credenciales para
-    agregar un paso de firma al workflow ya existente (ver `signpath/github-action-submit-signing-request`
-    en la documentación de SignPath) — ese paso sí lo puede terminar un agente.
+11. **SmartScreen — solicitud enviada a SignPath Foundation (16/08/2026), esperando revisión.** Se
+    investigó y se descartaron antes Azure Trusted Signing (no admite Argentina) y un certificado
+    EV (pide empresa registrada). El camino elegido es **SignPath Foundation** (firma OV gratis
+    para OSS), y ya está el CI que compila los instaladores
+    (`.github/workflows/build-windows.yml`), que es el requisito previo que pide la Foundation.
+    La solicitud en <https://signpath.org/apply> la mandó Germán mismo —confirma control del repo
+    con su propia cuenta, no lo puede hacer un agente— con estos datos: proyecto EditorPDF
+    (<https://github.com/gsomma86/EditorPDF>), AGPL-3.0, a firmar los instaladores `.exe`/`.msi` de
+    Tauri, descubierto por una herramienta de IA (Claude) durante el desarrollo. El campo más débil
+    de la solicitud fue "Reputation" —el proyecto es nuevo, sin cobertura ni comunidad todavía—, así
+    que **puede llegar un rechazo o pedido de más pruebas** en vez de una aprobación directa; la
+    revisión normal tarda de días a una semana.
+    **Si aprueban**: la Foundation da credenciales para agregar un paso de firma al workflow ya
+    existente (ver `signpath/github-action-submit-signing-request` en la documentación de SignPath)
+    — ese paso sí lo puede terminar un agente.
+    **Si rechazan por reputación**: no hay nada que hacer del lado del código; esperar a tener uso
+    real (descargas, alguna mención) y volver a aplicar.
 
 ## Cómo verificar
 
