@@ -107,8 +107,12 @@ que lista, página por página, qué formas e imágenes detectaría el editor y 
 
 ## Estado
 
-Fase 4 completa (multipágina, capas, campo de firma, formas) y la app de escritorio funcionando.
-Ver [ROADMAP.md](ROADMAP.md) para el detalle fase por fase.
+**Versión 1.0.0.** Están las cuatro fases: editar el texto, las formas y las imágenes de un PDF
+que ya existe, formularios AcroForm, multipágina, capas, campo de firma, y la aplicación de
+escritorio para Windows. Ver [ROADMAP.md](ROADMAP.md) para el detalle fase por fase.
+
+Lo único pendiente es la firma del instalador, que evita el cartel de SmartScreen: la solicitud
+está enviada a la SignPath Foundation, que da firma gratis a proyectos open source.
 
 ## Contribuir
 

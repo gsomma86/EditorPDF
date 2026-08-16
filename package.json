@@ -1,7 +1,7 @@
 {
   "name": "editorpdf",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "Editor de PDF real, gratuito y open source: edita el contenido de PDFs preexistentes, no solo genera desde cero.",
   "license": "AGPL-3.0-only",

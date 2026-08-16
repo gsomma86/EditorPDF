@@ -462,7 +462,7 @@ const ACERCA: Record<Idioma, string> = {
   <p><b>EditorPDF</b> — editor de PDF libre y de código abierto, sin servidor: todo se procesa en
   el navegador.</p>
   <ul>
-    <li>Versión 0.1.0 (en desarrollo)</li>
+    <li>Versión 1.0.0</li>
     <li>Autor: Germán Ezequiel Somma — <a href="mailto:sommagerman@gmail.com">sommagerman@gmail.com</a></li>
   </ul>
   <h4>Construido con</h4>
@@ -477,9 +477,8 @@ const ACERCA: Record<Idioma, string> = {
   <p><b>EditorPDF</b> — a free, open-source PDF editor with no server: everything runs in the
   browser.</p>
   <ul>
-    <li>Version 0.1.0 (in development)</li>
+    <li>Version 1.0.0</li>
     <li>Author: Germán Ezequiel Somma — <a href="mailto:sommagerman@gmail.com">sommagerman@gmail.com</a></li>
-    code.</li>
   </ul>
   <h4>Built with</h4>
   <ul>
@@ -493,7 +492,7 @@ const ACERCA: Record<Idioma, string> = {
   <p><b>EditorPDF</b> — editor de PDF livre e de código aberto, sem servidor: tudo é processado no
   navegador.</p>
   <ul>
-    <li>Versão 0.1.0 (em desenvolvimento)</li>
+    <li>Versão 1.0.0</li>
     <li>Autor: Germán Ezequiel Somma — <a href="mailto:sommagerman@gmail.com">sommagerman@gmail.com</a></li>
   </ul>
   <h4>Construído com</h4>
