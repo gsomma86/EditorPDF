@@ -192,6 +192,10 @@ const ES = {
 
   'campos.quitarTt': 'Quitar del catálogo',
 
+  'cerrar.titulo': '¿Guardar antes de cerrar?',
+  'cerrar.mensaje': 'Hiciste cambios que todavía no están en ningún archivo. Si cerrás sin guardar, se pierden.',
+  'cerrar.guardarYSalir': 'Guardar y cerrar',
+  'cerrar.salirSinGuardar': 'Cerrar sin guardar',
   'modal.btn.cancelar': 'Cancelar',
   'modal.btn.aplicar': 'Aplicar',
   'modal.btn.guardar': 'Guardar',
@@ -579,6 +583,10 @@ const EN: Record<ClaveI18n, string> = {
 
   'campos.quitarTt': 'Remove from catalog',
 
+  'cerrar.titulo': 'Save before closing?',
+  'cerrar.mensaje': 'You made changes that are not in any file yet. If you close without saving, they are lost.',
+  'cerrar.guardarYSalir': 'Save and close',
+  'cerrar.salirSinGuardar': 'Close without saving',
   'modal.btn.cancelar': 'Cancel',
   'modal.btn.aplicar': 'Apply',
   'modal.btn.guardar': 'Save',
@@ -964,6 +972,10 @@ const PT: Record<ClaveI18n, string> = {
 
   'campos.quitarTt': 'Remover do catálogo',
 
+  'cerrar.titulo': 'Salvar antes de fechar?',
+  'cerrar.mensaje': 'Você fez alterações que ainda não estão em nenhum arquivo. Se fechar sem salvar, elas se perdem.',
+  'cerrar.guardarYSalir': 'Salvar e fechar',
+  'cerrar.salirSinGuardar': 'Fechar sem salvar',
   'modal.btn.cancelar': 'Cancelar',
   'modal.btn.aplicar': 'Aplicar',
   'modal.btn.guardar': 'Salvar',

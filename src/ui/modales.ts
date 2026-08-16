@@ -372,6 +372,38 @@ export function pedirDestinoAlBorrarCapa(
   ) as Promise<DestinoAlBorrarCapa | null>;
 }
 
+/**
+ * Las tres salidas de "vas a cerrar con cambios sin guardar". Es de tres botones y no de dos porque
+ * las tres son cosas distintas: guardar y salir, salir perdiendo el trabajo, o arrepentirse. Con
+ * dos, "cancelar" tendría que hacer de las dos últimas y no se entendería cuál.
+ */
+export type SalidaAlCerrar = 'guardar' | 'salir' | 'cancelar';
+
+export function preguntarAlCerrar(): Promise<SalidaAlCerrar> {
+  // En una variable de cierre y no en el DOM: `abrir` saca el cuadro de la página **antes** de
+  // resolver, así que después ya no habría dónde leer la respuesta.
+  let queria = false;
+
+  return abrir(
+    `<div class="ed-modal-tit">${t('cerrar.titulo')}</div>
+     <div class="ed-modal-sub">${t('cerrar.mensaje')}</div>
+     <div class="ed-modal-acciones">
+       <button type="button" data-cancelar>${t('modal.btn.cancelar')}</button>
+       <button type="button" data-salir>${t('cerrar.salirSinGuardar')}</button>
+       <button type="button" class="primario" data-confirmar>${t('cerrar.guardarYSalir')}</button>
+     </div>`,
+    () => 'guardar' as SalidaAlCerrar,
+    (raiz) => {
+      // `abrir` solo entiende de confirmar y cancelar; el tercer botón se cablea acá y cierra el
+      // cuadro pasando por el de cancelar, para no repetir la lógica de cerrado.
+      raiz.querySelector<HTMLButtonElement>('[data-salir]')!.addEventListener('click', () => {
+        queria = true;
+        raiz.querySelector<HTMLButtonElement>('[data-cancelar]')!.click();
+      });
+    }
+  ).then((r) => (r === 'guardar' ? 'guardar' : queria ? 'salir' : 'cancelar'));
+}
+
 export function confirmar(titulo: string, mensaje: string, etiquetaAceptar = t('modal.btn.aceptar')): Promise<boolean> {
   return abrir(
     `<div class="ed-modal-tit">${titulo}</div>

@@ -19,10 +19,13 @@ import { agregarHoja, aplicarConfigPagina, aplicarFondo, cantidadDeHojas, captur
 import { activarVista, configurarVista, establecerZoom, vistaActual } from './editor/vista';
 import { configPorDefecto, type Orientacion, type TamanoPagina } from './editor/pagina';
 import { GRUPOS, TEMAS, aplicarTema, establecerCustom, iniciarTema, paletaActual, previsualizar, repintar, temaActual, type NombreTema, type Paleta } from './ui/temas';
+import { cablearCierre, editorListo, enEscritorio, marcarCambios, marcarGuardado, pasoDeArranque } from './ui/bienvenida';
 import { cargarProyecto, descargarProyecto, leerProyecto, serializarProyecto } from './editor/proyecto';
 import type { CampoDelPdf, FirmaDelPdf } from './editor/pdfExistente';
 
 const raiz = document.querySelector<HTMLDivElement>('#app')!;
+// Ya corrió el bundle: la pantalla de bienvenida del escritorio puede tildar el primer paso.
+pasoDeArranque('editor');
 // Antes de montar nada: el tema guardado se pinta de entrada para que la interfaz no aparezca un
 // instante con los colores del tema claro y salte al que corresponde.
 iniciarTema();
@@ -86,6 +89,9 @@ function guardar(): void {
   programarAutoguardado(lienzo, panelCampos.obtenerCatalogo);
   programarPeso();
   programarMiniatura();
+  // En escritorio esto es lo que después hace que se pregunte antes de cerrar: ahí el editor
+  // siempre abre en blanco, así que un cambio sin guardar es un cambio que se puede perder.
+  marcarCambios();
 }
 
 let temporizadorMiniatura = 0;
@@ -1417,12 +1423,24 @@ document.getElementById('ed-nuevo')!.addEventListener('click', async () => {
   inicializarHistorial(lienzo);
 });
 
-document.getElementById('ed-guardar-proyecto')!.addEventListener('click', async () => {
+/**
+ * Guarda el proyecto en un `.json`. Devuelve si llegó a guardarse: quien cierra la ventana necesita
+ * saberlo, porque si el usuario canceló el cuadro del nombre no hay que cerrar igual.
+ */
+async function guardarProyecto(): Promise<boolean> {
   const nombre = await pedirNombreArchivo(t('confirmar.guardarProyecto.titulo'), t('confirmar.guardarProyecto.mensaje'), 'proyecto');
-  if (nombre === null) return;
+  if (nombre === null) return false;
   // Con el PDF de base adentro: así el archivo se basta a sí mismo para seguir en otra máquina.
   descargarProyecto(serializarProyecto(lienzo, panelCampos.obtenerCatalogo(), true), nombre);
-});
+  marcarGuardado();
+  return true;
+}
+
+document.getElementById('ed-guardar-proyecto')!.addEventListener('click', () => void guardarProyecto());
+
+// El botón de cerrar de la ventana pregunta si hay trabajo sin guardar. Solo en escritorio: en el
+// navegador la pestaña tiene su propio aviso y además queda el autoguardado.
+cablearCierre(guardarProyecto);
 
 const inputProyecto = document.createElement('input');
 inputProyecto.type = 'file';
@@ -1505,9 +1523,20 @@ document.getElementById('ed-nuevo')!.addEventListener('click', async () => {
   reflejarCantidadDePaginas();
 });
 
+// El editor ya está armado: se muestra la ventana. **Va antes de la pregunta de abajo**: con la
+// ventana principal todavía oculta, ese cuadro quedaría invisible y la aplicación parecería colgada
+// detrás de la bienvenida, esperando una respuesta que nadie podría dar. Se espera a que termine,
+// así lo que sigue ocurre con el editor a la vista.
+await editorListo();
+
 // Al abrir, ofrecer seguir donde se dejó. Se pregunta en vez de restaurar solo, para no
 // pisar sin aviso a quien esperaba empezar en blanco.
-if (hayAutoguardado()) {
+//
+// **En escritorio no se pregunta: siempre abre en blanco**, como Word o Excel. Una aplicación
+// instalada se abre para empezar algo, y retomar lo de la vez pasada es lo que hace el navegador
+// porque ahí no hay archivos. A cambio, cerrar la ventana con trabajo sin guardar avisa antes
+// (ver `cablearCierre`), que es lo que hace que esto no pierda nada.
+if (!enEscritorio() && hayAutoguardado()) {
   const seguir = await confirmar(
     t('confirmar.continuarDondeDejaste.titulo'),
     t('confirmar.continuarDondeDejaste.mensaje'),
