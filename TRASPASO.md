@@ -222,6 +222,20 @@ Con un PDF real, no con uno armado en el arnés (lección 32 y 55):
   pdf-lib y `pdfExistente.ts` (`paginaDelPdf()`, `elegirPagina()`) cuentan desde 0. La UI (selector
   de página) muestra 1..N al usuario y convierte al llamar al módulo.
 
+## Falta probar a mano
+
+- **La pregunta al cerrar la aplicación de escritorio** (16/08/2026). El splash sí quedó verificado,
+  midiendo cuándo aparece cada ventana (0,55 s la bienvenida, 3,41 s el editor). El cuadro de
+  "¿guardar antes de cerrar?" no: para que salte hay que hacer un cambio en el editor, y no se pudo
+  simular porque **la pantalla estaba bloqueada** — con la sesión bloqueada las teclas no llegan al
+  WebView y las capturas de pantalla fallan.
+  Lo que sí está comprobado: el enganche se registra sin error —se sabe porque el aviso de "editor
+  listo" funciona, y ese código corre después—, y **sin cambios la ventana cierra directo**, que es
+  la mitad del comportamiento.
+  Al probarlo: abrir, dibujar cualquier cosa, apretar la ✕, y confirmar que salen las tres salidas;
+  y que eligiendo "Guardar y cerrar" pero cancelando el cuadro del nombre de archivo la ventana
+  **no** se cierra.
+
 ## Deudas técnicas conocidas
 
 - ~~`sincronizarGeometria` para 'campo' reconstruye el objeto~~ — **resuelto (16/08/2026)**: ahora

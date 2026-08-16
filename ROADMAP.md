@@ -616,6 +616,21 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
       Se generan los dos instaladores: **NSIS** (`.exe`, modo por usuario, no pide administrador) y
       **MSI** para despliegue corporativo; los dos pesan 14 MB, con el `mupdf.wasm` de 10 MB
       adentro, y el ejecutable 20 MB. Scripts: `npm run escritorio` y `npm run escritorio-build`.
+      **Pantalla de bienvenida** (16/08/2026). Una segunda ventana de 470×290, sin bordes y
+      centrada, con el logo **vectorial** de ReciboMail sobre una banda de color, la versión, el
+      autor, los pasos del arranque, una barra indeterminada y "Powered by ReciboMail.net.ar".
+      Sigue el tema del sistema con `prefers-color-scheme` —el WebView lo responde igual que un
+      navegador—, y eso resuelve la objeción de que el splash aparece antes de saber el tema de la
+      aplicación: el tema **del sistema** sí está disponible desde el primer instante.
+      Vive en `public/splash.html` a propósito: se copia sin pasar por el bundler, así se dibuja
+      apenas abre la ventana en vez de esperar al JavaScript del editor, que es lo que viene a
+      tapar. Los tiempos los maneja `src-tauri/src/lib.rs`: 2 s de mínimo, 0,75 s de desvanecido y
+      un tope de 5 s por si el editor nunca avisa. Medido: la bienvenida aparece a los 0,55 s y el
+      editor a los 3,41 s — ese 3,41 confirma que entra por el aviso y no por el tope.
+      **En escritorio el editor abre en blanco** (no ofrece retomar lo anterior, como Word o Excel)
+      y por eso **el botón de cerrar pregunta si hay trabajo sin guardar**, con tres salidas. Una
+      sin la otra sería peor que nada: abrir en blanco sin preguntar al cerrar perdería el trabajo
+      sin aviso. En el navegador no cambia nada.
       Ícono propio: el avión de ReciboMail sobre una hoja con renglones, elegido sobre otras tres
       variantes mirándolas a 16, 32 y 48 px. El original tiene mucha estela y a 16 px el avión
       quedaba de unos 6 px, así que va recortado y agrandado; se compone con
