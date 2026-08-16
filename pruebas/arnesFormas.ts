@@ -12,7 +12,7 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { PDFDocument, StandardFonts, degrees, rgb } from '@cantoo/pdf-lib';
-import { borrarFormaDelPdf, borrarFormasDelPdf, formaEn, formasDelPdf } from '../src/editor/formasPdf';
+import { borrarFormaDelPdf, borrarFormasDelPdf, borrarImagenDelPdf, formaEn, formasDelPdf, imagenEn, imagenesDelPdf } from '../src/editor/formasPdf';
 
 const SALIDA = fileURLToPath(new URL('../salida/', import.meta.url));
 const PLANTILLA_REAL = 'C:/Users/gsomma/Desktop/Template recibo Argentina Napsis.pdf';
@@ -27,6 +27,48 @@ function comparar(caso: string, medida: string, esperado: unknown, real: unknown
 }
 
 const ALTO = 400;
+
+/**
+ * Un PNG de 2x2 armado byte a byte, para no depender de ningún archivo de afuera. Se escribe sin
+ * filtro y con un CRC calculado a mano, que es lo mínimo que acepta un lector de PNG.
+ */
+function pngDePrueba(): Uint8Array {
+  const zlib = require('node:zlib') as typeof import('node:zlib');
+  const tabla = new Int32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    tabla[n] = c;
+  }
+  const crc = (b: Buffer) => {
+    let c = -1;
+    for (const x of b) c = tabla[(c ^ x) & 255] ^ (c >>> 8);
+    return (c ^ -1) >>> 0;
+  };
+  const trozo = (tipo: string, datos: Buffer) => {
+    const salida = Buffer.alloc(datos.length + 12);
+    salida.writeUInt32BE(datos.length, 0);
+    salida.write(tipo, 4, 'ascii');
+    datos.copy(salida, 8);
+    salida.writeUInt32BE(crc(Buffer.concat([Buffer.from(tipo, 'ascii'), datos])), datos.length + 8);
+    return salida;
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(2, 0);
+  ihdr.writeUInt32BE(2, 4);
+  ihdr[8] = 8; // 8 bits por componente
+  ihdr[9] = 2; // RGB
+  // Dos filas de dos píxeles, cada una precedida por el byte de filtro (0 = sin filtro).
+  const crudo = Buffer.from([0, 220, 60, 60, 60, 120, 220, 0, 60, 220, 120, 220, 60, 60]);
+  return new Uint8Array(
+    Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      trozo('IHDR', ihdr),
+      trozo('IDAT', zlib.deflateSync(crudo, { level: 9 })),
+      trozo('IEND', Buffer.alloc(0)),
+    ])
+  );
+}
 
 /** Un PDF con formas de todo tipo: las que se pueden editar y las que no. */
 async function pdfDePrueba(): Promise<Uint8Array> {
@@ -140,6 +182,67 @@ if (existsSync(PLANTILLA_REAL)) {
 } else {
   filas.push('     (la plantilla real no está en el escritorio: se saltea esa parte)');
 }
+
+// ---------- Imágenes ----------
+
+// Que se detecten donde están, con sus medidas, que se puedan sacar del contenido, y —lo que
+// importa— que sacarlas NO se lleve el texto ni las formas de alrededor.
+const conImagen = await PDFDocument.create();
+{
+  const pagina = conImagen.addPage([300, ALTO]);
+  const fuente = await conImagen.embedFont(StandardFonts.Helvetica);
+  // Un PNG mínimo de 2x2 armado a mano, para no depender de ningún archivo.
+  const png = await conImagen.embedPng(pngDePrueba());
+  pagina.drawImage(png, { x: 40, y: 250, width: 120, height: 90 });
+  pagina.drawText('TEXTO JUNTO A LA IMAGEN', { x: 20, y: 200, size: 12, font: fuente });
+  pagina.drawRectangle({ x: 20, y: 100, width: 200, height: 40, color: rgb(0.8, 0.8, 0.8) });
+}
+const bytesImagen = new Uint8Array(await conImagen.save());
+await writeFile(`${SALIDA}imagenes-partida.pdf`, bytesImagen);
+
+const imagenes = await imagenesDelPdf(bytesImagen, 0);
+filas.push(`     imágenes detectadas: ${imagenes.map((i) => `${Math.round(i.x)},${Math.round(i.y)} ${Math.round(i.w)}x${Math.round(i.h)} @${i.angulo}deg`).join(' | ')}`);
+
+comparar('imágenes', 'cuántas hay', 1, imagenes.length);
+// y de hoja = alto - (y del PDF + alto de la imagen) = 400 - (250 + 90) = 60.
+comparar('imágenes', 'dónde está', { x: 40, y: 60, w: 120, h: 90 }, {
+  x: Math.round(imagenes[0].x), y: Math.round(imagenes[0].y), w: Math.round(imagenes[0].w), h: Math.round(imagenes[0].h),
+});
+comparar('imágenes', 'sin girar', 0, imagenes[0].angulo);
+comparar('imágenes', 'trae los píxeles', true, imagenes[0].src.startsWith('data:image/png;base64,'));
+comparar('imágenes', 'se la encuentra por punto', 0, imagenEn(imagenes, 100, 100)?.indice);
+comparar('imágenes', 'afuera no hay nada', undefined, imagenEn(imagenes, 280, 380)?.indice);
+
+// Una imagen **espejada y con ruido en la matriz**, que es como llegan de un PDF real: la escala Y
+// negativa y un `b`/`c` de 0,00002 donde debería haber cero. Los dos casos juntos rompían la
+// detección —el ruido la descartaba por "sesgo" y el espejado la ubicaba un alto más abajo— y
+// aparecieron recién probando un manual de verdad, no con PDFs armados acá.
+{
+  const doc = await PDFDocument.create();
+  const pagina = doc.addPage([300, ALTO]);
+  const png = await doc.embedPng(pngDePrueba());
+  pagina.drawImage(png, { x: 60, y: 200, width: 40, height: 40 });
+  const bytes = new Uint8Array(await doc.save());
+
+  // Se le mete el ruido a mano en el content stream: es lo que hace un generador de PDF real al
+  // redondear, y no hay forma de pedírselo a pdf-lib.
+  const texto = Buffer.from(bytes).toString('latin1');
+  const conRuido = texto.replace(/40 0 0 40 60 200 cm/, '40 0.00002 -0.000013 40 60 200 cm');
+  const detectadas = await imagenesDelPdf(new Uint8Array(Buffer.from(conRuido, 'latin1')), 0);
+
+  comparar('matriz con ruido', 'no se descarta por sesgo', 1, detectadas.length);
+  comparar('matriz con ruido', 'la ubica bien igual', { x: 60, y: ALTO - 240, w: 40, h: 40 }, {
+    x: Math.round(detectadas[0]?.x), y: Math.round(detectadas[0]?.y), w: Math.round(detectadas[0]?.w), h: Math.round(detectadas[0]?.h),
+  });
+  comparar('matriz con ruido', 'el ángulo queda en cero', 0, detectadas[0]?.angulo);
+}
+
+const sinImagen = await borrarImagenDelPdf(bytesImagen, 0, imagenes[0]);
+await writeFile(`${SALIDA}imagenes-sin-imagen.pdf`, sinImagen);
+comparar('imágenes', 'se fue del contenido', 0, (await imagenesDelPdf(sinImagen, 0)).length);
+// Lo que más importa: sacar la imagen no puede llevarse lo de al lado.
+comparar('imágenes', 'el texto sigue intacto', textoDe(bytesImagen), textoDe(sinImagen));
+comparar('imágenes', 'las formas siguen ahí', (await formasDelPdf(bytesImagen, 0)).length, (await formasDelPdf(sinImagen, 0)).length);
 
 console.log(filas.join('\n'));
 console.log(`\nPDFs en ${SALIDA}`);

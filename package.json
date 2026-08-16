@@ -26,7 +26,8 @@
     "verificar-formas": "vite build --config pruebas/vite.formas.config.ts && node pruebas/dist-formas/arnesFormas.js",
     "tauri": "tauri",
     "escritorio": "tauri dev",
-    "escritorio-build": "tauri build"
+    "escritorio-build": "tauri build",
+    "inspeccionar": "vite build --config pruebas/vite.formas.config.ts --ssr pruebas/inspeccionar.ts --outDir pruebas/dist-inspeccionar && node pruebas/dist-inspeccionar/inspeccionar.js"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.11.4",

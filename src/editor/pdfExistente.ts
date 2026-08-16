@@ -13,7 +13,7 @@
 
 import { borrarPdfBase, guardarPdfBase, leerPdfBase } from './almacenPdf';
 import { FAMILIAS_BASE, FAMILIAS_WEB } from './fuentes';
-import { borrarFormaDelPdf, formaEn, formasDelPdf, type FormaDelPdf } from './formasPdf';
+import { borrarFormaDelPdf, borrarImagenDelPdf, formaEn, formasDelPdf, imagenEn, imagenesDelPdf, type FormaDelPdf, type ImagenDelPdf } from './formasPdf';
 
 /** Un texto encontrado en el PDF, en coordenadas de la hoja (Y desde arriba, como el lienzo). */
 export interface TextoDelPdf {
@@ -85,6 +85,8 @@ export function familiaEquivalente(nombre: string, generica: string): string {
 let bytesActuales: Uint8Array | null = null;
 let textos: TextoDelPdf[] = [];
 let formas: FormaDelPdf[] = [];
+/** Las imágenes del contenido, releídas junto con las formas cada vez que el PDF cambia. */
+let imagenes: ImagenDelPdf[] = [];
 /** Sobre qué página del PDF se está trabajando. El editor maneja una por vez. */
 let paginaElegida = 0;
 
@@ -110,6 +112,22 @@ export function formasDelPdfActual(): FormaDelPdf[] {
 /** La forma del PDF que cae bajo un punto de la hoja, si hay alguna. */
 export function formaEnPunto(x: number, y: number): FormaDelPdf | undefined {
   return formaEn(formas, x, y);
+}
+
+/** La imagen del PDF que cae bajo un punto de la hoja, si hay alguna. */
+export function imagenEnPunto(x: number, y: number): ImagenDelPdf | undefined {
+  return imagenEn(imagenes, x, y);
+}
+
+/**
+ * Saca una imagen del contenido del PDF y devuelve el fondo actualizado. A diferencia de las
+ * formas no hace falta averiguar qué más se fue: la redacción de imágenes se lleva la que queda
+ * bajo el rectángulo y nada más, porque el dibujo vectorial y el texto se le piden intactos.
+ */
+export async function quitarImagenDelPdf(objetivo: ImagenDelPdf): Promise<string> {
+  if (!bytesActuales) throw new Error('No hay ningún PDF abierto.');
+  await asentarPdf(await borrarImagenDelPdf(bytesActuales, paginaElegida, objetivo));
+  return (await rasterizar()).fondo;
 }
 
 /** Cómo se reconoce una forma entre dos lecturas del mismo PDF. */
@@ -157,6 +175,7 @@ export function cerrarPdf(): void {
   bytesActuales = null;
   textos = [];
   formas = [];
+  imagenes = [];
   paginaElegida = 0;
   void borrarPdfBase();
 }
@@ -172,6 +191,7 @@ export async function asentarPdf(bytes: Uint8Array, pagina = paginaElegida): Pro
   const documento = mupdf.PDFDocument.openDocument(bytes.slice(), 'application/pdf') as InstanceType<typeof mupdf.PDFDocument>;
   textos = leerTextos(documento.loadPage(paginaElegida));
   formas = await formasDelPdf(bytes, paginaElegida);
+  imagenes = await imagenesDelPdf(bytes, paginaElegida);
   await guardarPdfBase(bytes, paginaElegida);
 }
 

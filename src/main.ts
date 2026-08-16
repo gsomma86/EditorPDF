@@ -1107,7 +1107,7 @@ inputPdf.addEventListener('change', async () => {
  * es un texto común, con todo lo que eso trae (panel, deshacer, exportación).
  */
 lienzo.on('mouse:dblclick', async (e) => {
-  const { hayPdfAbierto, textoEn, borrarTextoDelPdf, formaEnPunto, quitarFormaDelPdf } = await import('./editor/pdfExistente');
+  const { hayPdfAbierto, textoEn, borrarTextoDelPdf, formaEnPunto, quitarFormaDelPdf, imagenEnPunto, quitarImagenDelPdf } = await import('./editor/pdfExistente');
   if (!hayPdfAbierto()) return;
 
   // Si el doble clic cayó sobre un objeto, manda el objeto... salvo que sea un campo importado del
@@ -1120,9 +1120,29 @@ lienzo.on('mouse:dblclick', async (e) => {
   const punto = lienzo.getScenePoint(e.e);
   const original = textoEn(punto.x, punto.y);
 
-  // Sin texto abajo, se prueba con las formas: las líneas y recuadros que el PDF trae dibujados.
-  // El texto tiene prioridad porque suele estar encima de ellas y es lo que más se edita.
+  // Sin texto abajo, se prueba con las formas y las imágenes que el PDF trae dibujadas. El texto
+  // tiene prioridad porque suele estar encima y es lo que más se edita.
   if (!original) {
+    // Las imágenes van antes que las formas: casi siempre hay un recuadro de fondo debajo de una
+    // imagen, y si ganara la forma no habría manera de llegar nunca a la imagen.
+    const imagen = imagenEnPunto(punto.x, punto.y);
+    if (imagen) {
+      // Sale del contenido del PDF y vuelve como imagen del diseño, en el mismo lugar y con las
+      // mismas medidas. De ahí en más se estira, se mueve y se borra como cualquier otra: no hace
+      // falta nada propio para redimensionarla ni para eliminarla.
+      const fondo = await quitarImagenDelPdf(imagen);
+      await refrescarPaginaDibujada(lienzo, paginaDeLaHoja() ?? 0, fondo);
+
+      const { elementoDesdeImagen } = await import('./editor/formasPdf');
+      const nuevo = await agregarAlLienzo(lienzo, elementoDesdeImagen(imagen));
+      lienzo.setActiveObject(nuevo);
+      lienzo.requestRenderAll();
+      mostrarPropiedades(espacio.panelPropiedades, lienzo, nuevo);
+      registrarSnapshot(lienzo);
+      guardar();
+      return;
+    }
+
     const forma = formaEnPunto(punto.x, punto.y);
     if (!forma) return;
 

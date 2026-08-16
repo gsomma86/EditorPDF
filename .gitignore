@@ -8,6 +8,7 @@ pruebas/dist-rend/
 pruebas/dist-campos/
 pruebas/dist-hojas/
 pruebas/dist-formas/
+pruebas/dist-inspeccionar/
 pruebas/salida/
 
 .env

@@ -516,3 +516,15 @@ validada — ver la sección Fase 0 del roadmap.
     la hoja y de las miniaturas queda blanco siempre, porque representa lo que se va a imprimir—.
     Lo mismo vale para cualquier valor compuesto que mezcle una variable con un color fijo, como la
     sombra de las miniaturas: hay que rearmarlo desde el tema, no dejarlo en el CSS.
+55. **Las matrices de un PDF real llegan con ruido, así que los épsilon van en proporción, no en
+    valor absoluto.** Detectar imágenes andaba con PDFs armados en el arnés y fallaba con un manual
+    de verdad: los íconos traían `b = 0,00002` y `c = -0,000013` donde debería haber ceros —resto de
+    redondeos del generador— y el corte fijo en `1e-6` los leía como sesgo y los descartaba. Ese
+    desvío es de centésimas de milésima de punto sobre una caja de 24: no existe para el ojo. La
+    tolerancia ahora se compara **contra la escala de la propia matriz** (`1e-3` relativo ≈ 0,06°).
+    Junto con esto apareció el otro: **la escala Y puede venir negativa** —la imagen entra
+    espejada— y entonces el ancla no es la esquina (0,0) del cuadrado unidad sino la de abajo; dando
+    por sentado que era (0,0), las imágenes quedaban un alto más abajo de donde están. Las dos cosas
+    se descubrieron **probando con un archivo real**, no con los del arnés: para todo lo que lea PDF
+    ajeno, un PDF fabricado en la prueba comprueba la lógica pero no el mundo. Hay
+    `npm run inspeccionar -- archivo.pdf` justamente para eso.
