@@ -571,3 +571,19 @@ validada — ver la sección Fase 0 del roadmap.
     `establecerCapas`). Sin eso, la página termina apuntando a un lugar que ya no existe y salta al
     fondo sin que nadie lo haya pedido. La alternativa —una marca por capa— se descartó porque
     permite el estado imposible de explicar: capas de los dos lados de la página, intercaladas.
+60. **Entre dos reglas de CSS con la misma especificidad gana la que está más abajo en el archivo, y
+    el síntoma es que el cambio no hace NADA.** Es la variante de la lección 24 que más cuesta ver.
+    El botón de plegar una capa lleva dos clases (`class="ed-obj-btn ed-capa-plegar"`); se le puso
+    `font-size: 15px` en `.ed-capa-plegar` (línea 1447) y siguió viéndose de 9px, porque
+    `.ed-obj-btn` (línea 1575) define el mismo `font-size` y **las dos valen 0,1,0**. Lo delator es
+    que se veía *exactamente igual*, no un poco más chico: cuando un cambio de CSS no mueve un
+    píxel, sospechar de la cascada antes de tocar el valor —subirlo de 15 a 20 no habría servido de
+    nada—. La salida es **especificidad, no orden**: `.ed-obj-btn.ed-capa-plegar` o
+    `.ed-capa-head .ed-obj-btn`, que ganan estén donde estén. Reordenar el archivo también
+    "funciona" pero deja la trampa armada para el próximo que agregue una regla abajo.
+61. **Un emoji se dibuja mucho más grande que un carácter geométrico del mismo `font-size`.** Los
+    botones de la cabecera de capa son 👁 y 🔒 a 9px y se ven bien; el `▾` de plegar al mismo cuerpo
+    quedaba de unos cuatro píxeles. No hay un número que sirva para los dos: en esa cabecera conviven
+    12px para los emoji y 15px para el triángulo, y **se ven del mismo tamaño**. Al mezclar los dos
+    tipos de glifo en una fila, calibrarlos por separado y no buscar el valor único que los empareje,
+    porque no existe.
