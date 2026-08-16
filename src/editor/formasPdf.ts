@@ -209,6 +209,62 @@ export async function formasDelPdf(bytes: Uint8Array, pagina: number): Promise<F
   return formas;
 }
 
+/**
+ * Rasteriza una imagen del PDF **con su transparencia puesta**.
+ *
+ * `toPixmap()` devuelve solo la imagen de base: donde el PDF la quiere transparente entrega negro
+ * opaco, porque la transparencia no vive ahí sino en una *soft mask* aparte —una imagen en escala
+ * de grises donde 0 es transparente y 255 opaco—. Sin combinarlas, un ícono con fondo transparente
+ * se colocaba sobre un cuadrado negro.
+ *
+ * La máscara puede tener otro tamaño que la base, así que se la muestrea al vecino más cercano: es
+ * suficiente, porque las dos describen la misma figura y solo cambia el detalle.
+ */
+function rasterizarConAlfa(mupdf: any, imagen: any): Uint8Array {
+  const pix = imagen.toPixmap();
+  const mascara = imagen.getMask?.();
+  if (!mascara) return pix.asPNG();
+
+  const ancho = pix.getWidth();
+  const alto = pix.getHeight();
+  const comps = pix.getNumberOfComponents();
+  const datos = pix.getPixels();
+
+  const mp = mascara.toPixmap();
+  const mDatos = mp.getPixels();
+  const mAncho = mp.getWidth();
+  const mAlto = mp.getHeight();
+  const mPaso = mp.getNumberOfComponents();
+  const alfaEn = (x: number, y: number) => {
+    const mx = Math.min(mAncho - 1, Math.floor((x * mAncho) / ancho));
+    const my = Math.min(mAlto - 1, Math.floor((y * mAlto) / alto));
+    return mDatos[(my * mAncho + mx) * mPaso];
+  };
+
+  // Con canal alfa ya presente alcanza con pisarlo.
+  if (pix.getAlpha()) {
+    for (let y = 0; y < alto; y++) {
+      for (let x = 0; x < ancho; x++) datos[(y * ancho + x) * comps + comps - 1] = alfaEn(x, y);
+    }
+    return pix.asPNG();
+  }
+
+  // Sin canal alfa hay que armar un pixmap nuevo que sí lo tenga y copiar color + máscara. Pasa a
+  // menudo: el PDF guarda la imagen en RGB puro y la transparencia enteramente en la soft mask.
+  const conAlfa = new mupdf.Pixmap(pix.getColorSpace(), pix.getBounds(), true);
+  const dDatos = conAlfa.getPixels();
+  const dComps = conAlfa.getNumberOfComponents();
+  for (let y = 0; y < alto; y++) {
+    for (let x = 0; x < ancho; x++) {
+      const origen = (y * ancho + x) * comps;
+      const destino = (y * ancho + x) * dComps;
+      for (let c = 0; c < comps; c++) dDatos[destino + c] = datos[origen + c];
+      dDatos[destino + dComps - 1] = alfaEn(x, y);
+    }
+  }
+  return conAlfa.asPNG();
+}
+
 /** Un `Uint8Array` como data URL. Se corta en pedazos: `btoa` de una imagen entera desborda la pila. */
 function comoDataUrl(bytes: Uint8Array, tipo: string): string {
   let binario = '';
@@ -254,7 +310,7 @@ export async function imagenesDelPdf(bytes: Uint8Array, pagina: number): Promise
 
       let src: string;
       try {
-        src = comoDataUrl(imagen.toPixmap().asPNG(), 'image/png');
+        src = comoDataUrl(rasterizarConAlfa(mupdf, imagen), 'image/png');
       } catch {
         // Hay imágenes que mupdf no sabe rasterizar (máscaras raras, espacios de color exóticos).
         // Sin píxeles no se puede reinsertar, así que no se ofrece para editar.

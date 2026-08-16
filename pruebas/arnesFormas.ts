@@ -70,6 +70,70 @@ function pngDePrueba(): Uint8Array {
   );
 }
 
+/** El mismo PNG pero RGBA, con la esquina superior izquierda totalmente transparente. */
+function pngConAlfa(): Uint8Array {
+  const base = Buffer.from(pngDePrueba());
+  const zlib = require('node:zlib') as typeof import('node:zlib');
+  // Se rehace entero: dos filas de dos píxeles RGBA, el primero transparente.
+  const crudo = Buffer.from([0, 0, 0, 0, 0, 60, 120, 220, 255, 0, 60, 220, 120, 255, 220, 60, 60, 255]);
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(2, 0);
+  ihdr.writeUInt32BE(2, 4);
+  ihdr[8] = 8;
+  ihdr[9] = 6; // RGBA
+  // El armado de trozos y el CRC son los mismos que en `pngDePrueba`; se reusan leyéndolos de ahí.
+  const conTrozo = (tipo: string, datos: Buffer) => {
+    const tabla = new Int32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+      tabla[n] = c;
+    }
+    let c = -1;
+    for (const x of Buffer.concat([Buffer.from(tipo, 'ascii'), datos])) c = tabla[(c ^ x) & 255] ^ (c >>> 8);
+    const salida = Buffer.alloc(datos.length + 12);
+    salida.writeUInt32BE(datos.length, 0);
+    salida.write(tipo, 4, 'ascii');
+    datos.copy(salida, 8);
+    salida.writeUInt32BE((c ^ -1) >>> 0, datos.length + 8);
+    return salida;
+  };
+  return new Uint8Array(
+    Buffer.concat([base.subarray(0, 8), conTrozo('IHDR', ihdr), conTrozo('IDAT', zlib.deflateSync(crudo, { level: 9 })), conTrozo('IEND', Buffer.alloc(0))])
+  );
+}
+
+/**
+ * El alfa del píxel de arriba a la izquierda de un PNG en data URL. 0 = transparente.
+ *
+ * Deshace el filtro de la primera fila en vez de suponer que viene sin filtrar: mupdf elige el que
+ * le conviene, y dando por sentado el 0 la medición devolvía "no sé" en vez de un número.
+ */
+function alfaEsquina(src: string): number | null {
+  if (!src) return null;
+  const zlib = require('node:zlib') as typeof import('node:zlib');
+  const datos = Buffer.from(src.split(',')[1], 'base64');
+  if (datos[25] !== 6) return null; // no es RGBA: no hay alfa que mirar
+
+  const trozos: Buffer[] = [];
+  let i = 8;
+  while (i < datos.length) {
+    const largo = datos.readUInt32BE(i);
+    const tipo = datos.toString('ascii', i + 4, i + 8);
+    if (tipo === 'IDAT') trozos.push(datos.subarray(i + 8, i + 8 + largo));
+    if (tipo === 'IEND') break;
+    i += largo + 12;
+  }
+  const crudo = zlib.inflateSync(Buffer.concat(trozos));
+
+  // En la primera fila la "de arriba" es toda ceros, así que Up y Paeth se reducen a lo de la
+  // izquierda, que para el primer píxel también es cero: solo Sub y Average cambian algo, y para
+  // el byte 0 tampoco. Alcanza con leer el cuarto byte del primer píxel.
+  // Sea cual sea el filtro, para el **primer píxel de la primera fila** no hay vecino a la
+  // izquierda ni arriba, así que todos se reducen a dejar el byte tal cual.
+  return crudo[1 + 3];
+}
+
 /** Un PDF con formas de todo tipo: las que se pueden editar y las que no. */
 async function pdfDePrueba(): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
@@ -235,6 +299,21 @@ comparar('imágenes', 'afuera no hay nada', undefined, imagenEn(imagenes, 280, 3
     x: Math.round(detectadas[0]?.x), y: Math.round(detectadas[0]?.y), w: Math.round(detectadas[0]?.w), h: Math.round(detectadas[0]?.h),
   });
   comparar('matriz con ruido', 'el ángulo queda en cero', 0, detectadas[0]?.angulo);
+}
+
+// Una imagen con transparencia. En el PDF eso no vive en la imagen sino en una *soft mask* aparte,
+// y `toPixmap()` sola devuelve negro opaco donde debería ser transparente: los íconos de un manual
+// real aparecían sobre un cuadrado negro. Se comprueba mirando el alfa de una esquina.
+{
+  const doc = await PDFDocument.create();
+  const pagina = doc.addPage([300, ALTO]);
+  // pdf-lib arma la SMask solo si el PNG trae alfa, así que este es RGBA y no RGB como el otro.
+  const png = await doc.embedPng(pngConAlfa());
+  pagina.drawImage(png, { x: 60, y: 200, width: 40, height: 40 });
+  const detectadas = await imagenesDelPdf(new Uint8Array(await doc.save()), 0);
+
+  comparar('transparencia', 'se detecta', 1, detectadas.length);
+  comparar('transparencia', 'la esquina queda transparente', 0, alfaEsquina(detectadas[0]?.src ?? ''));
 }
 
 const sinImagen = await borrarImagenDelPdf(bytesImagen, 0, imagenes[0]);
