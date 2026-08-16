@@ -70,12 +70,24 @@ npm run verificar-export  # el PDF exportado coincide con lo que dibuja el lienz
 npm run verificar-pdf     # borrar texto de un PDF real no deja nada tapado debajo
 npm run verificar-campos  # los campos de un formulario real vuelven idénticos tras exportar
 npm run verificar-hojas   # documentos de varias hojas: ninguna se mezcla ni se pierde al deshacer
-npm run verificar-formas  # elipse, triángulo, flecha y estrella bajan al PDF con su geometría real
+npm run verificar-formas  # detectar y sacar las formas e imágenes del contenido de un PDF, sin
+                          # llevarse por delante el texto ni lo de alrededor
 npm run medir-rendimiento # cuánto tarda el lienzo con 50, 200, 500 y 1000 elementos
 ```
 
 Antes de un PR, correr al menos `npx tsc --noEmit` y `npm run verificar-export`; si el cambio
 toca el exportador, campos AcroForm, hojas o formas, correr también el arnés específico.
+
+Los arneses arman sus propios PDF, así que prueban la lógica pero no el mundo: los PDF reales traen
+cosas que uno no inventaría (matrices con ruido de redondeo, imágenes espejadas, transparencias en
+una máscara aparte). **Si el cambio toca la lectura de PDF ajenos, probalo también con archivos de
+verdad.** Para eso está:
+
+```bash
+npm run inspeccionar -- "C:/ruta/al/archivo.pdf"
+```
+
+que lista, página por página, qué formas e imágenes detectaría el editor y en qué posición.
 
 ## Stack
 

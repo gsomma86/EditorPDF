@@ -115,7 +115,14 @@ quedan sin empezar Capas, Firma digital y Más formas geométricas.
 11. ~~Formas giradas del PDF~~ y ~~menú de capas~~ y ~~temas de color~~ — **hecho (16/08/2026)**.
     Detalle en ROADMAP.md. De los tres, el que dejó deuda es ninguno; el que destapó un agujero
     viejo fue el de capas (las capas no estaban en el historial, ya corregido).
-12. **SmartScreen — solicitud enviada a SignPath Foundation (16/08/2026), esperando revisión.** Se
+12. ~~Imágenes del PDF~~ — **hecho (16/08/2026)**: doble clic y la imagen sale del PDF y vuelve como
+    imagen del diseño, con lo que se la mueve, redimensiona y borra. Lo más valioso de esta tanda no
+    fue la función sino **probarla con un manual real**: destapó cuatro bugs que ningún PDF armado
+    en el arnés mostraba (ruido en las matrices, imágenes espejadas, la transparencia en una máscara
+    aparte, y la miniatura que nunca mostró lo dibujado). Para eso quedó
+    `npm run inspeccionar -- archivo.pdf`. **Si se toca cualquier cosa que lea PDF ajeno, probar con
+    archivos de verdad antes de darlo por bueno.**
+13. **SmartScreen — solicitud enviada a SignPath Foundation (16/08/2026), esperando revisión.** Se
     investigó y se descartaron antes Azure Trusted Signing (no admite Argentina) y un certificado
     EV (pide empresa registrada). El camino elegido es **SignPath Foundation** (firma OV gratis
     para OSS), y ya está el CI que compila los instaladores

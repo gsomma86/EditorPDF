@@ -528,3 +528,16 @@ validada — ver la sección Fase 0 del roadmap.
     se descubrieron **probando con un archivo real**, no con los del arnés: para todo lo que lea PDF
     ajeno, un PDF fabricado en la prueba comprueba la lógica pero no el mundo. Hay
     `npm run inspeccionar -- archivo.pdf` justamente para eso.
+56. **La transparencia de una imagen de PDF no está en la imagen.** Vive en una *soft mask* aparte
+    —otra imagen, en grises, donde 0 es transparente y 255 opaco— así que `toPixmap()` sola devuelve
+    negro opaco donde debería no haber nada: los íconos de un manual aparecían sobre un cuadrado
+    negro. Hay que pedir `getMask()` y combinarlas. Ojo con el segundo caso: **la base puede venir
+    sin canal alfa** (RGB puro, con toda la transparencia en la máscara), y entonces no hay dónde
+    escribir el alfa — hay que armar un pixmap nuevo con alfa y copiar color + máscara.
+57. **Una caché que nadie invalida miente con cara de estar bien.** La miniatura de la hoja se
+    guardaba por página del PDF y `refrescarPaginaDibujada` no la borraba, así que la tira seguía
+    mostrando el texto o la imagen recién sacados. Al invalidarla apareció el problema de fondo, que
+    la caché venía tapando por accidente: **la miniatura se dibujaba solo desde la página del PDF**
+    y nunca mostró nada de lo dibujado encima. Moraleja doble: si algo se ve bien por una caché
+    vieja, no está bien; y una miniatura tiene que salir de lo mismo que ve el usuario —el lienzo—
+    y no de una de sus partes.

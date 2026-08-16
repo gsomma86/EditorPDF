@@ -279,6 +279,25 @@ Hallazgos técnicos que siguen valiendo:
       El arnés comprueba las **cuatro esquinas** reconstruidas desde x/y/w/h/ángulo contra donde el
       PDF las dibujó: es lo único que delata un ancla o un signo equivocados, que las medidas por sí
       solas no cuentan.
+- [x] **Las imágenes del PDF se pueden mover, redimensionar y borrar** (16/08/2026). Doble clic:
+      sale del contenido —misma redacción que las formas, pero pidiéndole que se lleve la imagen y
+      deje quietos el dibujo y el texto— y vuelve como imagen del diseño, en el mismo lugar y
+      medidas. De ahí en más es una imagen común, así que redimensionar y eliminar salieron gratis.
+      Ganan sobre las formas en el doble clic: casi siempre hay un recuadro de fondo debajo y si
+      ganara la forma no se llegaría nunca a la imagen.
+      **Tres bugs que solo aparecieron probando un manual real de 14 páginas** —los PDF que fabrica
+      el arnés no los mostraban—, todos ya cubiertos por el arnés: las matrices reales traen ruido
+      de redondeo y el épsilon fijo las descartaba como "con sesgo" (ahora es relativo a la escala);
+      la escala Y puede venir negativa —la imagen entra espejada— y el ancla no es la esquina (0,0)
+      del cuadrado unidad sino la de abajo; y la transparencia vive en una *soft mask* aparte, así
+      que `toPixmap()` sola devuelve negro opaco donde debería ser transparente.
+      Queda `npm run inspeccionar -- archivo.pdf`, que lista lo que el editor detectaría en cada
+      página: sobre ese manual, 42 imágenes y 712 formas.
+- [x] **La miniatura de la hoja muestra lo que se ve** (16/08/2026). Se dibujaba solo desde la
+      página del PDF, así que no incluía nada de lo dibujado encima —y después de convertir algo
+      mostraba la hoja sin ello—. Ahora se toma del lienzo, sin el zoom puesto (`toDataURL` respeta
+      la vista y al 220% saldría recortada), y vive en un `WeakMap` sobre la hoja para que acompañe
+      los reordenamientos sin engordar el `.json` del proyecto.
 - [ ] Curvas y paths compuestos quedan afuera: no hay elemento del modelo que represente una curva
       o un polígono libre, habría que inventar uno. Se pospuso a propósito hasta tener un PDF real
       donde importe — la fase 3 ya se equivocó una vez decidiendo sin medir la muestra correcta.
