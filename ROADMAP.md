@@ -441,8 +441,11 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
 - [x] **Campo de firma** (15/08/2026). El editor prepara el recuadro donde después alguien firma;
       firmar es otra cosa —necesita un certificado— y no la hace el editor. Es un elemento propio,
       `ElementoFirma`: recuadro con borde punteado, una leyenda adentro ("Firma del empleador") y
-      la marca de obligatorio. Vive en la sección **Campos AcroForm** de Herramientas, fija como el
-      resto —no se puede sacar de la barra—.
+      la marca de obligatorio. Vive en la sección **Dibujo** de Herramientas, separada del resto de
+      las figuras con una línea —no es un dibujo cualquiera: ya nace pensada para el formulario del
+      PDF, tiene nombre y es obligatoria o no—; empezó en Campos AcroForm y se movió acá el
+      16/08/2026, porque ahí compartía sección con el catálogo de campos que sí se repiten, y la
+      firma no. También está en el menú Campos, con la misma separación.
       Al exportar sale como campo de firma de verdad: pdf-lib no sabe crear ninguno, así que el
       diccionario se arma a mano (`/FT /Sig`, widget anotado en la página y agregado al AcroForm,
       `/SigFlags 3` en el catálogo) y **sin `/V`**, que es lo que lo deja vacío esperando la firma.
@@ -465,10 +468,11 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
       al PDF no se pueden separar —al revés de la tabla, que tiene la geometría escrita dos veces—.
       En el PDF el polígono baja como camino SVG (`drawSvgPath`, que se ancla arriba a la izquierda
       y mide la Y hacia abajo, igual que los puntos) y la elipse con `drawEllipse`.
-      **Interfaz**: un botón partido en la sección Dibujo —la parte ancha dibuja la última figura
-      usada, la flechita abre el menú con las cuatro—, para no pasar la sección de 7 botones a 11.
-      Las cuatro están también en el menú Campos. Atajos `E` (elipse) y `F` (flecha); triángulo y
-      estrella no llevan, para no gastar teclas en lo que casi no se usa.
+      **Interfaz**: un botón por figura en la sección Dibujo, igual que Texto/Línea/Recuadro —se
+      probó primero un botón partido con menú para no pasar de 7 a 11 botones, pero un clic extra
+      para cada figura pesaba más de lo que ahorraba en espacio (16/08/2026)—. Las cuatro están
+      también en el menú Campos. Atajos `E` (elipse) y `F` (flecha); triángulo y estrella no
+      llevan, para no gastar teclas en lo que casi no se usa.
       El estilo de línea es sólido o punteado: "doble" pediría trazar dos caminos paralelos en una
       figura curva o en punta y no vale lo que cuesta, así que no se ofrece.
       Verificado con `npm run verificar-hojas` sobre el contenido del PDF exportado: cuatro caminos
@@ -487,8 +491,11 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
       adentro, y el ejecutable 20 MB. Scripts: `npm run escritorio` y `npm run escritorio-build`.
       Ícono propio: el avión de ReciboMail sobre una hoja con renglones, elegido sobre otras tres
       variantes mirándolas a 16, 32 y 48 px. El original tiene mucha estela y a 16 px el avión
-      quedaba de unos 6 px, así que va recortado y agrandado; se compone con un script que usa solo
-      `zlib` de Node, porque no hay ninguna librería de imágenes instalada.
+      quedaba de unos 6 px, así que va recortado y agrandado; se compone con
+      [`scripts/componerIcono.cjs`](scripts/componerIcono.cjs) (16/08/2026, versionado — vivía
+      solo en un scratchpad), que usa nada más que `zlib` de Node porque no hay ninguna librería de
+      imágenes instalada. `node scripts/componerIcono.cjs icono.png src-tauri/icons/icon.png`
+      y después `npx tauri icon src-tauri/icons/icon.png` desde `src-tauri/` para los demás tamaños.
       **Las descargas andan en la aplicación instalada** (probado el 15/08/2026). Era el riesgo
       abierto: Exportar PDF y Guardar proyecto bajan el archivo con un enlace `blob:`, y no estaba
       dicho que WebView2 lo tratara como un navegador. Lo trata igual, así que **no hay que meter

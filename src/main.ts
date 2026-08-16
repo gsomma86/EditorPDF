@@ -31,15 +31,6 @@ const panelCampos = montarPanelCampos(espacio.panelCampos, async (nombre) => {
   guardar();
 });
 const panelCapas = montarPanelCapas(document.getElementById('ed-panel-capas')!, lienzo, () => guardar());
-// El campo de firma se coloca directo en la hoja: no pasa por el catálogo, porque cada uno lleva
-// su propio nombre y se coloca una sola vez.
-document.getElementById('ed-campo-firma')!.addEventListener('click', async () => {
-  const cuantas = elementosDelLienzo().filter((el) => el.clase === 'firma').length;
-  await agregarAlLienzo(lienzo, crearElementoFirma(t('campos.nombreFirma', { n: cuantas + 1 }), ''));
-  registrarSnapshot(lienzo);
-  guardar();
-});
-
 const ayuda = cablearAyuda();
 montarPaneles(espacio.raiz);
 activarVista(lienzo);
@@ -267,8 +258,13 @@ document.addEventListener('click', async (evento) => {
       return;
     }
 
-    if (clase === 'forma') {
-      await dibujarForma(figuraVigente);
+    if (clase === 'firma') {
+      // No pasa por el catálogo: cada campo de firma lleva su propio nombre y se coloca una sola
+      // vez, a diferencia de un campo de texto que se puede repetir.
+      const cuantas = elementosDelLienzo().filter((el) => el.clase === 'firma').length;
+      await agregarAlLienzo(lienzo, crearElementoFirma(t('campos.nombreFirma', { n: cuantas + 1 }), ''));
+      registrarSnapshot(lienzo);
+      guardar();
       return;
     }
 
@@ -281,51 +277,19 @@ document.addEventListener('click', async (evento) => {
   }
 });
 
-// ---------- Formas: un botón con menú, que recuerda la última figura ----------
-
-/**
- * Qué figura dibuja la parte ancha del botón. Se recuerda dentro de la sesión, como en cualquier
- * editor: quien está dibujando estrellas hace clic varias veces seguidas y no quiere volver a
- * abrir el menú cada vez. No se persiste, que sería memoria de más para lo que aporta.
- */
-let figuraVigente: Figura = 'elipse';
-
-const cajaFormas = document.getElementById('ed-forma-caja')!;
-const menuFormas = document.getElementById('ed-forma-menu')!;
-const botonForma = document.getElementById('ed-forma-btn')!;
-
-function cerrarMenuFormas(): void {
-  menuFormas.hidden = true;
-  cajaFormas.classList.remove('abierto');
-}
+// ---------- Formas ----------
 
 async function dibujarForma(figura: Figura): Promise<void> {
-  figuraVigente = figura;
-  // El botón queda mostrando la última usada, así se ve de qué figura es el próximo clic.
-  botonForma.querySelector('span')!.setAttribute('data-i18n', `forma.${figura}`);
-  aplicarIdioma(botonForma);
-  cerrarMenuFormas();
   await agregarAlLienzo(lienzo, crearElementoForma(figura));
   registrarSnapshot(lienzo);
   guardar();
 }
 
-document.getElementById('ed-forma-abrir')!.addEventListener('click', (evento) => {
-  // Sin esto el clic sigue viaje hasta el delegado de abajo, que cerraría el menú recién abierto.
-  evento.stopPropagation();
-  menuFormas.hidden = !menuFormas.hidden;
-  cajaFormas.classList.toggle('abierto', !menuFormas.hidden);
-});
-
-// Delegado en el documento, como el de `data-dib`: las mismas figuras están en el menú Campos y en
-// el menú del botón, y los atajos de teclado hacen clic sobre esos mismos ítems.
+// Delegado en el documento y no atado a los botones, igual que el de `data-dib`: las mismas cuatro
+// figuras están también en el menú Campos, y así hay una sola implementación para las dos.
 document.addEventListener('click', (evento) => {
   const opcion = (evento.target as HTMLElement | null)?.closest<HTMLElement>('[data-figura]');
   if (opcion) void dibujarForma(opcion.dataset.figura as Figura);
-});
-
-document.addEventListener('click', (evento) => {
-  if (!menuFormas.hidden && !cajaFormas.contains(evento.target as Node)) cerrarMenuFormas();
 });
 
 async function accionDeshacer(): Promise<void> {

@@ -80,6 +80,8 @@ const MENU_CAMPOS = `
   <div class="ed-dd-item" data-dib="imagen"><span data-i18n="menu.campos.dibImagen"></span> <span class="ed-dd-tecla">I</span></div>
   <div class="ed-dd-item" data-dib="qr"><span data-i18n="menu.campos.dibQr"></span> <span class="ed-dd-tecla">Q</span></div>
   <div class="ed-dd-sep"></div>
+  <div class="ed-dd-item" data-dib="firma"><span data-i18n="campos.agregarFirma"></span> <span class="ed-dd-tecla"></span></div>
+  <div class="ed-dd-sep"></div>
   <div class="ed-dd-item" id="ed-csv-importar"><span data-i18n="menu.campos.csvImportar"></span> <span class="ed-dd-tecla">Ctrl+Alt+C</span></div>
   <div class="ed-dd-item" id="ed-csv-exportar"><span data-i18n="menu.campos.csvExportar"></span> <span class="ed-dd-tecla">Ctrl+Alt+X</span></div>
   <div class="ed-dd-sep"></div>
@@ -132,20 +134,12 @@ const PIEZAS: Record<string, { titulo: string; cuerpo: string }> = {
               return `<button type="button" class="ed-herramienta" data-dib="${clase}" title="${teclas[i]}"><span data-i18n="menu.campos.${claves[i]}"></span></button>`;
             })
             .join('')}
-          <!-- Las cuatro figuras entran en un botón solo: el ancho dibuja la última usada y la
-               flechita abre el menú. Con un botón por figura la sección pasaba de 7 a 11. -->
-          <div class="ed-herr-part" id="ed-forma-caja">
-            <button type="button" class="ed-herramienta" id="ed-forma-btn" data-dib="forma" title="E"><span data-i18n="forma.elipse"></span></button>
-            <button type="button" class="ed-herr-flecha" id="ed-forma-abrir" data-i18n-title="menu.campos.dibForma">▾</button>
-            <div class="ed-dd-formas" id="ed-forma-menu" hidden>
-              ${(['elipse', 'triangulo', 'flecha', 'estrella'] as const)
-                .map((figura, i) => {
-                  const teclas = ['E', '', 'F', ''];
-                  return `<div class="ed-dd-item" data-figura="${figura}"><span data-i18n="forma.${figura}"></span><span class="ed-dd-tecla">${teclas[i]}</span></div>`;
-                })
-                .join('')}
-            </div>
-          </div>
+          ${(['elipse', 'triangulo', 'flecha', 'estrella'] as const)
+            .map((figura, i) => {
+              const teclas = ['E', '', 'F', ''];
+              return `<button type="button" class="ed-herramienta" data-figura="${figura}" title="${teclas[i]}"><span data-i18n="forma.${figura}"></span></button>`;
+            })
+            .join('')}
           ${['tabla', 'imagen', 'qr']
             .map((clase, i) => {
               const claves = ['dibTabla', 'dibImagen', 'dibQr'];
@@ -153,6 +147,11 @@ const PIEZAS: Record<string, { titulo: string; cuerpo: string }> = {
               return `<button type="button" class="ed-herramienta" data-dib="${clase}" title="${teclas[i]}"><span data-i18n="menu.campos.${claves[i]}"></span></button>`;
             })
             .join('')}
+          <!-- Separada con una línea: a diferencia de los diez de arriba, esta ya nace pensada
+               para el formulario del PDF (tiene nombre, es obligatoria o no). -->
+          <div class="ed-dd-sep"></div>
+          <button type="button" class="ed-herramienta" data-dib="firma" data-i18n="campos.agregarFirma"></button>
+          <p class="nota ed-nota-dibujo" data-i18n="campos.notaFirma"></p>
         </div>
 
         <div class="ed-col" data-seccion="acroform"><span class="ed-col-ic">−</span><span class="ed-col-t" data-i18n="shell.campos.titulo"></span><span class="ed-col-n">0</span></div>
@@ -160,8 +159,6 @@ const PIEZAS: Record<string, { titulo: string; cuerpo: string }> = {
           <div class="ed-campos-add"><input type="text" id="ed-campo-nuevo" data-i18n-placeholder="shell.campos.placeholder" /><button type="button" id="ed-campo-agregar">+</button></div>
           <div id="ed-lista-campos"></div>
           <p class="nota" data-i18n="shell.campos.nota"></p>
-          <button type="button" class="ed-boton-firma" id="ed-campo-firma" data-i18n="campos.agregarFirma"></button>
-          <p class="nota" data-i18n="campos.notaFirma"></p>
         </div>
       </div>`,
   },

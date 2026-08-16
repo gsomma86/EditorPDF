@@ -396,6 +396,11 @@ button {
   color: var(--texto-suave);
   line-height: 1.5;
 }
+/* La nota del campo de firma vive dentro de la lista de Dibujo (columna flex con gap chico): sin
+   achicar el margen por defecto del párrafo, quedaba más separada del botón que el resto. */
+.ed-nota-dibujo {
+  margin: 2px 2px 0;
+}
 .ed-campo-fila {
   display: flex;
   align-items: center;
@@ -1317,52 +1322,6 @@ button {
 .ed-herramienta:hover {
   background: var(--card-1);
   border-color: var(--borde);
-}
-
-/* El botón de formas está partido: la parte ancha dibuja la última figura usada y la angosta abre
-   el menú con las cuatro. Se ve como un botón solo hasta que se lo señala. */
-.ed-herr-part {
-  display: flex;
-  position: relative;
-}
-.ed-herr-part .ed-herramienta {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-}
-.ed-herr-flecha {
-  width: 22px;
-  flex: none;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid transparent;
-  border-left: 1px solid var(--borde);
-  border-radius: 0 6px 6px 0;
-  background: transparent;
-  color: var(--texto-2);
-  font-size: 10px;
-}
-.ed-herr-flecha:hover,
-.ed-herr-part.abierto .ed-herr-flecha {
-  background: var(--card-1);
-  border-color: var(--borde);
-}
-.ed-dd-formas {
-  position: absolute;
-  left: 8px;
-  top: 100%;
-  z-index: 30;
-  min-width: 168px;
-  background: var(--fondo);
-  border: 1px solid var(--borde-fuerte);
-  border-radius: 8px;
-  padding: 5px;
-  box-shadow: 0 8px 22px rgba(4, 44, 83, 0.15);
-}
-.ed-dd-tecla {
-  color: var(--texto-suave);
-  font-size: 11px;
 }
 
 /* ---------- Costados partidos en dos ---------- */
