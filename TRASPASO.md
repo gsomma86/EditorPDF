@@ -112,7 +112,19 @@ quedan sin empezar Capas, Firma digital y Más formas geométricas.
     —issues sí, PR solo después de charlarlo en uno—. `componerIcono.cjs` pasó del scratchpad a
     `scripts/`, documentado. Metadatos de `package.json` completos (description, license, author,
     repository, bugs).
-11. **Lo que queda**: la alternativa a SmartScreen.
+11. **SmartScreen — falta un paso que solo puede hacer Germán.** Se investigó y se descartaron
+    Azure Trusted Signing (no admite Argentina) y un certificado EV (pide empresa registrada). El
+    camino elegido es **SignPath Foundation** (firma OV gratis para OSS). Ya está listo el CI que
+    compila los instaladores (`.github/workflows/build-windows.yml`), que es el requisito previo.
+    **Falta**: entrar a <https://signpath.org/apply> y completar la solicitud — pide confirmar que
+    controlás el repositorio y una cuenta con autenticación de dos factores, así que lo tiene que
+    hacer la persona dueña del repo, no un agente. Datos a mano para completarla:
+    - Proyecto: EditorPDF — <https://github.com/gsomma86/EditorPDF>
+    - Licencia: AGPL-3.0 (OSI-aprobada, sin doble licencia comercial)
+    - Qué firmar: los instaladores de escritorio (`.exe` NSIS y `.msi`) generados por Tauri
+    La revisión tarda de días a una semana. Una vez aprobada, la Foundation da credenciales para
+    agregar un paso de firma al workflow ya existente (ver `signpath/github-action-submit-signing-request`
+    en la documentación de SignPath) — ese paso sí lo puede terminar un agente.
 
 ## Cómo verificar
 

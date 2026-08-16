@@ -500,5 +500,18 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
       abierto: Exportar PDF y Guardar proyecto bajan el archivo con un enlace `blob:`, y no estaba
       dicho que WebView2 lo tratara como un navegador. Lo trata igual, así que **no hay que meter
       el diálogo nativo de Tauri**: el mismo código sirve para la web y para el escritorio.
-- [ ] Explorar alternativa gratuita para evitar el cartel de SmartScreen
-- [ ] Pulir README / documentación de contribución
+- [ ] **Evitar el cartel de SmartScreen** (investigado 16/08/2026, en curso). Se descartó **Azure
+      Trusted Signing**: desde abril de 2025 solo admite organizaciones de EE.UU./Canadá con 3+
+      años de historial, y el proyecto no califica geográficamente. Se descartó un certificado
+      **EV**: exige una empresa registrada (no una persona física) y un token físico, desproporcionado
+      para un proyecto gratuito de un desarrollador solo. Se eligió **SignPath Foundation** — firma
+      gratis para OSS, EditorPDF cumple los requisitos (AGPL-3.0, sin doble licencia comercial,
+      mantenido, ya publicado) —, sabiendo que un certificado OV no da confianza instantánea (eso
+      es solo EV): igual saca el aviso de "editor desconocido" pero SmartScreen puede tardar en
+      confiar según el volumen de descargas.
+      Ya está el CI que compila los dos instaladores (`.github/workflows/build-windows.yml`,
+      Windows + Node + Rust, sube NSIS y MSI como artefacto) — es el paso previo que pide SignPath:
+      un pipeline auditable que produzca el binario a firmar. **Falta la aplicación en sí**
+      (signpath.org/apply), que tiene que hacerla Germán con su propia cuenta e identidad; una vez
+      aprobada, agregar el paso de firma al workflow con las credenciales que dé la Foundation.
+- [x] **README y documentación de contribución** (16/08/2026). Ver detalle en TRASPASO.md punto 10.
