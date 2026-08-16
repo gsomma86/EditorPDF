@@ -106,6 +106,9 @@ src/
     figuras.ts            La geometría de las formas (elipse, triángulo, flecha, estrella) en
                           coordenadas locales. La piden el lienzo y el exportador: una sola
                           definición para lo que se ve y lo que baja al PDF.
+    ../ui/temas.ts        Las paletas de color. Un tema es otro juego de valores para las mismas
+                          variables CSS de :root, escritas en el elemento raíz. El papel queda
+                          blanco en todos: el tema pinta la aplicación, no el documento.
     objetosFabric.ts      Traduce modelo -> objeto de Fabric. Mantiene el WeakMap objeto->modelo
                           (`elementoDe`), reconstruye el lienzo y sincroniza geometría. También
                           genera el QR (`generarQr`), compartido con el exportador.
@@ -504,3 +507,12 @@ validada — ver la sección Fase 0 del roadmap.
     mismo con "Nuevo proyecto", que vaciaba las hojas pero se olvidaba las capas. **Todo lo que
     reemplaza el documento entero —restaurar, importar, empezar de nuevo— tiene que refrescar cada
     panel a mano**, no esperar que un evento lo haga.
+54. **Un tema de color destapa cada color escrito a mano.** La interfaz se pintaba entera desde las
+    variables de `:root`… salvo una docena de lugares con el hex puesto directo: el degradado de la
+    barra superior, los menús flotantes, el fondo de los `select`, el resaltado de la capa destino y
+    del objeto seleccionado. Con el tema claro nadie los notaba porque coincidían; con el oscuro
+    quedaban blancos. **Antes de sumar un tema, buscar los colores literales** (`grep` de `#` en el
+    CSS) y decidir uno por uno: casi todos van a variable, pero algunos son deliberados —el papel de
+    la hoja y de las miniaturas queda blanco siempre, porque representa lo que se va a imprimir—.
+    Lo mismo vale para cualquier valor compuesto que mezcle una variable con un color fijo, como la
+    sombra de las miniaturas: hay que rearmarlo desde el tema, no dejarlo en el CSS.

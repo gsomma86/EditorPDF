@@ -270,7 +270,18 @@ Hallazgos técnicos que siguen valiendo:
       reconstruye al deshacer, al cambiar de hoja y al recargar, y con la marca solo ahí la forma
       saltaba al frente en cualquiera de esos tres casos. Verificado midiendo píxeles: 565 oscuros
       en la banda antes de recargar, 562 después.
-- [ ] Curvas, paths compuestos y formas rotadas quedan afuera: no se detectan y no se tocan.
+- [x] **Las formas giradas entran** (16/08/2026). Antes se descartaba cualquier matriz con giro. Se
+      la descompone en giro + escala: la forma se mide **enderezada** —conserva sus medidas reales,
+      no la caja mayor que la envuelve— y el ángulo va aparte, en el sentido del lienzo. La esquina
+      se ubica aplicando el giro y **después** la traslación, que es el orden del PDF; al revés la
+      corría tanto más cuanto más lejos del origen estuviera. Con sesgo (los ejes dejan de ser
+      perpendiculares) no hay elemento que la represente y se sigue descartando.
+      El arnés comprueba las **cuatro esquinas** reconstruidas desde x/y/w/h/ángulo contra donde el
+      PDF las dibujó: es lo único que delata un ancla o un signo equivocados, que las medidas por sí
+      solas no cuentan.
+- [ ] Curvas y paths compuestos quedan afuera: no hay elemento del modelo que represente una curva
+      o un polígono libre, habría que inventar uno. Se pospuso a propósito hasta tener un PDF real
+      donde importe — la fase 3 ya se equivocó una vez decidiendo sin medir la muestra correcta.
 
 **Repaso de diseño de la fase (15/08/2026).** Además de lo de arriba salieron tres cosas menores,
 ya corregidas: claves de idioma huérfanas de la conversión masiva que se descartó (18 líneas en
@@ -406,8 +417,21 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
       elige con un clic en su nombre y es donde nacen los elementos nuevos; una capa recién creada
       pasa a serlo—, y tres formas de mover lo que ya está: el desplegable "Capa" en Propiedades
       (que con varios seleccionados los manda a todos), arrastrar la fila a otra capa, y el clic
-      derecho sobre el objeto. **Borrar una capa no borra lo que tiene adentro**: pasa a la primera
-      que quede, avisando antes. Una capa es una forma de ordenar, no una bolsa.
+      derecho sobre el objeto.
+      **Menú por capa y reordenar** (16/08/2026). El `⋯` de cada capa: renombrar, duplicar (con los
+      objetos de adentro: una capa vacía con el mismo nombre no sirve), subir, bajar y eliminar; lo
+      que no aplica se ve apagado en vez de desaparecer, así el menú no cambia de forma entre capas.
+      Reordenar —por el menú o arrastrando la cabecera— **cambia el apilado real en la hoja**, no
+      solo la lista, o la lista estaría mintiendo sobre lo que se ve. Al **borrar** una capa con
+      contenido se pregunta qué hacer, con un selector de capa destino: los editores clásicos se
+      llevan el contenido y mover es más conservador, las dos respuestas son razonables y deshacer
+      cubre las dos. Los **objetos también se renombran** (clic derecho sobre la fila): con dos QR el
+      nombre automático los llama igual; el campo ya vivía en el modelo, faltaba dónde escribirlo.
+      Esto destapó que **las capas no estaban en el historial**: deshacer restauraba los elementos
+      pero no las capas y quedaban apuntando a una inexistente. Ahora el snapshot las incluye y las
+      restaura primero, porque los objetos se arman mirando si la suya está apagada o trabada.
+      Renombrar estaba roto y salió acá: el clic que marca la capa destino redibuja la lista, así
+      que el segundo clic del doble clic caía en un nodo nuevo (ver la lección 53).
       Como era una cuarta barra para tres lugares, **los costados pasan a aceptar dos barras
       apiladas** con su separador, y el botón de colapsar salió de las cabeceras a una **lengüeta
       sobre la línea** del costado, que es donde se lee que colapsa el costado entero. Colapsado, el
@@ -519,3 +543,18 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
       el paso de firma al workflow con las credenciales que dé la Foundation. Detalle completo en
       TRASPASO.md punto 11.
 - [x] **README y documentación de contribución** (16/08/2026). Ver detalle en TRASPASO.md punto 10.
+- [x] **Temas de color** (16/08/2026). Ocho paletas —Claro, Oscuro, Sepia, Bosque, Grafito, Alto
+      contraste, Rojo, Rosa— más una personalizable, en el menú Ver. Toda la interfaz ya salía de
+      las variables CSS de `:root`, así que un tema es otro juego de valores para esas mismas
+      variables: no hubo que tocar ninguna regla de `style.css`. Viven en `ui/temas.ts` y se pintan
+      escribiéndolas en el elemento raíz, que gana sobre `:root`. Se recuerda en localStorage, igual
+      que el idioma —y por lo tanto la versión de escritorio guarda el suyo aparte del navegador—.
+      El personalizado expone los 17 colores agrupados por sección, se ve en vivo mientras se elige
+      (sin asentar nada, para que Cancelar deshaga de verdad) y tiene "Volver al original".
+      **Alto contraste no es decorativo**: es de accesibilidad.
+      **El papel queda blanco en todos los temas** —la hoja del lienzo y las miniaturas—: representa
+      lo que se va a imprimir y teñirlo mentiría sobre cómo sale el PDF. El tema pinta la
+      aplicación, no el documento.
+      Al llevarlo del mockup al sistema aparecieron **colores fijos en el CSS** que no seguían al
+      tema (el degradado de la barra superior, los menús flotantes, los selectores, el resaltado de
+      la capa destino y del objeto seleccionado): en oscuro habrían quedado blancos. Ver lección 54.

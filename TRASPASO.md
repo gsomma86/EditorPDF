@@ -112,7 +112,10 @@ quedan sin empezar Capas, Firma digital y Más formas geométricas.
     —issues sí, PR solo después de charlarlo en uno—. `componerIcono.cjs` pasó del scratchpad a
     `scripts/`, documentado. Metadatos de `package.json` completos (description, license, author,
     repository, bugs).
-11. **SmartScreen — solicitud enviada a SignPath Foundation (16/08/2026), esperando revisión.** Se
+11. ~~Formas giradas del PDF~~ y ~~menú de capas~~ y ~~temas de color~~ — **hecho (16/08/2026)**.
+    Detalle en ROADMAP.md. De los tres, el que dejó deuda es ninguno; el que destapó un agujero
+    viejo fue el de capas (las capas no estaban en el historial, ya corregido).
+12. **SmartScreen — solicitud enviada a SignPath Foundation (16/08/2026), esperando revisión.** Se
     investigó y se descartaron antes Azure Trusted Signing (no admite Argentina) y un certificado
     EV (pide empresa registrada). El camino elegido es **SignPath Foundation** (firma OV gratis
     para OSS), y ya está el CI que compila los instaladores
