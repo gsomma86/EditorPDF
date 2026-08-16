@@ -11,7 +11,7 @@
 import { writeFile, mkdir } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { PDFDocument, StandardFonts, degrees, rgb } from '@cantoo/pdf-lib';
 import { borrarFormaDelPdf, borrarFormasDelPdf, formaEn, formasDelPdf } from '../src/editor/formasPdf';
 
 const SALIDA = fileURLToPath(new URL('../salida/', import.meta.url));
@@ -39,6 +39,9 @@ async function pdfDePrueba(): Promise<Uint8Array> {
   pagina.drawRectangle({ x: 20, y: 240, width: 100, height: 60, borderWidth: 2, borderColor: rgb(0, 0, 0) }); // contorno
   pagina.drawText('TEXTO QUE NO SE TOCA', { x: 20, y: 200, size: 12, font: fuente });
   pagina.drawEllipse({ x: 150, y: 150, xScale: 40, yScale: 25, color: rgb(0.2, 0.4, 0.9) }); // fuera de alcance
+  // Girado: pdf-lib mide la Y desde abajo y gira antihorario, así que en la hoja —Y desde arriba—
+  // esto se ve girado 30° en sentido horario, que es +30 para el lienzo.
+  pagina.drawRectangle({ x: 40, y: 60, width: 80, height: 30, rotate: degrees(-30), color: rgb(0.9, 0.3, 0.3) });
   return doc.save();
 }
 
@@ -50,12 +53,32 @@ const original = await pdfDePrueba();
 await writeFile(`${SALIDA}formas-partida.pdf`, original);
 
 const formas = await formasDelPdf(original, 0);
-filas.push(`     formas detectadas: ${formas.map((f) => `${f.clase} ${Math.round(f.x)},${Math.round(f.y)} ${Math.round(f.w)}x${Math.round(f.h)}`).join(' | ')}`);
+filas.push(`     formas detectadas: ${formas.map((f) => `${f.clase} ${Math.round(f.x)},${Math.round(f.y)} ${Math.round(f.w)}x${Math.round(f.h)} @${f.angulo}deg`).join(' | ')}`);
 
-comparar('detectar', 'cuántas se pueden editar', 3, formas.length);
-comparar('detectar', 'clases', ['rect', 'linea', 'rect'], formas.map((f) => f.clase));
+comparar('detectar', 'cuántas se pueden editar', 4, formas.length);
+comparar('detectar', 'clases', ['rect', 'linea', 'rect', 'rect'], formas.map((f) => f.clase));
 // La elipse no entra, y el texto tampoco: solo formas.
 comparar('detectar', 'la elipse queda afuera', true, !formas.some((f) => f.w > 70 && f.h > 40 && f.clase === 'rect' && f.y > 200));
+
+// La girada: se mide **enderezada**, así que conserva sus medidas reales (80x30, no la caja que la
+// envuelve, que sería más grande), y el ángulo sale aparte en el sentido del lienzo.
+const girada = formas[3];
+comparar('girada', 'ángulo en sentido del lienzo', 30, girada.angulo);
+comparar('girada', 'conserva sus medidas', { w: 80, h: 30 }, { w: Math.round(girada.w), h: Math.round(girada.h) });
+// Las cuatro esquinas reconstruidas desde x/y/w/h/ángulo tienen que dar el rectángulo dibujado.
+// Es la comprobación que importa: si el ancla o el signo del ángulo estuvieran mal, la forma
+// convertida aparecería corrida o espejada, y las medidas por sí solas no lo dirían.
+const rad = (girada.angulo * Math.PI) / 180;
+const esquina = (lx: number, ly: number) => [
+  Math.round(girada.x + lx * Math.cos(rad) - ly * Math.sin(rad)),
+  Math.round(girada.y + lx * Math.sin(rad) + ly * Math.cos(rad)),
+];
+comparar(
+  'girada',
+  'las 4 esquinas caen donde se dibujó',
+  [[55, 314], [124, 354], [40, 340], [109, 380]],
+  [esquina(0, 0), esquina(girada.w, 0), esquina(0, girada.h), esquina(girada.w, girada.h)]
+);
 
 // El relleno gris: y en coordenadas de hoja = alto - (y del PDF + alto de la forma).
 const gris = formas[0];

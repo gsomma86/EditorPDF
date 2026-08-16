@@ -29,6 +29,28 @@ export interface FormaDelPdf {
   relleno: boolean;
   /** Grosor del trazo, en puntos. Sin sentido si es un relleno. */
   grosor: number;
+  /**
+   * Cuánto está girada, en grados y en el sentido del lienzo. Casi siempre 0: las formas de un
+   * PDF de oficina vienen derechas. x/y/w/h describen la caja **sin girar**, y el giro se aplica
+   * después alrededor de la esquina superior izquierda, igual que en el resto del editor.
+   */
+  angulo: number;
+}
+
+/**
+ * Una imagen del contenido del PDF, en coordenadas de la hoja. No se edita su contenido —para eso
+ * está reemplazarla—, pero sí se la puede sacar del PDF y volver a colocar como imagen del diseño,
+ * y de ahí en más se mueve, se achica y se borra como cualquier otra.
+ */
+export interface ImagenDelPdf {
+  indice: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  angulo: number;
+  /** Los píxeles, como data URL PNG, listos para volverse un `ElementoImagen`. */
+  src: string;
 }
 
 function hex(componentes: number[]): string {
@@ -48,8 +70,45 @@ function hex(componentes: number[]): string {
 const GROSOR_LINEA = 1.5;
 
 /**
+ * Descompone la matriz del PDF en el ángulo que aplica y la parte sin girar.
+ *
+ * Una matriz `[a b c d tx ty]` que solo escala y gira se puede leer como una rotación seguida de
+ * una escala: el ángulo sale de la primera columna, y deshacerlo deja una matriz de ejes rectos que
+ * `medir()` ya sabe tratar. Devuelve `null` si además hay sesgo (los dos ejes no quedan
+ * perpendiculares), que no se puede representar con un elemento del editor.
+ *
+ * El ángulo sale ya en el sentido del lienzo, sin invertirle el signo: mupdf entrega la matriz en
+ * su espacio de dispositivo, que mide la Y desde arriba igual que Fabric.
+ */
+function separarGiro(ctm: number[]): { angulo: number; sinGiro: number[] } | null {
+  const [a, b, c, d, tx, ty] = ctm;
+  const angulo = Math.atan2(b, a);
+
+  const cos = Math.cos(angulo);
+  const sen = Math.sin(angulo);
+  // La inversa de la rotación, aplicada a la matriz: si queda con b y c en cero, era giro puro.
+  const sinGiro = [a * cos + b * sen, -a * sen + b * cos, c * cos + d * sen, -c * sen + d * cos, tx, ty];
+  if (Math.abs(sinGiro[1]) > 1e-6 || Math.abs(sinGiro[2]) > 1e-6) return null;
+
+  return { angulo: (angulo * 180) / Math.PI, sinGiro };
+}
+
+/**
+ * Lleva la esquina de la caja enderezada al lugar que le toca en la hoja: primero el giro que trae
+ * la matriz, después su traslación. Es el orden en que lo aplica el PDF, y hacerlo al revés corre
+ * la forma tanto más cuanto más lejos del origen esté.
+ */
+function ubicarEsquina(x: number, y: number, ctm: number[]): { x: number; y: number } {
+  const [a, b, , , tx, ty] = ctm;
+  const angulo = Math.atan2(b, a);
+  const cos = Math.cos(angulo);
+  const sen = Math.sin(angulo);
+  return { x: cos * x - sen * y + tx, y: sen * x + cos * y + ty };
+}
+
+/**
  * Clasifica los puntos de un path ya pasados a coordenadas de la hoja. Devuelve null si la forma
- * no es de las que se pueden editar: con curvas, con más de cuatro puntos, o girada.
+ * no es de las que se pueden editar: con curvas o con más de cuatro puntos.
  */
 function medir(puntos: [number, number][], curvas: boolean): { clase: 'rect' | 'linea'; x: number; y: number; w: number; h: number } | null {
   if (curvas) return null;
@@ -102,21 +161,30 @@ export async function formasDelPdf(bytes: Uint8Array, pagina: number): Promise<F
       closePath: () => {},
     });
 
-    const [a, b, c, d, tx, ty] = ctm;
-    // Girada: la matriz mezcla los ejes. Se descarta antes de medir, que asume ejes rectos.
-    if (Math.abs(b) > 1e-6 || Math.abs(c) > 1e-6) return;
+    // Se separa el giro de la matriz y se mide la forma **enderezada**: así una línea girada 30°
+    // se reconoce igual que una derecha, y el ángulo se guarda aparte. Con sesgo (los ejes dejan
+    // de ser perpendiculares) no hay elemento que la represente, y se descarta.
+    const separada = separarGiro(ctm);
+    if (!separada) return;
+    const [escalaX, , , escalaY] = separada.sinGiro;
 
-    const enLaHoja = puntos.map((p) => [a * p[0] + c * p[1] + tx, b * p[0] + d * p[1] + ty] as [number, number]);
-    const medida = medir(enLaHoja, curvas);
+    // Sin trasladar: la traslación se aplica *después* del giro, así que sumarla acá correría la
+    // caja a un lugar que no es. Se mide la forma enderezada y recién entonces se ubica su esquina.
+    const enderezados = puntos.map((p) => [escalaX * p[0], escalaY * p[1]] as [number, number]);
+    const medida = medir(enderezados, curvas);
     if (!medida) return;
+
+    const esquina = ubicarEsquina(medida.x, medida.y, ctm);
 
     formas.push({
       indice: propio,
       ...medida,
+      ...esquina,
       color: hex(color.slice(0, 4)),
       relleno,
       // El grosor está en el sistema del path: la matriz lo escala igual que a todo lo demás.
-      grosor: Math.abs(grosor * d) || 1,
+      grosor: Math.abs(grosor * escalaY) || 1,
+      angulo: Math.abs(separada.angulo) < 1e-6 ? 0 : Math.round(separada.angulo * 100) / 100,
     });
   };
 
@@ -186,6 +254,9 @@ export function elementoDesdeForma(forma: FormaDelPdf): Elemento {
   elemento.y = forma.y;
   elemento.w = forma.w;
   elemento.h = forma.h;
+  // Las medidas son las de la forma enderezada y el giro va aparte, igual que en el resto del
+  // editor: todos los elementos rotan alrededor de su esquina superior izquierda.
+  elemento.angulo = forma.angulo;
   elemento.color = forma.color;
   elemento.debajoDeLaPagina = true;
   if (elemento.clase === 'rect') {
