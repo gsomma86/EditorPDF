@@ -379,6 +379,33 @@ comparar('imágenes', 'las formas siguen ahí', (await formasDelPdf(bytesImagen,
   );
 }
 
+// ---------- Figuras con relleno y borde ----------
+
+// El PDF las guarda como **dos caminos**: uno pinta el relleno y otro el contorno. Sacar uno tiene
+// que llevarse los dos, o queda el contorno flotando sobre la hoja — que es justo lo que pasaba.
+// El contorno no se da nunca por "cubierto" (se midió: ni agrandando el rectángulo 6 puntos), así
+// que hace falta el modo que se lleva lo que roce el rectángulo.
+{
+  const doc = await PDFDocument.create();
+  const pagina = doc.addPage([300, ALTO]);
+  pagina.drawEllipse({ x: 150, y: 300, xScale: 50, yScale: 30, color: rgb(0.27, 0.45, 0.77), borderWidth: 1.5, borderColor: rgb(0.18, 0.32, 0.56) });
+  // Otra bien lejos, para comprobar que el modo amplio no se lleva lo que no toca.
+  pagina.drawRectangle({ x: 20, y: 40, width: 60, height: 20, color: rgb(0, 0, 0) });
+  const bytes = new Uint8Array(await doc.save());
+
+  const dos = await formasDelPdf(bytes, 0);
+  comparar('relleno y borde', 'son dos caminos más el testigo', 3, dos.length);
+
+  const contorno = dos.find((f) => f.clase === 'camino' && !f.relleno)!;
+  // Con el modo preciso el contorno se resiste: es la razón de que exista la escalada.
+  const preciso = await formasDelPdf(await borrarFormaDelPdf(bytes, 0, contorno), 0);
+  comparar('relleno y borde', 'con "cubierto" el contorno sobrevive', true, preciso.some((f) => f.clase === 'camino' && !f.relleno));
+
+  const amplio = await formasDelPdf(await borrarFormaDelPdf(bytes, 0, contorno, 'tocado'), 0);
+  comparar('relleno y borde', 'con "tocado" se van los dos', 0, amplio.filter((f) => f.clase === 'camino').length);
+  comparar('relleno y borde', 'y lo de lejos queda intacto', 1, amplio.length);
+}
+
 console.log(filas.join('\n'));
 console.log(`\nPDFs en ${SALIDA}`);
 

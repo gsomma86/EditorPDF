@@ -145,7 +145,19 @@ export async function quitarFormaDelPdf(objetivo: FormaDelPdf): Promise<{ fondo:
   if (!bytesActuales) throw new Error('No hay ningún PDF abierto.');
 
   const antes = formas;
-  await asentarPdf(await borrarFormaDelPdf(bytesActuales, paginaElegida, objetivo));
+  const original = bytesActuales;
+
+  // Primero el modo preciso, que se lleva solo lo que queda enteramente dentro del rectángulo.
+  await asentarPdf(await borrarFormaDelPdf(original, paginaElegida, objetivo));
+
+  // Si la forma elegida sobrevivió, se reintenta desde el archivo original con el modo que se lleva
+  // todo lo que roce el rectángulo. Pasa con las figuras de relleno y borde —dos caminos en el PDF,
+  // y el del borde no se da nunca por cubierto—, y sin esto quedaba el contorno flotando después de
+  // convertir el relleno. Se escala solo cuando hace falta: con el modo amplio, hacer clic en una
+  // línea de una tabla se llevaría también las vecinas que la tocan.
+  if (formas.some((f) => huella(f) === huella(objetivo))) {
+    await asentarPdf(await borrarFormaDelPdf(original, paginaElegida, objetivo, 'tocado'));
+  }
 
   // Cuáles se fueron de verdad. Casi siempre es solo la elegida, pero la redacción se lleva todo
   // el dibujo que quede completamente cubierto por el rectángulo: sacar un recuadro grande arrastra

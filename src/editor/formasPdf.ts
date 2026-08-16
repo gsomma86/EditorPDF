@@ -443,7 +443,22 @@ export function imagenEn(imagenes: ImagenDelPdf[], x: number, y: number): Imagen
  * que sacar un recuadro grande puede llevarse una línea que estuviera adentro. Por eso quien llama
  * conviene que compare cuántas formas quedaron.
  */
-export async function borrarFormasDelPdf(bytes: Uint8Array, pagina: number, objetivos: { x: number; y: number; w: number; h: number }[]): Promise<Uint8Array> {
+/**
+ * Cómo de exigente es la redacción con el dibujo vectorial.
+ *
+ * `cubierto` se lleva solo lo que queda enteramente adentro del rectángulo: es lo preciso, y lo que
+ * conviene casi siempre. `tocado` se lleva todo lo que lo roce, y hace falta para las figuras
+ * dibujadas con relleno y borde —que en el PDF son **dos caminos**— porque el del borde no se da
+ * nunca por cubierto, ni agrandando el rectángulo seis puntos (se midió).
+ */
+export type ModoRedaccion = 'cubierto' | 'tocado';
+
+export async function borrarFormasDelPdf(
+  bytes: Uint8Array,
+  pagina: number,
+  objetivos: { x: number; y: number; w: number; h: number; grosor?: number }[],
+  modo: ModoRedaccion = 'cubierto'
+): Promise<Uint8Array> {
   if (!objetivos.length) return bytes;
 
   const mupdf = await motor();
@@ -452,22 +467,28 @@ export async function borrarFormasDelPdf(bytes: Uint8Array, pagina: number, obje
 
   for (const o of objetivos) {
     const anotacion = hoja.createAnnotation('Redact');
-    // Medio punto de aire: una línea de grosor 0,5 tiene que quedar cubierta por su rectángulo.
+    // Medio punto de aire, nada más: con "quitar lo que toque" (ver abajo) agrandar el rectángulo
+    // solo se llevaría puesto lo de al lado.
     anotacion.setRect([o.x - 0.5, o.y - 0.5, o.x + o.w + 0.5, o.y + o.h + 0.5]);
     anotacion.update();
   }
 
-  // Sin recuadros negros; imágenes intactas (0); el dibujo vectorial se quita si queda cubierto
-  // (1); el texto no se toca (1) — es justo al revés que al borrar un texto, que usa (0, 0).
-  hoja.applyRedactions(false, 0, 1, 1);
+  // Sin recuadros negros; imágenes intactas (0); el dibujo vectorial según el modo pedido; el texto
+  // no se toca (1) — es justo al revés que al borrar un texto, que usa (0, 0).
+  hoja.applyRedactions(false, 0, modo === 'tocado' ? 2 : 1, 1);
   // Copia propia: lo que devuelve mupdf es una vista sobre su memoria y se invalida en cuanto se
   // vuelve a usar el motor (ver la lección 22 de CLAUDE.md).
   return new Uint8Array(documento.saveToBuffer('').asUint8Array());
 }
 
 /** Saca una sola forma. Es el caso del doble clic. */
-export async function borrarFormaDelPdf(bytes: Uint8Array, pagina: number, forma: { x: number; y: number; w: number; h: number }): Promise<Uint8Array> {
-  return borrarFormasDelPdf(bytes, pagina, [forma]);
+export async function borrarFormaDelPdf(
+  bytes: Uint8Array,
+  pagina: number,
+  forma: { x: number; y: number; w: number; h: number },
+  modo: ModoRedaccion = 'cubierto'
+): Promise<Uint8Array> {
+  return borrarFormasDelPdf(bytes, pagina, [forma], modo);
 }
 
 /**
