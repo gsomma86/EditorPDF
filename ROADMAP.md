@@ -457,9 +457,9 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
       variantes mirándolas a 16, 32 y 48 px. El original tiene mucha estela y a 16 px el avión
       quedaba de unos 6 px, así que va recortado y agrandado; se compone con un script que usa solo
       `zlib` de Node, porque no hay ninguna librería de imágenes instalada.
-      **Falta probar en la aplicación instalada**: que las descargas lleguen a disco. Exportar PDF
-      y Guardar proyecto usan un enlace con `blob:`, y en un WebView eso no funciona igual que en un
-      navegador. Si no baja nada, hay que reemplazarlo por el diálogo nativo de Tauri cuando corre
-      en escritorio, dejando el camino web intacto.
+      **Las descargas andan en la aplicación instalada** (probado el 15/08/2026). Era el riesgo
+      abierto: Exportar PDF y Guardar proyecto bajan el archivo con un enlace `blob:`, y no estaba
+      dicho que WebView2 lo tratara como un navegador. Lo trata igual, así que **no hay que meter
+      el diálogo nativo de Tauri**: el mismo código sirve para la web y para el escritorio.
 - [ ] Explorar alternativa gratuita para evitar el cartel de SmartScreen
 - [ ] Pulir README / documentación de contribución

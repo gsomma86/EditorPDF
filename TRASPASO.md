@@ -97,9 +97,9 @@ quedan sin empezar Capas, Firma digital y Más formas geométricas.
    para el detalle completo.
 5. ~~Capas~~ — **hecho (15/08/2026)**, con su propia barra (`ui/panelCapas.ts`) y el ojo/candado por
    objeto y por capa; lo oculto no se exporta.
-6. ~~Tauri~~ — **hecho (15/08/2026)**, los dos instaladores salen. **Falta probar en la aplicación
-   instalada que las descargas lleguen a disco**: Exportar PDF y Guardar proyecto usan un enlace
-   `blob:`, que en un WebView puede no funcionar.
+6. ~~Tauri~~ — **hecho (15/08/2026)**, los dos instaladores salen y **las descargas andan en la
+   aplicación instalada**: Exportar PDF y Guardar proyecto bajan con un enlace `blob:`, y WebView2
+   lo trata igual que un navegador. No hace falta el diálogo nativo de Tauri.
 7. ~~Campo de firma~~ — **hecho (15/08/2026)**. El editor prepara el recuadro; firmar necesita un
    certificado y no lo hace el editor. Detalle en ROADMAP.md fase 4.
 8. **Lo que queda**: más formas geométricas, arrastrar en el panel de capas para reordenar o cambiar
