@@ -1441,20 +1441,26 @@ button {
   color: var(--acento);
   flex-shrink: 0;
 }
-/* El triángulo de plegar. Va bastante más grande que el resto de los botones de la cabecera y no
-   es un capricho: los demás son emoji (👁 🔒), que se dibujan grandes para su cuerpo de fuente, y
-   un carácter geométrico como ▾ al mismo cuerpo queda de cuatro píxeles y no se ve. */
-.ed-capa-plegar {
-  flex-shrink: 0;
-  font-size: 15px;
-  opacity: 0.85;
-  /* Centrado explícito: con el cuerpo de la fuente igual al alto del botón, dejarlo librado al
-     `line-height` deja el triángulo apoyado contra un borde. */
+/* Los botones de la cabecera van más grandes que los de las filas de objetos: mandan sobre la capa
+   entera, no sobre un elemento. Con `.ed-capa-head` delante, y no `.ed-obj-btn` a secas, porque esa
+   regla define el tamaño chico más abajo en este archivo y con la misma especificidad ganaría ella. */
+.ed-capa-head .ed-obj-btn {
+  width: 16px;
+  height: 16px;
+  font-size: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.ed-capa-plegar:hover {
+/* El triángulo de plegar, más grande todavía que sus vecinos, y no es un capricho: los demás son
+   emoji (👁 🔒), que se dibujan grandes para su cuerpo de fuente, y un carácter geométrico como ▾
+   al mismo cuerpo queda de cuatro píxeles. Tres clases para ganarle a la regla de arriba, que ya
+   tiene dos: si empataran, decidiría el orden del archivo y eso es lo que ya falló una vez. */
+.ed-capa-head .ed-obj-btn.ed-capa-plegar {
+  font-size: 15px;
+  opacity: 0.85;
+}
+.ed-capa-head .ed-obj-btn.ed-capa-plegar:hover {
   opacity: 1;
 }
 /* Plegada, la cabecera es toda la capa: sin el margen de abajo se apilan más juntas y entran más
