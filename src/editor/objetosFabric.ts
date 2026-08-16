@@ -209,7 +209,30 @@ function recortarAlAncho(texto: string, campo: { w: number; size: number; famili
  * las capas: agregar un elemento, cambiarlo de capa, reordenar capas, reconstruir el lienzo. Si no,
  * el lienzo y la lista de capas dicen cosas distintas, y la lista es la que parece mentir.
  */
+/**
+ * Corre algo que reordena la pila **sin perder la selección**.
+ *
+ * Reordenar se hace sacando objetos y volviéndolos a insertar, y `remove()` de Fabric descarta el
+ * objeto activo y dispara `selection:cleared` — que en `main.ts` vacía el panel de propiedades. Sin
+ * esto, apretar "Al frente" deselecciona: no se puede apretar dos veces seguidas y se pierde de
+ * vista con qué se estaba trabajando.
+ */
+function conservandoSeleccion(lienzo: Canvas, reordenar: () => void): void {
+  // Fuera del navegador el lienzo es un doble que no tiene selección (ver la lección 53): no hay
+  // nada que conservar, y dar por sentado que estos métodos existen ya rompió un arnés antes.
+  const activo = lienzo.getActiveObject?.();
+  reordenar();
+  // Una selección de varios no figura en `getObjects()` —sus miembros sí— y Fabric no la descarta,
+  // porque el activo es el grupo y no ellos: por eso alcanza con comprobar los objetos sueltos.
+  if (activo && lienzo.getObjects().includes(activo)) lienzo.setActiveObject(activo);
+  lienzo.requestRenderAll?.();
+}
+
 export function ordenarPila(lienzo: Canvas): void {
+  conservandoSeleccion(lienzo, () => reordenarPila(lienzo));
+}
+
+function reordenarPila(lienzo: Canvas): void {
   const capas = capasDelDocumento();
   const objetos = [...lienzo.getObjects()];
   const fondo = objetos.find((o) => esPaginaFija(o));
@@ -238,7 +261,6 @@ export function ordenarPila(lienzo: Canvas): void {
   // **ya sin** el objeto movido, y esa aritmética es la forma más fácil de introducir un bug acá.
   lienzo.remove(...objetos);
   lienzo.insertAt(0, ...ordenados);
-  lienzo.requestRenderAll();
 }
 
 /**
@@ -250,6 +272,10 @@ export function ordenarPila(lienzo: Canvas): void {
  * está el desplegable de capa, que es una decisión distinta y se toma en otro lado.
  */
 export function moverEnLaPila(lienzo: Canvas, objeto: FabricObject, hacia: 'frente' | 'fondo'): void {
+  conservandoSeleccion(lienzo, () => moverDentroDeSuCapa(lienzo, objeto, hacia));
+}
+
+function moverDentroDeSuCapa(lienzo: Canvas, objeto: FabricObject, hacia: 'frente' | 'fondo'): void {
   const elemento = elementoDe(objeto);
   if (!elemento) return;
 
@@ -271,7 +297,6 @@ export function moverEnLaPila(lienzo: Canvas, objeto: FabricObject, hacia: 'fren
   // `ordenarPila` los dejó así, y se los devuelve al mismo lugar en el orden nuevo.
   lienzo.remove(...indices.map(({ o }) => o));
   lienzo.insertAt(desde, ...nuevos);
-  lienzo.requestRenderAll();
 }
 
 export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObject> {

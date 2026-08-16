@@ -212,6 +212,56 @@ function pila(lienzo: StaticCanvas): string[] {
   comprobar('corte', 'se recorta al achicar la lista', capasSobreElFondoDelDocumento(), 1);
 }
 
+// ---------- Un proyecto guardado antes del apilado único ----------
+
+// Es el caso que más caro sale si falla, porque le pasa a un archivo que ya existe y que el usuario
+// no puede arreglar: antes "ir debajo de la página" era una marca de cada elemento
+// (`debajoDeLaPagina`) y ahora es el lugar de su capa. Si la migración no corre, las formas
+// convertidas de un PDF aparecen de golpe **encima** de la página, tapando el texto que las cubría.
+{
+  const { cargarProyecto } = await import('../src/editor/proyecto');
+  const { hojasDelDocumento, CAPA_CONTENIDO_PDF } = await import('../src/editor/documento');
+
+  const convertidoViejo = { clase: 'rect', id: 1, x: 10, y: 10, w: 50, h: 20, angulo: 0, color: '#111111', estilo: 'solido', grosor: 1, radio: 0, conRelleno: false, rellenoColor: '#ffffff', debajoDeLaPagina: true };
+  const propioViejo = { clase: 'texto', id: 2, x: 10, y: 40, angulo: 0, text: 'encima', vertical: false, separacion: 0, multilinea: false, size: 11, familia: 'Helvetica', negrita: false, cursiva: false, subrayado: false, color: '#111111', align: 'left' };
+
+  const viejo = {
+    version: 1,
+    pagina: { tamano: 'A4', orientacion: 'vertical', margenes: { arriba: 10, abajo: 10, izquierda: 10, derecha: 10 } },
+    // Un proyecto de esa época traía las hojas como listas de elementos sueltas.
+    hojas: [[convertidoViejo, propioViejo]],
+    elementos: [convertidoViejo, propioViejo],
+    hoja: 0,
+    campos: [],
+  };
+
+  // Sin capas propias: un proyecto viejo no las traía, así que se arranca con la de siempre.
+  const lienzo = preparar([capa('base', 'Capa 1')], 1);
+  await cargarProyecto(lienzo as never, JSON.parse(JSON.stringify(viejo)) as never, false);
+
+  const elementos = hojasDelDocumento(lienzo).flatMap((h: { elementos: unknown[] }) => h.elementos) as { clase: string; capa?: string; debajoDeLaPagina?: boolean }[];
+  const convertido = elementos.find((e) => e.clase === 'rect')!;
+  const propio = elementos.find((e) => e.clase === 'texto')!;
+
+  comprobar('proyecto viejo', 'lo marcado va a la capa del contenido', convertido.capa, CAPA_CONTENIDO_PDF);
+  comprobar('proyecto viejo', 'se le saca la marca vieja', convertido.debajoDeLaPagina, undefined);
+  comprobar('proyecto viejo', 'lo que no estaba marcado no se toca', propio.capa !== CAPA_CONTENIDO_PDF, true);
+
+  // Y lo que importa de verdad: que siga viéndose igual que antes, con el convertido detrás de la
+  // página y el texto propio delante.
+  const pagina = new Rect({ width: 10, height: 10 });
+  marcarPaginaFija(pagina);
+  lienzo.add(pagina);
+  ordenarPila(lienzo);
+
+  const orden = lienzo.getObjects();
+  const iPagina = orden.indexOf(pagina);
+  const iConvertido = orden.findIndex((o) => elementoDe(o)?.clase === 'rect');
+  const iPropio = orden.findIndex((o) => elementoDe(o)?.clase === 'texto');
+  comprobar('proyecto viejo', 'lo convertido queda detrás de la página', iConvertido < iPagina, true);
+  comprobar('proyecto viejo', 'lo propio queda delante', iPropio > iPagina, true);
+}
+
 console.log(
   fallos === 0
     ? '\nEl apilado es uno solo y las capas mandan.'
