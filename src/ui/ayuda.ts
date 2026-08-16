@@ -129,6 +129,7 @@ const FILAS_ATAJOS: { teclas: string[]; que: Record<Idioma, string> }[] = [
   { teclas: ['I'], que: { es: 'Insertar una imagen', en: 'Insert an image', pt: 'Inserir uma imagem' } },
   { teclas: ['Q'], que: { es: 'Insertar un QR', en: 'Insert a QR code', pt: 'Inserir um QR' } },
   { teclas: ['F2'], que: { es: 'Completar campos', en: 'Fill in fields', pt: 'Preencher campos' } },
+  { teclas: ['F3'], que: { es: 'Bloquear todo menos los campos', en: 'Lock everything but the fields', pt: 'Bloquear tudo menos os campos' } },
   { teclas: ['F4'], que: { es: 'Ocultar campos en el lienzo', en: 'Hide fields on the canvas', pt: 'Ocultar campos na tela' } },
   { teclas: ['Ctrl', 'Alt', 'C'], que: { es: 'Importar campos (CSV)', en: 'Import fields (CSV)', pt: 'Importar campos (CSV)' } },
   { teclas: ['Ctrl', 'Alt', 'X'], que: { es: 'Exportar campos (CSV)', en: 'Export fields (CSV)', pt: 'Exportar campos (CSV)' } },

@@ -169,6 +169,9 @@ const ES = {
   'menu.campos.csvImportar': '⬆ Importar campos (CSV)',
   'menu.campos.csvExportar': '⬇ Exportar campos (CSV)',
   'menu.campos.completar': '✎ Completar campos',
+  'menu.campos.soloCampos': '🔒 Bloquear todo menos los campos',
+  'menu.campos.soloCamposNota': 'Traba el diseño y el contenido del PDF. No cambia lo que se exporta.',
+  'shell.status.soloCampos': 'Solo se pueden editar los campos',
   'menu.campos.ocultar': '◌ Ocultar campos',
 
   'menu.ayuda': 'Ayuda',
@@ -545,6 +548,9 @@ const EN: Record<ClaveI18n, string> = {
   'menu.campos.csvImportar': '⬆ Import fields (CSV)',
   'menu.campos.csvExportar': '⬇ Export fields (CSV)',
   'menu.campos.completar': '✎ Fill in fields',
+  'menu.campos.soloCampos': '🔒 Lock everything but the fields',
+  'menu.campos.soloCamposNota': 'Locks the design and the PDF content. It does not change what gets exported.',
+  'shell.status.soloCampos': 'Only the fields can be edited',
   'menu.campos.ocultar': '◌ Hide fields',
 
   'menu.ayuda': 'Help',
@@ -919,6 +925,9 @@ const PT: Record<ClaveI18n, string> = {
   'menu.campos.csvImportar': '⬆ Importar campos (CSV)',
   'menu.campos.csvExportar': '⬇ Exportar campos (CSV)',
   'menu.campos.completar': '✎ Preencher campos',
+  'menu.campos.soloCampos': '🔒 Bloquear tudo menos os campos',
+  'menu.campos.soloCamposNota': 'Trava o design e o conteúdo do PDF. Não muda o que é exportado.',
+  'shell.status.soloCampos': 'Só os campos podem ser editados',
   'menu.campos.ocultar': '◌ Ocultar campos',
 
   'menu.ayuda': 'Ajuda',

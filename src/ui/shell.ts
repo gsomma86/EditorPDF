@@ -93,6 +93,8 @@ const MENU_CAMPOS = `
   <div class="ed-dd-sep"></div>
   <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-completar" /> <span data-i18n="menu.campos.completar"></span> <span class="ed-dd-tecla">F2</span></label>
   <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-ocultar-campos" /> <span data-i18n="menu.campos.ocultar"></span> <span class="ed-dd-tecla">F4</span></label>
+  <label class="ed-dd-check ed-dd-persistente"><input type="checkbox" id="ed-solo-campos" /> <span data-i18n="menu.campos.soloCampos"></span> <span class="ed-dd-tecla">F3</span></label>
+  <div class="ed-dd-nota" data-i18n="menu.campos.soloCamposNota"></div>
 `;
 
 const MENU_AYUDA = `
@@ -263,6 +265,7 @@ export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
         <span class="ed-status-vista"><b id="ed-status-tam">A4</b> · <span id="ed-status-orient" data-i18n="pagina.orientacion.vertical"></span></span>
         <div class="ed-status-divisor"></div>
         <span class="ed-status-campos" id="ed-status-campos" data-i18n="shell.status.camposOcultos" hidden></span>
+        <span class="ed-status-campos" id="ed-status-solo-campos" data-i18n="shell.status.soloCampos" hidden></span>
         <span class="ed-status-paginas" id="ed-status-paginas" hidden></span>
         <div class="ed-status-divisor" id="ed-status-divisor-paginas" hidden></div>
         <button type="button" class="ed-status-peso" id="ed-peso-btn" data-i18n="shell.status.peso"></button>

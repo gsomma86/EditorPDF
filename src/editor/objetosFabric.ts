@@ -70,6 +70,42 @@ function aplicarVisibilidadDeCampo(objeto: FabricObject): void {
   objeto.set({ visible: !camposApagados, selectable: !camposApagados, evented: !camposApagados });
 }
 
+/**
+ * Modo "Solo campos": todo lo que no sea un campo de formulario queda trabado.
+ *
+ * Es el inverso de "Ocultar campos" —aquel esconde los campos para mirar el documento; este traba
+ * el documento para trabajar solo en los campos—. Sirve cuando la plantilla ya está terminada y lo
+ * único que falta es acomodar el formulario: sin esto, cualquier clic de más mueve una línea o un
+ * texto del diseño y no se nota hasta que sale mal el PDF.
+ *
+ * Traba el dibujo del diseño **y el contenido del PDF**: con esto puesto, el doble clic no convierte
+ * ni textos ni formas ni imágenes de la página.
+ *
+ * Es solo una vista, como los otros dos modos: no toca el modelo, no entra al historial y no cambia
+ * en nada lo que se exporta.
+ */
+let soloCampos = false;
+
+export function estaBloqueadoElContenido(): boolean {
+  return soloCampos;
+}
+
+/** Un campo de formulario: los dos que bajan al PDF como AcroForm. */
+function esCampoDeFormulario(elemento: Elemento | undefined): boolean {
+  return elemento?.clase === 'campo' || elemento?.clase === 'firma';
+}
+
+/** Prende o apaga el modo y lo aplica a lo que ya está en el lienzo. */
+export function bloquearContenido(lienzo: Canvas, valor: boolean): void {
+  soloCampos = valor;
+  if (valor) lienzo.discardActiveObject();
+  for (const objeto of lienzo.getObjects()) {
+    const elemento = elementoDe(objeto);
+    if (elemento) aplicarMarcas(objeto, elemento);
+  }
+  lienzo.requestRenderAll();
+}
+
 export function elementoDe(objeto: FabricObject): Elemento | undefined {
   return datosPorObjeto.get(objeto);
 }
@@ -169,7 +205,9 @@ export async function crearObjetoFabric(elemento: Elemento): Promise<FabricObjec
  * donde se arma cada objeto, para que valga también al deshacer, cambiar de hoja y recargar.
  */
 export function aplicarMarcas(objeto: FabricObject, elemento: Elemento): void {
-  const bloqueado = elementoBloqueado(elemento);
+  // El modo "Solo campos" se suma a lo que diga la capa: traba, nunca destraba. Un elemento que ya
+  // estaba bloqueado por su capa sigue bloqueado aunque sea un campo.
+  const bloqueado = elementoBloqueado(elemento) || (soloCampos && !esCampoDeFormulario(elemento));
   objeto.set({
     visible: elementoVisible(elemento),
     selectable: !bloqueado,
