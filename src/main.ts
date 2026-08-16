@@ -2,7 +2,7 @@ import './style.css';
 import { montarEspacioTrabajo } from './ui/shell';
 import { crearLienzo } from './editor/lienzo';
 import { crearElemento, crearElementoCampo, crearElementoFirma, crearElementoForma, crearElementoImagen, crearElementoTabla, duplicarElemento, type ClaseSimple, type Elemento, type Figura } from './editor/elemento';
-import { activarModoCompletar, agregarAlLienzo, camposEstanOcultos, elementoDe, enModoCompletar, ocultarCampos, reconstruirLienzo, sincronizarGeometria } from './editor/objetosFabric';
+import { activarModoCompletar, agregarAlLienzo, bloquearContenido, camposEstanOcultos, elementoDe, enModoCompletar, estaBloqueadoElContenido, ocultarCampos, reconstruirLienzo, sincronizarGeometria } from './editor/objetosFabric';
 import { escapeHtml, mostrarMultiSeleccion, mostrarPropiedades, mostrarSinSeleccion } from './ui/panelPropiedades';
 import { ActiveSelection, type FabricObject } from 'fabric';
 import { borrarAutoguardado, hayAutoguardado, programarAutoguardado, restaurarAutoguardado } from './editor/autoguardado';
@@ -85,6 +85,32 @@ function actualizarEscaladoUniforme(objeto: import('fabric').FabricObject): void
 function guardar(): void {
   programarAutoguardado(lienzo, panelCampos.obtenerCatalogo);
   programarPeso();
+  programarMiniatura();
+}
+
+let temporizadorMiniatura = 0;
+
+/**
+ * La miniatura de la hoja, al ratito de cada cambio: sin esto la tira solo se ponía al día al
+ * cambiar de hoja, y mientras tanto mostraba algo viejo.
+ *
+ * Va con un respiro, como el peso: rehacerla en cada tecla sería redibujar la hoja entera por
+ * letra, y lo que importa es que quede al día cuando uno para, no en el instante exacto.
+ */
+function programarMiniatura(): void {
+  clearTimeout(temporizadorMiniatura);
+  temporizadorMiniatura = window.setTimeout(async () => {
+    const indice = hojaActual();
+    capturarMiniatura(lienzo, indice);
+    // Se toca solo la imagen de esa hoja en vez de rehacer la tira: rehacerla perdería el
+    // desplazamiento y es trabajo de más para un cambio que afecta a una sola miniatura.
+    const img = hojasLista.querySelector<HTMLImageElement>(`[data-mini="${indice}"]`);
+    const fuente = await miniaturaDeHoja(indice);
+    if (img?.isConnected && fuente) {
+      img.src = fuente;
+      img.hidden = false;
+    }
+  }, 600);
 }
 
 /**
@@ -399,6 +425,7 @@ const ATAJOS: { combo: string; donde: string }[] = [
   { combo: 'ctrl+alt+c', donde: '#ed-csv-importar' },
   { combo: 'ctrl+alt+x', donde: '#ed-csv-exportar' },
   { combo: 'f2', donde: '#ed-completar' },
+  { combo: 'f3', donde: '#ed-solo-campos' },
   { combo: 'f4', donde: '#ed-ocultar-campos' },
   { combo: 'f1', donde: '#ed-ayuda-guia' },
 ];
@@ -528,7 +555,35 @@ checkOcultarCampos.addEventListener('change', () => {
     completar.checked = false;
     completar.dispatchEvent(new Event('change'));
   }
+  // Y con el contenido trabado tampoco tiene sentido esconder lo único que quedaba tocable.
+  if (apagar && estaBloqueadoElContenido()) aplicarSoloCampos(false);
   aplicarOcultarCampos(apagar);
+});
+
+const checkSoloCampos = document.getElementById('ed-solo-campos') as HTMLInputElement;
+const avisoSoloCampos = document.getElementById('ed-status-solo-campos')!;
+
+/**
+ * Traba todo lo que no sea un campo de formulario: el dibujo del diseño y el contenido del PDF.
+ * Es el inverso de "Ocultar campos", y sirve para la etapa en que la plantilla ya está y solo falta
+ * acomodar el formulario, sin correr una línea sin querer.
+ *
+ * Como el otro, es solo una vista: no toca el modelo ni cambia lo que se exporta. Y como el otro
+ * lleva aviso en la barra de estado, porque desde el lienzo no se distingue "no se puede mover" de
+ * "se rompió algo".
+ */
+function aplicarSoloCampos(valor: boolean): void {
+  checkSoloCampos.checked = valor;
+  bloquearContenido(lienzo, valor);
+  avisoSoloCampos.hidden = !valor;
+  mostrarSinSeleccion(espacio.panelPropiedades);
+}
+
+checkSoloCampos.addEventListener('change', () => {
+  const trabar = checkSoloCampos.checked;
+  // Con los campos escondidos no quedaría nada tocable: prender esto los devuelve a la vista.
+  if (trabar && camposEstanOcultos()) aplicarOcultarCampos(false);
+  aplicarSoloCampos(trabar);
 });
 
 document.getElementById('ed-completar')!.addEventListener('change', async (e) => {
@@ -1119,6 +1174,9 @@ inputPdf.addEventListener('change', async () => {
 lienzo.on('mouse:dblclick', async (e) => {
   const { hayPdfAbierto, textoEn, borrarTextoDelPdf, formaEnPunto, quitarFormaDelPdf, imagenEnPunto, quitarImagenDelPdf } = await import('./editor/pdfExistente');
   if (!hayPdfAbierto()) return;
+  // Con el contenido trabado, el doble clic no convierte nada: convertir es la forma de modificar
+  // el PDF, y trabarlo tiene que trabar eso también o el modo no serviría de nada.
+  if (estaBloqueadoElContenido()) return;
 
   // Si el doble clic cayó sobre un objeto, manda el objeto... salvo que sea un campo importado del
   // mismo PDF. Los campos de una plantilla real tapan casi la mitad de la hoja, así que si
