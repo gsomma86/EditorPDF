@@ -293,11 +293,25 @@ Hallazgos técnicos que siguen valiendo:
       que `toPixmap()` sola devuelve negro opaco donde debería ser transparente.
       Queda `npm run inspeccionar -- archivo.pdf`, que lista lo que el editor detectaría en cada
       página: sobre ese manual, 42 imágenes y 712 formas.
+- [x] **Modo "Bloquear todo menos los campos"** (16/08/2026, `F3`, menú Campos). El inverso de
+      "Ocultar campos": aquel esconde los campos para mirar el documento, este traba el documento
+      para trabajar solo en los campos. Es para la etapa en que la plantilla ya está y solo falta
+      acomodar el formulario — sin esto, un clic de más corre una línea y no se nota hasta que sale
+      mal el PDF. Traba el dibujo del diseño **y el contenido del PDF**: con el modo puesto el doble
+      clic no convierte textos, formas ni imágenes, porque convertir *es* la forma de modificar el
+      PDF. Se suma a lo que digan las capas y nunca destraba; es excluyente con "Ocultar campos"
+      (juntos no dejarían nada tocable); y lleva aviso en la barra de estado, porque desde el lienzo
+      no se distingue "no se puede mover" de "se rompió algo". Como los otros dos modos, es solo una
+      vista: no toca el modelo, no entra al historial y no cambia lo que se exporta.
 - [x] **La miniatura de la hoja muestra lo que se ve** (16/08/2026). Se dibujaba solo desde la
       página del PDF, así que no incluía nada de lo dibujado encima —y después de convertir algo
       mostraba la hoja sin ello—. Ahora se toma del lienzo, sin el zoom puesto (`toDataURL` respeta
       la vista y al 220% saldría recortada), y vive en un `WeakMap` sobre la hoja para que acompañe
       los reordenamientos sin engordar el `.json` del proyecto.
+      Y se actualiza **después de cada cambio**, no solo al cambiar de hoja: mismo mecanismo que el
+      cálculo del peso, un temporizador desde `guardar()`. Con respiro de 600 ms, porque capturarla
+      en cada tecla sería redibujar la hoja entera por letra; y tocando solo la imagen de la hoja
+      vigente, porque rehacer la tira perdería el desplazamiento.
 - [ ] Curvas y paths compuestos quedan afuera: no hay elemento del modelo que represente una curva
       o un polígono libre, habría que inventar uno. Se pospuso a propósito hasta tener un PDF real
       donde importe — la fase 3 ya se equivocó una vez decidiendo sin medir la muestra correcta.
