@@ -158,8 +158,6 @@ function elementosDelLienzo(lienzo: Canvas): Elemento[] {
 /** Vuelca al modelo lo que hay en el lienzo. Hay que llamarlo antes de leer o guardar las hojas. */
 export function asentarHoja(lienzo: Canvas): void {
   hojas[hojaVigente].elementos = elementosDelLienzo(lienzo);
-  // Se aprovecha para anotar cómo quedó viéndose: es justo el momento en que se la deja.
-  capturarMiniatura(lienzo);
 }
 
 /** Todas las hojas, con la vigente ya actualizada desde el lienzo. */
@@ -171,6 +169,10 @@ export function hojasDelDocumento(lienzo: Canvas): Hoja[] {
 export async function irAHoja(lienzo: Canvas, indice: number): Promise<void> {
   if (indice < 0 || indice >= hojas.length || indice === hojaVigente) return;
   asentarHoja(lienzo);
+  // Cómo quedó viéndose la que se deja. Va acá y no en `asentarHoja`, que corre en cada paso del
+  // historial, en cada autoguardado y al exportar: sacar la miniatura redibuja el lienzo entero, y
+  // hacerlo tantas veces trababa la aplicación.
+  capturarMiniatura(lienzo);
   hojaVigente = indice;
   await reconstruirLienzo(lienzo, hojas[hojaVigente].elementos);
   await mostrarHojaVigente(lienzo);
@@ -389,23 +391,22 @@ export function capturarMiniatura(lienzo: Canvas, indice = hojaVigente): void {
   if (!hoja) return;
 
   // Fuera del navegador —los arneses— el lienzo es un doble sin `toDataURL`: no hay miniatura que
-  // sacar y tampoco hace falta. Se comprueba antes de tocar nada, para no dejarlo a medio cambiar.
+  // sacar y tampoco hace falta.
   if (typeof lienzo.toDataURL !== 'function') return;
 
-  // Sin el zoom puesto: `toDataURL` respeta la vista, así que trabajando al 220% la miniatura
-  // saldría recortada. Se lo saca, se captura la hoja entera y se lo devuelve como estaba.
-  const vista = lienzo.viewportTransform;
   try {
-    lienzo.viewportTransform = [1, 0, 0, 1, 0, 0];
-    miniaturasDeLienzo.set(hoja, lienzo.toDataURL({ format: 'png', multiplier: ESCALA_MINIATURA }));
+    // El zoom se compensa **en el multiplicador**, sin tocar el lienzo. Fabric ya guarda y restaura
+    // la vista al exportar, y multiplica por el zoom vigente: pidiendo `escala / zoom` la miniatura
+    // sale siempre del mismo tamaño, se esté trabajando al 100% o al 220%.
+    //
+    // Nada de escribir `viewportTransform` a mano acá: hacerlo no recalcula los límites de la
+    // vista, y Fabric seguía dibujando con los viejos — el lienzo quedaba lleno de copias
+    // fantasma de lo que se estuviera moviendo, y terminaba trabándose.
+    const zoom = lienzo.getZoom?.() || 1;
+    miniaturasDeLienzo.set(hoja, lienzo.toDataURL({ format: 'png', multiplier: ESCALA_MINIATURA / zoom }));
   } catch {
     // Un lienzo "sucio" —con una imagen de otro origen— no se deja exportar. Sin miniatura propia
     // se sigue usando la de la página del PDF: peor, pero no rompe nada.
-  } finally {
-    lienzo.viewportTransform = vista;
-    // El `finally` corre igual que haya fallado el intento, así que no puede dar por sentado nada:
-    // fue justamente lo que rompió el arnés de campos, cuyo lienzo no tiene este método.
-    lienzo.requestRenderAll?.();
   }
 }
 
