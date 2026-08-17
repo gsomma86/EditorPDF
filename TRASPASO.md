@@ -234,9 +234,16 @@ Con un PDF real, no con uno armado en el arnés (lección 32 y 55):
   bienvenida (ahora son "principal" y "splash"), así que `onCloseRequested` no registraba nada —y
   sin dar error, que es lo que lo hace difícil de encontrar— (lección 54). Con eso arreglado, **sin
   cambios la ventana cierra directo**, que es la mitad del comportamiento y sí quedó comprobada.
-  Al probarlo: abrir, dibujar cualquier cosa, apretar la ✕, y confirmar que salen las tres salidas;
-  y que eligiendo "Guardar y cerrar" pero cancelando el cuadro del nombre de archivo la ventana
-  **no** se cierra.
+  **Segundo bug, también corregido**: eligiendo "Guardar y cerrar" el archivo no aparecía en ningún
+  lado. Guardar baja un archivo —eso es asincrónico— y cerrar la ventana enseguida lo cortaba a
+  medio escribir. Ahora se espera el aviso real de Tauri (`on_download`, evento `Finished`, que
+  trae la ruta final y si salió bien) en vez de un plazo, con un cartel de "Guardando…" a la vista,
+  y al terminar **se muestra dónde quedó el archivo**. Si falla, o si no llega confirmación en 20 s,
+  la ventana **no** se cierra: es preferible una ventana abierta a un archivo que nunca existió.
+  Para engancharlo, la ventana principal pasó a crearse en `lib.rs` en vez de en `tauri.conf.json`.
+  Al probarlo: abrir, dibujar cualquier cosa, apretar la ✕, y confirmar que (a) salen las tres
+  salidas, (b) "Guardar y cerrar" muestra el cartel, avisa la ruta y el archivo está ahí de verdad,
+  y (c) cancelando el cuadro del nombre de archivo la ventana **no** se cierra.
 
 ## Deudas técnicas conocidas
 
