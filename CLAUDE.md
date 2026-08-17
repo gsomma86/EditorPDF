@@ -356,30 +356,6 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
     varias hojas puede además tener un PDF de fondo de varias páginas: las dos cosas conviven sin
     relación entre sí. No confundir una API con la otra al tocar cualquiera de las dos.
 
-## Cómo verificar cambios
-
-**Germán verifica siempre él mismo en el navegador.** El flujo por defecto es: terminar el cambio,
-correr `npx tsc --noEmit` y `npm run build`, commitear, y avisarle qué probar. No abrir el navegador
-salvo que lo pida o que haya una duda técnica concreta que no se pueda resolver leyendo el código.
-
-Si toca verificar en el navegador: **con la pestaña a la vista**. Si el panel está oculto, el
-navegador no compone cuadros y `requestAnimationFrame` no se dispara nunca; como el render de
-pdf.js depende de eso, abrir un PDF queda colgado sin fallar ni dar ningún error, y parece un bug
-de la app. Pasó: se fue un buen rato en encontrarlo. Con `document.visibilityState` se confirma en
-un segundo. Truco útil: las coordenadas exactas de los controles de un objeto de Fabric están
-en `objeto.oCoords`; sumarles el `getBoundingClientRect()` del canvas da la posición en pantalla, y
-es mucho más confiable que estimar coordenadas mirando una captura.
-
-## Estado y próximos pasos
-
-Ver [ROADMAP.md](ROADMAP.md). Resumen: **fase 1 (MVP) casi terminada**. Están el espacio de
-trabajo, todas las herramientas de dibujo, los campos AcroForm completos (repetibles incluidos),
-deshacer/rehacer, guardar/importar proyecto, exportar PDF verificado contra el lienzo, fondo de
-hoja, ayuda y rendimiento medido. **Falta solo el multiidioma ES/EN/PT**, que conviene hacer
-último porque toca cada texto de la interfaz.
-
-Fases 2 y 3 (editar texto y formas de PDFs preexistentes) tienen una prueba de concepto ya
-validada — ver la sección Fase 0 del roadmap.
 34. **Traducir con `data-i18n` alcanza solo para lo que está escrito en el HTML.** Todo lo que arma
     texto por código —el peso del PDF, las pestañas de hojas, el panel de propiedades, que se
     dibuja al seleccionar— queda en el idioma anterior al cambiar de idioma, porque el barrido no
@@ -617,3 +593,17 @@ validada — ver la sección Fase 0 del roadmap.
     trampa se veía desde antes: `mostrarAyuda` llevaba un botón de cancelar escondido con
     `display:none`, puesto para esquivarla en vez de arreglarla. **Cuando algo lleva un parche así,
     el arreglo es el parche que falta.**
+
+## Cómo verificar cambios
+
+**Germán verifica siempre él mismo en el navegador.** El flujo por defecto es: terminar el cambio,
+correr `npx tsc --noEmit` y `npm run build`, commitear, y avisarle qué probar. No abrir el navegador
+salvo que lo pida o que haya una duda técnica concreta que no se pueda resolver leyendo el código.
+
+Si toca verificar en el navegador: **con la pestaña a la vista**. Si el panel está oculto, el
+navegador no compone cuadros y `requestAnimationFrame` no se dispara nunca; como el render de
+pdf.js depende de eso, abrir un PDF queda colgado sin fallar ni dar ningún error, y parece un bug
+de la app. Pasó: se fue un buen rato en encontrarlo. Con `document.visibilityState` se confirma en
+un segundo. Truco útil: las coordenadas exactas de los controles de un objeto de Fabric están
+en `objeto.oCoords`; sumarles el `getBoundingClientRect()` del canvas da la posición en pantalla, y
+es mucho más confiable que estimar coordenadas mirando una captura.
