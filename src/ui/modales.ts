@@ -379,6 +379,26 @@ export function pedirDestinoAlBorrarCapa(
  */
 export type SalidaAlCerrar = 'guardar' | 'salir' | 'cancelar';
 
+/**
+ * Un cartel de "Guardando…" sin botones, para la espera entre que se pide guardar y que el archivo
+ * termina de escribirse. No se cierra solo: lo cierra quien lo mostró, cuando llega el aviso.
+ *
+ * Sin esto la ventana se queda quieta un rato sin explicar por qué, que se lee como colgada.
+ */
+export function mostrarGuardando(): { cerrar(): void } {
+  const overlay = document.createElement('div');
+  overlay.className = 'ed-modal-overlay';
+  overlay.innerHTML = `<div class="ed-modal ed-modal-espera">
+    <div class="ed-espera-giro"></div>
+    <div>
+      <div class="ed-modal-tit">${t('cerrar.guardandoTitulo')}</div>
+      <div class="ed-modal-sub">${t('cerrar.guardandoMensaje')}</div>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  return { cerrar: () => overlay.remove() };
+}
+
 export function preguntarAlCerrar(): Promise<SalidaAlCerrar> {
   // En una variable de cierre y no en el DOM: `abrir` saca el cuadro de la página **antes** de
   // resolver, así que después ya no habría dónde leer la respuesta.

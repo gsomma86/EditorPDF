@@ -1659,3 +1659,30 @@ button {
   display: block;
   flex-shrink: 0;
 }
+
+/* ---------- Cartel de espera (guardando antes de cerrar) ---------- */
+
+/* Sin botones y con el giro al costado: es un aviso de "esperá", no algo que haya que responder. */
+.ed-modal-espera {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.ed-modal-espera .ed-modal-tit,
+.ed-modal-espera .ed-modal-sub {
+  margin: 0;
+}
+.ed-espera-giro {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border: 3px solid var(--borde);
+  border-top-color: var(--acento);
+  border-radius: 50%;
+  animation: ed-girar 0.8s linear infinite;
+}
+@keyframes ed-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -17,8 +17,17 @@ interface VentanaTauri {
 
 interface ApiTauri {
   core: { invoke(comando: string, args?: Record<string, unknown>): Promise<unknown> };
-  event: { emit(evento: string, carga?: unknown): Promise<unknown> };
+  event: {
+    emit(evento: string, carga?: unknown): Promise<unknown>;
+    listen<T>(evento: string, fn: (e: { payload: T }) => void): Promise<() => void>;
+  };
   window: { getCurrentWindow(): VentanaTauri };
+}
+
+/** Lo que avisa el proceso cuando una descarga terminó de escribirse en disco. */
+interface DescargaTerminada {
+  ruta: string;
+  ok: boolean;
 }
 
 function tauri(): ApiTauri | null {
@@ -87,6 +96,38 @@ export function hayCambiosSinGuardar(): boolean {
 }
 
 /**
+ * El tope para dar la descarga por perdida. No es el tiempo que se espera —se espera el aviso real
+ * del proceso— sino el plazo tras el cual, si nunca llegó, se prefiere **no cerrar** y avisar.
+ * Perder el trabajo justo después de haber pedido guardarlo es la peor forma de fallar que tiene
+ * esto, así que ante la duda la ventana se queda abierta.
+ */
+const TOPE_DESCARGA = 20000;
+
+/**
+ * Espera a que la descarga que está por empezar termine de escribirse.
+ *
+ * El oyente se registra **antes** de largar la descarga, a propósito: al revés hay una carrera —
+ * registrarlo cruza el puente de Tauri y tarda, así que el aviso puede llegar antes de que haya
+ * alguien escuchando. Es el mismo error que ya se había cometido con los pasos de la bienvenida.
+ */
+async function esperarDescarga(api: ApiTauri): Promise<Promise<DescargaTerminada | null>> {
+  let resolver!: (r: DescargaTerminada | null) => void;
+  const resultado = new Promise<DescargaTerminada | null>((r) => (resolver = r));
+
+  const dejarDeEscuchar = await api.event.listen<DescargaTerminada>('descarga-terminada', (e) => {
+    resolver(e.payload);
+  });
+
+  const reloj = setTimeout(() => resolver(null), TOPE_DESCARGA);
+  void resultado.finally(() => {
+    clearTimeout(reloj);
+    dejarDeEscuchar();
+  });
+
+  return resultado;
+}
+
+/**
  * Intercepta el botón de cerrar de la ventana para ofrecer guardar antes de salir.
  *
  * `alGuardar` devuelve si el guardado se completó: si el usuario cancela el cuadro del nombre de
@@ -107,10 +148,32 @@ export function cablearCierre(alGuardar: () => Promise<boolean>): void {
     // Se frena el cierre en todos los casos: se decide después, ya con la respuesta.
     evento.preventDefault();
 
-    const { preguntarAlCerrar } = await import('./modales');
+    const { preguntarAlCerrar, mostrarGuardando, mostrarAyuda } = await import('./modales');
+    const { t } = await import('./i18n');
     const respuesta = await preguntarAlCerrar();
     if (respuesta === 'cancelar') return;
-    if (respuesta === 'guardar' && !(await alGuardar())) return;
+
+    if (respuesta === 'guardar') {
+      // El oyente primero, la descarga después: ver `esperarDescarga`.
+      const descarga = await esperarDescarga(api);
+
+      if (!(await alGuardar())) return;
+
+      // Guardar baja un archivo y eso lleva su tiempo. Cerrar antes lo dejaría a medio escribir,
+      // así que se espera el aviso del proceso —no un plazo— con el cartel a la vista.
+      const cartel = mostrarGuardando();
+      const fin = await descarga;
+      cartel.cerrar();
+
+      // Sin confirmación no se cierra: es preferible una ventana que se queda abierta a un archivo
+      // que nunca existió. El usuario puede volver a intentar o salir sin guardar a conciencia.
+      if (!fin || !fin.ok) {
+        await mostrarAyuda(t('cerrar.noSeGuardoTitulo'), `<p>${t('cerrar.noSeGuardoMensaje')}</p>`);
+        return;
+      }
+
+      await mostrarAyuda(t('cerrar.guardadoTitulo'), `<p>${t('cerrar.guardadoMensaje')}</p><p><code>${fin.ruta}</code></p>`);
+    }
 
     cambiosSinGuardar = false;
     void ventana.destroy();

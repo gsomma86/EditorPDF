@@ -1,7 +1,15 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::webview::DownloadEvent;
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
+
+/// Lo que se le avisa al editor cuando una descarga termina de escribirse en disco.
+#[derive(Clone, serde::Serialize)]
+struct DescargaTerminada {
+    ruta: String,
+    ok: bool,
+}
 
 /// Cuánto se muestra la bienvenida como mínimo. Sin esto, en una máquina rápida aparecería y
 /// desaparecería de golpe, que se ve peor que no tenerla.
@@ -98,6 +106,35 @@ pub fn run() {
                         .build(),
                 )?;
             }
+
+            // La ventana principal se arma acá y no en tauri.conf.json porque `on_download` se
+            // engancha al construirla. Es lo que permite cerrar la aplicación **cuando el archivo
+            // terminó de escribirse** y no a los tantos segundos: guardar un proyecto baja un
+            // archivo, y la web no avisa cuándo terminó — pero el WebView sí, y por acá pasa.
+            let avisador = app.handle().clone();
+            WebviewWindowBuilder::new(app, "principal", WebviewUrl::App("index.html".into()))
+                .title("EditorPDF")
+                .inner_size(1280.0, 800.0)
+                .min_inner_size(900.0, 600.0)
+                .resizable(true)
+                .center()
+                // Arranca oculta: la muestra `terminar()` cuando el editor avisa que está listo,
+                // así nunca se ve una ventana en blanco detrás de la bienvenida.
+                .visible(false)
+                .on_download(move |_webview, evento| {
+                    if let DownloadEvent::Finished { path, success, .. } = evento {
+                        let _ = avisador.emit(
+                            "descarga-terminada",
+                            DescargaTerminada {
+                                ruta: path.map(|p| p.display().to_string()).unwrap_or_default(),
+                                ok: success,
+                            },
+                        );
+                    }
+                    // Siempre se deja seguir: acá solo se escucha, no se decide nada.
+                    true
+                })
+                .build()?;
 
             let estado = Arc::new(Bienvenida {
                 arranque: Instant::now(),

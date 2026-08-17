@@ -192,6 +192,12 @@ const ES = {
 
   'campos.quitarTt': 'Quitar del catálogo',
 
+  'cerrar.guardandoTitulo': 'Guardando…',
+  'cerrar.guardandoMensaje': 'Esperando a que el archivo termine de escribirse.',
+  'cerrar.guardadoTitulo': 'Proyecto guardado',
+  'cerrar.guardadoMensaje': 'El archivo quedó en:',
+  'cerrar.noSeGuardoTitulo': 'No se pudo confirmar el guardado',
+  'cerrar.noSeGuardoMensaje': 'La ventana no se cierra por las dudas. Fijate si el archivo está donde lo esperabas; si está, podés cerrar eligiendo «Cerrar sin guardar».',
   'cerrar.titulo': '¿Guardar antes de cerrar?',
   'cerrar.mensaje': 'Hiciste cambios que todavía no están en ningún archivo. Si cerrás sin guardar, se pierden.',
   'cerrar.guardarYSalir': 'Guardar y cerrar',
@@ -583,6 +589,12 @@ const EN: Record<ClaveI18n, string> = {
 
   'campos.quitarTt': 'Remove from catalog',
 
+  'cerrar.guardandoTitulo': 'Saving…',
+  'cerrar.guardandoMensaje': 'Waiting for the file to finish writing.',
+  'cerrar.guardadoTitulo': 'Project saved',
+  'cerrar.guardadoMensaje': 'The file was written to:',
+  'cerrar.noSeGuardoTitulo': 'Could not confirm the save',
+  'cerrar.noSeGuardoMensaje': 'The window stays open just in case. Check whether the file is where you expected; if it is, you can close using “Close without saving”.',
   'cerrar.titulo': 'Save before closing?',
   'cerrar.mensaje': 'You made changes that are not in any file yet. If you close without saving, they are lost.',
   'cerrar.guardarYSalir': 'Save and close',
@@ -972,6 +984,12 @@ const PT: Record<ClaveI18n, string> = {
 
   'campos.quitarTt': 'Remover do catálogo',
 
+  'cerrar.guardandoTitulo': 'Salvando…',
+  'cerrar.guardandoMensaje': 'Aguardando o arquivo terminar de ser gravado.',
+  'cerrar.guardadoTitulo': 'Projeto salvo',
+  'cerrar.guardadoMensaje': 'O arquivo ficou em:',
+  'cerrar.noSeGuardoTitulo': 'Não foi possível confirmar o salvamento',
+  'cerrar.noSeGuardoMensaje': 'A janela não se fecha por precaução. Veja se o arquivo está onde você esperava; se estiver, pode fechar escolhendo “Fechar sem salvar”.',
   'cerrar.titulo': 'Salvar antes de fechar?',
   'cerrar.mensaje': 'Você fez alterações que ainda não estão em nenhum arquivo. Se fechar sem salvar, elas se perdem.',
   'cerrar.guardarYSalir': 'Salvar e fechar',

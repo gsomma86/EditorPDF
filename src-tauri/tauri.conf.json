@@ -13,18 +13,6 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "label": "principal",
-        "title": "EditorPDF",
-        "width": 1280,
-        "height": 800,
-        "minWidth": 900,
-        "minHeight": 600,
-        "resizable": true,
-        "fullscreen": false,
-        "center": true,
-        "visible": false
-      },
-      {
         "label": "splash",
         "title": "EditorPDF",
         "url": "splash.html",

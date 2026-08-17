@@ -96,7 +96,10 @@ export function descargarProyecto(proyecto: Proyecto, nombre: string): void {
   enlace.href = url;
   enlace.download = `${limpio}.json`;
   enlace.click();
-  URL.revokeObjectURL(url);
+  // La descarga es asincrónica: el clic la larga y el navegador lee el blob después. Soltando la
+  // URL en la misma vuelta se le puede sacar el contenido antes de que lo lea, y el archivo sale
+  // vacío o no sale. Se le da tiempo antes de liberarla.
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
 
 /**
