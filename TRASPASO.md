@@ -281,8 +281,8 @@ sospechar del código. En la práctica, **lo de escritorio lo prueba Germán**.
 
 ## Pedidos pendientes de Germán (anotados el 17/08/2026, sin empezar)
 
-Dos pedidos sobre la tabla, para cuando haya crédito fresco. **No arrancar sin releer el código
-actual de `tablaObjeto.ts`** — puede haber cambiado.
+Tres pedidos sobre la tabla, para cuando haya crédito fresco. **No arrancar sin releer el código
+actual de `tablaObjeto.ts` y `figuras.ts`** — puede haber cambiado.
 
 1. **Cambiar la cantidad de filas/columnas desde Propiedades.** Hoy, con una tabla seleccionada,
    `campoTabla()` en `panelPropiedades.ts` (línea ~508) solo muestra un resumen de solo lectura
@@ -314,6 +314,32 @@ actual de `tablaObjeto.ts`** — puede haber cambiado.
    Cubierto hoy por `npm run verificar-objetos`; conviene correrlo después del cambio y sumarle un
    caso que arrastre una columna que no sea la última y confirme que el ancho total no se movió.
 
+3. **Combinar celdas.** Es más manejable de lo que parece: **no hace falta tocar `cols`/`rows` ni
+   los controles de arrastre para nada**, porque hoy las líneas internas se dibujan como líneas
+   rectas de punta a punta (`internasDeTabla` en `figuras.ts`, compartido por pantalla y PDF) — combinar
+   es, en el fondo, dejar de dibujar los tramos que caen dentro de la zona combinada. La grilla de
+   abajo no cambia.
+   - **Modelo**: sumar a `ElementoTabla` una lista de rangos combinados, algo como
+     `combinadas: { filaDesde, filaHasta, colDesde, colHasta }[]`. Como el historial y Duplicar
+     clonan el elemento entero (`JSON.parse(JSON.stringify(...))`), no hace falta tocar nada de eso.
+   - **Dibujo**: `internasDeTabla` pasa de "una línea completa por división" a "un tramo por celda",
+     salteando los tramos que caen dentro de un rango combinado. Como ya es el módulo que comparten
+     `tablaObjeto.ts` (pantalla) y `exportarPdf.ts` (PDF), arreglándolo una vez alcanza para los dos.
+   - **Selección (decidido con Germán, 17/08/2026): arrastrar sobre la tabla.** Con la tabla
+     seleccionada, arrastrar el mouse sobre un bloque de celdas lo marca, y aparece un botón
+     "Combinar". Se descartó la alternativa de números en el panel de Propiedades (fila/columna
+     desde-hasta) por menos natural, aunque más simple de programar.
+     **Ojo con la lección 1 de CLAUDE.md** (no repetirla): esto es una interacción nueva de mouse
+     sobre el lienzo, y ya se intentó una vez resolver algo parecido (las guías de redimensionar
+     fila/columna) con capas de HTML flotando sobre el canvas, y falló tres veces porque se
+     desincronizaba con mover/zoom/escalar la tabla. La resolución que sí funcionó fue un `Control`
+     nativo de Fabric — acá el arrastre no sale de un punto fijo como un `Control` normal, así que
+     probablemente convenga escuchar `mouse:down`/`mouse:move`/`mouse:up` del lienzo, filtrando por
+     si el clic cayó dentro del área de esta tabla (sin pisar los controles de redimensionar que ya
+     existen) y dibujando la selección en el propio `_render` del objeto, no con DOM aparte.
+   - Falta pensar también, al implementarlo: cómo se **deshace** una combinación ya hecha (¿un botón
+     al seleccionar la zona combinada, o basta con volver a seleccionarla y "Combinar" hace toggle?).
+
 ## Fuera del código
 
 Germán quiso conectar el proyecto a **Claude Code en la nube** y no se pudo. Del lado de GitHub la
@@ -334,9 +360,11 @@ Al 17/08/2026 **no hay nada funcional a medias**: el editor está completo en na
 escritorio, todo commiteado y pusheado en `main` (versión 1.0.1), sin cambios sueltos en el árbol
 de trabajo. Lo que queda abierto, en orden de lo que vale la pena:
 
-1. **Los dos pedidos de tabla** (sección de arriba, "Pedidos pendientes de Germán"): editar la
-   cantidad de filas/columnas desde Propiedades, y que mover una división interna no cambie el
-   tamaño total de la tabla. Los más nuevos, pero los más concretos — ya están sin ambigüedad.
+1. **Los tres pedidos de tabla** (sección de arriba, "Pedidos pendientes de Germán"): editar la
+   cantidad de filas/columnas desde Propiedades, que mover una división interna no cambie el
+   tamaño total de la tabla, y combinar celdas. Los dos primeros ya están sin ambigüedad; el de
+   combinar celdas tiene la decisión de diseño tomada (arrastrar sobre la tabla) pero la interacción
+   de mouse en sí queda por resolver al implementarlo.
 2. **Esperar a SignPath** (punto 14). Es lo único con una fecha ajena: si aprueban, hay que agregar
    el paso de firma a `.github/workflows/build-windows.yml` —eso sí lo puede hacer un agente— y con
    eso se va el aviso de SmartScreen al instalar. Si rechazan, no hay nada que tocar en el código.
