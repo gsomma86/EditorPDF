@@ -609,3 +609,11 @@ validada — ver la sección Fase 0 del roadmap.
     Tauri (`guardar_en_disco`), de forma sincrónica, y devuelve la ruta. **Si hace falta un evento
     que no controlamos para saber si algo terminó, conviene preguntarse si se puede reemplazar por
     una operación que termine cuando vuelve.**
+64. **Un `!` sobre un elemento que puede no estar rompe todo lo que viene después, no solo esa
+    línea.** `abrir()` en `modales.ts` enganchaba primero el botón de cancelar con `querySelector(…)!`
+    y después el de confirmar. En un cuadro que solo avisa algo —una sola salida, sin cancelar— la
+    primera línea tiraba `TypeError` y **la segunda nunca corría**: el botón "Entendido" quedaba
+    muerto y el cuadro no se podía cerrar. El síntoma no señalaba al culpable en absoluto. Que había
+    trampa se veía desde antes: `mostrarAyuda` llevaba un botón de cancelar escondido con
+    `display:none`, puesto para esquivarla en vez de arreglarla. **Cuando algo lleva un parche así,
+    el arreglo es el parche que falta.**

@@ -31,7 +31,10 @@ function abrir(contenido: string, alConfirmar: (raiz: HTMLElement) => unknown, a
     };
     document.addEventListener('keydown', onTecla);
 
-    overlay.querySelector('[data-cancelar]')!.addEventListener('click', () => cerrar(null));
+    // El botón de cancelar es opcional: hay cuadros que solo avisan algo y tienen una sola salida.
+    // Va con `?.` y no con `!`: si no existiera, el error cortaría acá y **el de confirmar quedaría
+    // sin enganchar**, o sea un cuadro imposible de cerrar.
+    overlay.querySelector('[data-cancelar]')?.addEventListener('click', () => cerrar(null));
     overlay.querySelector('[data-confirmar]')!.addEventListener('click', () => cerrar(alConfirmar(overlay)));
   });
 }
@@ -259,7 +262,6 @@ export function mostrarAyuda(titulo: string, html: string): Promise<unknown> {
     `<div class="ed-modal-tit">${titulo}</div>
      <div class="ed-ayuda">${html}</div>
      <div class="ed-modal-acciones">
-       <button type="button" data-cancelar style="display:none"></button>
        <button type="button" class="primario" data-confirmar>${t('modal.btn.entendido')}</button>
      </div>`,
     () => true

@@ -7,7 +7,7 @@ import { escapeHtml, mostrarMultiSeleccion, mostrarPropiedades, mostrarSinSelecc
 import { ActiveSelection, type FabricObject } from 'fabric';
 import { borrarAutoguardado, hayAutoguardado, programarAutoguardado, restaurarAutoguardado } from './editor/autoguardado';
 import { camposDesdeCsv, csvDesdeCampos, descargarCsv } from './editor/csvCampos';
-import { confirmar, mostrarAyuda, mostrarPreflight, pedirExportarPdf, pedirFilasColumnas, pedirMargenes, pedirNombreArchivo, pedirNuevoProyecto, pedirTemaPersonalizado, mostrarGuardando } from './ui/modales';
+import { confirmar, mostrarAyuda, mostrarPreflight, pedirExportarPdf, pedirFilasColumnas, pedirMargenes, pedirNombreArchivo, pedirNuevoProyecto, pedirTemaPersonalizado, mostrarGuardando, mostrarRutaGuardada } from './ui/modales';
 import { formatearPeso, pesoDelPdf, verificarDiseno } from './editor/preflight';
 import { montarPanelCampos } from './ui/panelCampos';
 import { montarPanelCapas } from './ui/panelCapas';
@@ -1453,7 +1453,18 @@ async function guardarProyecto(): Promise<ResultadoGuardado> {
   return true;
 }
 
-document.getElementById('ed-guardar-proyecto')!.addEventListener('click', () => void guardarProyecto());
+// Guardando desde el menú también hay que avisar dónde quedó: en escritorio el archivo se escribe
+// solo, sin la barra de descargas del navegador, así que sin este cartel no queda ninguna señal de
+// que pasó algo. `true` es el camino del navegador, donde la descarga se ve sola.
+document.getElementById('ed-guardar-proyecto')!.addEventListener('click', () => {
+  void guardarProyecto().then(async (guardado) => {
+    if (guardado === 'error') {
+      await mostrarAyuda(t('cerrar.noSeGuardoTitulo'), `<p>${t('cerrar.noSeGuardoMensaje')}</p>`);
+    } else if (guardado && guardado !== true) {
+      await mostrarRutaGuardada(guardado);
+    }
+  });
+});
 
 // El botón de cerrar de la ventana pregunta si hay trabajo sin guardar. Solo en escritorio: en el
 // navegador la pestaña tiene su propio aviso y además queda el autoguardado.
