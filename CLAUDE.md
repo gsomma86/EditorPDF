@@ -22,6 +22,22 @@ antes de dar el tema por terminado y sin esperar a que te lo pidan:
 Documentación desactualizada es peor que no tener documentación: manda al próximo agente en la
 dirección equivocada.
 
+## Regla: subir la versión en cada corrección
+
+Cada vez que se corrige algo (un bug, no una charla o una lectura), correr antes de commitear:
+
+```bash
+node scripts/subirVersion.cjs
+```
+
+Sube el parche (`1.0.0` → `1.0.1`) en los **cinco** lugares donde vive el número de versión —
+`package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, el splash de escritorio
+(`public/splash.html`) y el menú Ayuda › Acerca de (`src/ui/ayuda.ts`, una vez por idioma) — todos
+de una sola vez, así no queda ninguno desincronizado. Para una feature nueva, `node
+scripts/subirVersion.cjs minor`; para un cambio que rompe compatibilidad, `major`. El script avisa
+si alguno de los cinco no se pudo actualizar (por ejemplo si el texto ya no coincide porque alguien
+lo redactó distinto): no commitear hasta que los cinco queden en verde.
+
 ## Regla de alcance (la más importante)
 
 **El objetivo es tener TODAS las funciones del editor público de ReciboMail, MÁS la capacidad de
