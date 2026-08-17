@@ -638,10 +638,20 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
       solo en un scratchpad), que usa nada más que `zlib` de Node porque no hay ninguna librería de
       imágenes instalada. `node scripts/componerIcono.cjs icono.png src-tauri/icons/icon.png`
       y después `npx tauri icon src-tauri/icons/icon.png` desde `src-tauri/` para los demás tamaños.
-      **Las descargas andan en la aplicación instalada** (probado el 15/08/2026). Era el riesgo
-      abierto: Exportar PDF y Guardar proyecto bajan el archivo con un enlace `blob:`, y no estaba
-      dicho que WebView2 lo tratara como un navegador. Lo trata igual, así que **no hay que meter
-      el diálogo nativo de Tauri**: el mismo código sirve para la web y para el escritorio.
+      **Exportar el PDF baja bien en la aplicación instalada** (probado el 15/08/2026). Era el
+      riesgo abierto: el archivo baja con un enlace `blob:` y no estaba dicho que WebView2 lo tratara
+      como un navegador. Lo trata igual, así que el mismo código sirve para la web y el escritorio.
+      **Guardar el proyecto sí tuvo que dejar de ser una descarga** (17/08/2026). Al cerrar la
+      ventana el archivo quedaba a medio escribir y no aparecía en ningún lado: bajar un `blob:` es
+      asincrónico. Esperar el aviso de descarga del WebView (`on_download`, evento `Finished`) **no
+      sirve — para un `blob:` no llega nunca**, y la aplicación quedaba trabada avisando que no podía
+      confirmar, peor que el bug original. Lo que lo resolvió fue sacar la descarga del medio: en
+      escritorio lo escribe `guardar_en_disco` en `lib.rs`, que va a Descargas —o Documentos—, limpia
+      el nombre de lo que Windows no admite, no pisa lo que ya haya (`proyecto (2).json`) y devuelve
+      la ruta, que se muestra con un botón para copiarla. Cuando la llamada vuelve el archivo **está**
+      en disco. Ver lección 63.
+      **Todo el pulido de escritorio quedó probado por Germán con el `.exe` instalado** (17/08/2026):
+      bienvenida, arranque en blanco, la pregunta al cerrar y el guardado con su ruta.
 - [ ] **Evitar el cartel de SmartScreen** (investigado 16/08/2026, solicitud enviada, esperando
       revisión). Se descartó **Azure
       Trusted Signing**: desde abril de 2025 solo admite organizaciones de EE.UU./Canadá con 3+
@@ -659,7 +669,7 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
       "Reputation" —el proyecto es nuevo, sin uso más allá del propio autor todavía—, así que puede
       volver un pedido de más pruebas en vez de una aprobación directa. Si aprueban, falta agregar
       el paso de firma al workflow con las credenciales que dé la Foundation. Detalle completo en
-      TRASPASO.md punto 11.
+      TRASPASO.md punto 14.
 - [x] **README y documentación de contribución** (16/08/2026). Ver detalle en TRASPASO.md punto 10.
 - [x] **Temas de color** (16/08/2026). Ocho paletas —Claro, Oscuro, Sepia, Bosque, Grafito, Alto
       contraste, Rojo, Rosa— más una personalizable, en el menú Ver. Toda la interfaz ya salía de
@@ -675,4 +685,4 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
       aplicación, no el documento.
       Al llevarlo del mockup al sistema aparecieron **colores fijos en el CSS** que no seguían al
       tema (el degradado de la barra superior, los menús flotantes, los selectores, el resaltado de
-      la capa destino y del objeto seleccionado): en oscuro habrían quedado blancos. Ver lección 54.
+      la capa destino y del objeto seleccionado): en oscuro habrían quedado blancos. Ver lección 55.

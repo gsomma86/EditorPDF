@@ -1,6 +1,6 @@
 # Traspaso — dónde retomar
 
-Estado al cerrar el 15/08/2026. Todo commiteado en
+Estado al cerrar el 17/08/2026. Todo commiteado y pusheado en
 [gsomma86/EditorPDF](https://github.com/gsomma86/EditorPDF) (rama `main`).
 
 **Antes de tocar nada, leer [CLAUDE.md](CLAUDE.md)**: ahí están la regla de alcance, las
@@ -57,8 +57,14 @@ flotantes y reubicables. Más lo que salió en el camino: atajos de teclado en t
 menú, la barra de Herramientas con secciones plegables, y el zoom hasta 400 %. Todo detallado en la
 fase 4 del ROADMAP.
 
-**Lo próximo es la fase 5 — empaquetado con Tauri**, salvo que aparezca algo antes. De la fase 4
-quedan sin empezar Capas, Firma digital y Más formas geométricas.
+**Fase 5 (empaquetado con Tauri): completa**, y con la aplicación de escritorio terminada de pulir
+(17/08/2026): pantalla de bienvenida al arrancar, siempre empieza en documento nuevo —como Word o
+Excel—, y el botón de cerrar pregunta si guardar. **Guardar en escritorio no pasa por una descarga**:
+lo escribe el proceso de Tauri y avisa dónde quedó, con un botón para copiar la ruta. Ver el punto
+15. Probado por Germán con el `.exe` instalado.
+
+**No queda nada funcional pendiente.** Lo único abierto es de afuera del código: la respuesta de
+SignPath (punto 14) y la deuda de las fuentes sin subsetear. Ver "Por dónde seguir" al final.
 
 ## Lo que falta
 
@@ -97,9 +103,10 @@ quedan sin empezar Capas, Firma digital y Más formas geométricas.
    para el detalle completo.
 5. ~~Capas~~ — **hecho (15/08/2026)**, con su propia barra (`ui/panelCapas.ts`) y el ojo/candado por
    objeto y por capa; lo oculto no se exporta.
-6. ~~Tauri~~ — **hecho (15/08/2026)**, los dos instaladores salen y **las descargas andan en la
-   aplicación instalada**: Exportar PDF y Guardar proyecto bajan con un enlace `blob:`, y WebView2
-   lo trata igual que un navegador. No hace falta el diálogo nativo de Tauri.
+6. ~~Tauri~~ — **hecho (15/08/2026)**, los dos instaladores salen y **exportar el PDF baja bien en
+   la aplicación instalada**: sale con un enlace `blob:` y WebView2 lo trata igual que un navegador.
+   Guardar el proyecto sí dejó de ser una descarga (ver el punto 15): al cerrar la ventana enseguida
+   quedaba a medio escribir.
 7. ~~Campo de firma~~ — **hecho (15/08/2026)**. El editor prepara el recuadro; firmar necesita un
    certificado y no lo hace el editor. Detalle en ROADMAP.md fase 4.
 8. ~~Más formas geométricas~~ — **hecho (15/08/2026)**: elipse, triángulo, flecha y estrella, en un
@@ -132,9 +139,9 @@ quedan sin empezar Capas, Firma digital y Más formas geométricas.
     la página como una fila arrastrable: la lista dejó de mentir. Se fue la casilla "Debajo del
     contenido del PDF" (los proyectos viejos se migran solos al abrirlos). Detalle completo en
     ROADMAP.md, fase 4.
-    **Falta probarlo a mano en el navegador con un PDF real** — está todo verde en los arneses
-    (`verificar-apilado`, nuevo, más los cinco de siempre) pero la lección 32 dice que eso no
-    alcanza. Lo que conviene mirar está en la lista de más abajo, "Qué probar".
+    **Probado a mano por Germán (16/08/2026)**, además de los arneses (`verificar-apilado`, nuevo,
+    más los cinco de siempre). La lista de "Qué mirar si se toca el apilado", más abajo, queda como
+    guía para el día que alguien lo toque.
 14. **SmartScreen — solicitud enviada a SignPath Foundation (16/08/2026), esperando revisión.** Se
     investigó y se descartaron antes Azure Trusted Signing (no admite Argentina) y un certificado
     EV (pide empresa registrada). El camino elegido es **SignPath Foundation** (firma OV gratis
@@ -152,6 +159,22 @@ quedan sin empezar Capas, Firma digital y Más formas geométricas.
     — ese paso sí lo puede terminar un agente.
     **Si rechazan por reputación**: no hay nada que hacer del lado del código; esperar a tener uso
     real (descargas, alguna mención) y volver a aplicar.
+15. ~~Pulido de la aplicación de escritorio~~ — **hecho y probado con el `.exe` instalado
+    (17/08/2026)**. Cuatro cosas, todas solo en escritorio (en el navegador no cambia nada):
+    - **Pantalla de bienvenida** al arrancar, estilo Word/Excel: `public/splash.html` (a propósito en
+      `public/`, para que se pinte antes de que cargue nada del editor), con versión clara y oscura
+      según el tema del sistema. Los tiempos los maneja `src-tauri/src/lib.rs`: 2 s como mínimo, 5 s
+      de tope por si el editor nunca avisa, 0,75 s de desvanecido. La ventana principal **nace
+      oculta** y la muestra `terminar()`; por eso se arma en `lib.rs` y no en `tauri.conf.json`.
+    - **Siempre arranca en documento nuevo**, sin ofrecer retomar lo anterior. El autoguardado y la
+      pregunta de "¿seguir donde dejaste?" siguen existiendo, pero solo en el navegador.
+    - **El botón de cerrar pregunta si guardar** (`cablearCierre` en `ui/bienvenida.ts`), que es lo
+      único que separa al usuario de perder el trabajo ahora que no se retoma solo. Cierra con
+      `destroy()` y no con `close()`: `close()` volvería a disparar el mismo enganche.
+    - **Guardar el proyecto lo escribe Rust** (`guardar_en_disco`), no una descarga. Va a Descargas
+      —o Documentos—, limpia el nombre, no pisa lo que ya haya (`proyecto (2).json`) y devuelve la
+      ruta, que se muestra con un botón para copiarla. El porqué está en la lección 63: esperar el
+      aviso de descarga del WebView **no sirve, para un `blob:` no llega nunca**.
 
 ## Cómo verificar
 
@@ -177,7 +200,7 @@ En el navegador: el Browser pane integrado funciona (probado el 14/08), **con la
 vista**. Si está oculta, `requestAnimationFrame` no se dispara y abrir un PDF queda colgado sin
 dar ningún error, como si fuera un bug de la app.
 
-### Qué probar del apilado nuevo (16/08/2026, pendiente de prueba a mano)
+### Qué mirar si se toca el apilado
 
 Con un PDF real, no con uno armado en el arnés (lección 32 y 55):
 
@@ -222,34 +245,17 @@ Con un PDF real, no con uno armado en el arnés (lección 32 y 55):
   pdf-lib y `pdfExistente.ts` (`paginaDelPdf()`, `elegirPagina()`) cuentan desde 0. La UI (selector
   de página) muestra 1..N al usuario y convierte al llamar al módulo.
 
-## Falta probar a mano
+## Nada pendiente de probar
 
-- **La pregunta al cerrar la aplicación de escritorio** (16/08/2026). El splash sí quedó verificado,
-  midiendo cuándo aparece cada ventana (0,55 s la bienvenida, 3,41 s el editor). El cuadro de
-  "¿guardar antes de cerrar?" no: para que salte hay que hacer un cambio en el editor, y no se pudo
-  simular porque **la pantalla estaba bloqueada** — con la sesión bloqueada las teclas no llegan al
-  WebView y las capturas de pantalla fallan.
-  **Al probarlo la primera vez no preguntaba, y la causa era un bug real ya corregido**: el archivo
-  de capacidades de Tauri daba permisos a una ventana "main" que dejó de existir al agregar la
-  bienvenida (ahora son "principal" y "splash"), así que `onCloseRequested` no registraba nada —y
-  sin dar error, que es lo que lo hace difícil de encontrar— (lección 54). Con eso arreglado, **sin
-  cambios la ventana cierra directo**, que es la mitad del comportamiento y sí quedó comprobada.
-  **Segundo bug, también corregido**: eligiendo "Guardar y cerrar" el archivo no aparecía en ningún
-  lado. Guardar bajaba un archivo —eso es asincrónico— y cerrar la ventana enseguida lo cortaba a
-  medio escribir. Se probó esperar el aviso de descarga del WebView (`on_download`, evento
-  `Finished`): **con un enlace `blob:` no llega nunca**, así que la aplicación quedaba esperando y
-  terminaba avisando que no podía confirmar. La solución no fue perseguir ese evento sino **sacar la
-  descarga del medio**: en escritorio el archivo lo escribe el proceso de Tauri
-  (`guardar_en_disco`, en `lib.rs`), que va a la carpeta de Descargas —o a Documentos si no
-  existiera—, limpia el nombre de los caracteres que Windows no admite, no pisa lo que ya haya
-  (`proyecto (2).json`) y **devuelve la ruta**. Cuando esa llamada vuelve el archivo ya está en
-  disco: no queda nada en vuelo que cerrar la ventana pueda cortar. Se muestra dónde quedó, con un
-  botón para copiar la ruta. En el navegador no cambia nada: ahí sigue siendo una descarga.
-  Si falla, la ventana **no** se cierra: es preferible una ventana abierta a un archivo que nunca
-  existió. La ventana principal se crea en `lib.rs` y no en `tauri.conf.json` (nace oculta).
-  Al probarlo: abrir, dibujar cualquier cosa, apretar la ✕, y confirmar que (a) salen las tres
-  salidas, (b) "Guardar y cerrar" muestra el cartel, avisa la ruta y el archivo está ahí de verdad,
-  y (c) cancelando el cuadro del nombre de archivo la ventana **no** se cierra.
+Al 17/08/2026 **no queda nada esperando una prueba a mano**: Germán probó el cierre con guardado, el
+splash, el arranque en blanco y el guardado desde el `.exe` instalado. El camino que costó tres
+intentos quedó anotado en las lecciones 54 (permisos de Tauri que fallan en silencio), 63 (esperar
+un evento que nunca llega) y 64 (un `!` que mata la línea siguiente).
+
+**Sobre probar la aplicación de escritorio con un agente**: no se puede simular con la sesión de
+Windows bloqueada — las teclas no llegan al WebView y las capturas salen de la pantalla de bloqueo,
+no de la aplicación. Si la prueba parece fallar de forma rarísima, verificar primero eso antes de
+sospechar del código. En la práctica, **lo de escritorio lo prueba Germán**.
 
 ## Deudas técnicas conocidas
 
@@ -281,3 +287,26 @@ aparece vacía y no hay opción de GitHub en Configuración. La causa probable e
 Claude es la de trabajo y el GitHub es personal — en una cuenta de organización esa vinculación la
 suele habilitar un administrador. **No está confirmado.** No bloquea nada: se trabaja local y se
 pushea como hasta ahora.
+
+## Por dónde seguir
+
+**Empezá por acá si sos el agente que retoma.** El trabajo es de a uno por vez, en relevo: `git pull`
+antes de tocar nada y releer CLAUDE.md, que es donde están la regla de alcance, las convenciones y
+las 64 lecciones de bugs ya resueltos.
+
+Al 17/08/2026 **no hay nada funcional a medias**: el editor está completo en navegador y en
+escritorio, todo commiteado y pusheado en `main`, sin cambios sueltos en el árbol de trabajo. Lo
+que queda abierto, en orden de lo que vale la pena:
+
+1. **Esperar a SignPath** (punto 14). Es lo único con una fecha ajena: si aprueban, hay que agregar
+   el paso de firma a `.github/workflows/build-windows.yml` —eso sí lo puede hacer un agente— y con
+   eso se va el aviso de SmartScreen al instalar. Si rechazan, no hay nada que tocar en el código.
+2. **Las fuentes sin subsetear** (deudas técnicas). ~38 KB por familia, medido. **No lo intentes sin
+   correr antes `npm run medir-fuentes`**, que deja la línea base: el arreglo obvio (`subset: true`)
+   ya se probó y rompe.
+3. **Usar la aplicación con archivos de verdad.** Es lo que más bugs encontró en todo el proyecto,
+   muy por encima de las auditorías y de los arneses (ver el punto 12 y la lección 32). Para PDFs
+   ajenos está `npm run inspeccionar -- archivo.pdf`.
+
+Y lo que **no** hay que hacer sin hablarlo antes: sumar funciones nuevas. El alcance está cerrado a
+propósito en CLAUDE.md, y la v1 ya hace todo lo que se propuso.
