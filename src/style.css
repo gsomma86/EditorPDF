@@ -1351,6 +1351,20 @@ button {
   background: var(--card-1);
   border-color: var(--borde);
 }
+/* El botón "Geometría" abre un desplegable propio, anclado a su contenedor y no a la barra
+   entera: mismo patrón que un ítem del menú superior (.ed-menu-item), pero de ancho completo. */
+.ed-herramienta-grupo {
+  position: relative;
+}
+.ed-herramienta-grupo .ed-herramienta {
+  justify-content: space-between;
+}
+.ed-herramienta-grupo .ed-dropdown {
+  left: 0;
+  right: 0;
+  width: auto;
+  min-width: 0;
+}
 
 /* ---------- Costados partidos en dos ---------- */
 

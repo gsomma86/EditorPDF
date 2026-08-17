@@ -135,19 +135,20 @@ const PIEZAS: Record<string, { titulo: string; cuerpo: string }> = {
         <div class="ed-props-tit"><strong data-i18n="shell.herramientas.titulo"></strong></div>
         <div class="ed-col" data-seccion="dibujo"><span class="ed-col-ic">−</span><span class="ed-col-t" data-i18n="shell.dibujo.titulo"></span></div>
         <div class="ed-seccion ed-herramientas" data-cuerpo="dibujo">
-          ${['texto', 'linea', 'rect']
-            .map((clase, i) => {
-              const claves = ['dibTexto', 'dibLinea', 'dibRect'];
-              const teclas = ['T', 'L', 'R'];
-              return `<button type="button" class="ed-herramienta" data-dib="${clase}" title="${teclas[i]}"><span data-i18n="menu.campos.${claves[i]}"></span></button>`;
-            })
-            .join('')}
-          ${(['elipse', 'triangulo', 'flecha', 'estrella'] as const)
-            .map((figura, i) => {
-              const teclas = ['E', '', 'F', ''];
-              return `<button type="button" class="ed-herramienta" data-figura="${figura}" title="${teclas[i]}"><span data-i18n="forma.${figura}"></span></button>`;
-            })
-            .join('')}
+          <button type="button" class="ed-herramienta" data-dib="texto" title="T"><span data-i18n="menu.campos.dibTexto"></span></button>
+          <div class="ed-herramienta-grupo">
+            <button type="button" class="ed-herramienta" id="ed-geometria-btn"><span data-i18n="shell.dibujo.geometria"></span> <span class="ed-menu-car">▾</span></button>
+            <div class="ed-dropdown" data-dd="geometria">
+              <div class="ed-dd-item" data-dib="linea"><span data-i18n="menu.campos.dibLinea"></span> <span class="ed-dd-tecla">L</span></div>
+              <div class="ed-dd-item" data-dib="rect"><span data-i18n="menu.campos.dibRect"></span> <span class="ed-dd-tecla">R</span></div>
+              ${(['elipse', 'triangulo', 'flecha', 'estrella'] as const)
+                .map((figura, i) => {
+                  const teclas = ['E', '', 'F', ''];
+                  return `<div class="ed-dd-item" data-figura="${figura}"><span data-i18n="forma.${figura}"></span> <span class="ed-dd-tecla">${teclas[i]}</span></div>`;
+                })
+                .join('')}
+            </div>
+          </div>
           ${['tabla', 'imagen', 'qr']
             .map((clase, i) => {
               const claves = ['dibTabla', 'dibImagen', 'dibQr'];
@@ -295,6 +296,7 @@ export function montarEspacioTrabajo(raiz: HTMLElement): EspacioTrabajo {
   const menubar = raiz.querySelector<HTMLElement>('#ed-menubar')!;
   wireMenuDesplegable(menubar);
   wireSelectorIdioma(raiz);
+  wireGeometriaDesplegable(raiz);
   aplicarIdioma(raiz);
 
   return {
@@ -324,6 +326,26 @@ function wireSelectorIdioma(raiz: HTMLElement): void {
     });
   });
 
+  document.addEventListener('click', () => dropdown.classList.remove('abierto'));
+}
+
+/**
+ * Igual que el selector de idioma: un botón que despliega un `.ed-dropdown` flotante, cerrado con
+ * cualquier clic afuera. La acción de cada ítem la ejecuta el delegado de `[data-dib]`/
+ * `[data-figura]` en `main.ts`; acá solo se cierra el desplegable después de elegir uno.
+ */
+function wireGeometriaDesplegable(raiz: HTMLElement): void {
+  const boton = raiz.querySelector<HTMLButtonElement>('#ed-geometria-btn');
+  const dropdown = raiz.querySelector<HTMLElement>('[data-dd="geometria"]');
+  if (!boton || !dropdown) return;
+
+  boton.addEventListener('click', (evento) => {
+    evento.stopPropagation();
+    dropdown.classList.toggle('abierto');
+  });
+  dropdown.querySelectorAll<HTMLElement>('[data-dib], [data-figura]').forEach((item) => {
+    item.addEventListener('click', () => dropdown.classList.remove('abierto'));
+  });
   document.addEventListener('click', () => dropdown.classList.remove('abierto'));
 }
 
