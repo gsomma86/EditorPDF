@@ -279,6 +279,41 @@ sospechar del código. En la práctica, **lo de escritorio lo prueba Germán**.
 - ~~El QR se regenera en cada tecla~~ — **resuelto (16/08/2026)**: el texto lleva un respiro de
   250 ms. Los colores y el fondo siguen inmediatos, que ahí cada cambio es uno solo.
 
+## Pedidos pendientes de Germán (anotados el 17/08/2026, sin empezar)
+
+Dos pedidos sobre la tabla, para cuando haya crédito fresco. **No arrancar sin releer el código
+actual de `tablaObjeto.ts`** — puede haber cambiado.
+
+1. **Cambiar la cantidad de filas/columnas desde Propiedades.** Hoy, con una tabla seleccionada,
+   `campoTabla()` en `panelPropiedades.ts` (línea ~508) solo muestra un resumen de solo lectura
+   ("N filas × M columnas") — la cantidad se fija una sola vez, en el modal al insertarla
+   (`pedirFilasColumnas`), y no se puede tocar después. Falta agregar ahí un control (dos números,
+   o reabrir el mismo modal) que permita cambiarla con la tabla ya puesta en la hoja.
+   **Decisión de diseño que falta tomar al implementarlo**: al subir la cantidad, ¿la fila/columna
+   nueva se agrega al final con un tamaño por defecto (60pt/24pt, como al crearla), o se reparte el
+   espacio existente entre todas? Al bajarla, ¿se descarta la última o la que esté vacía/más chica?
+   El editor público no resuelve esto (no dejaba cambiar la cantidad después de puesta), así que no
+   hay una referencia a copiar — es una decisión nueva, más simple: agregar/quitar al final con el
+   tamaño por defecto, sin redistribuir las demás.
+
+2. **Las dimensiones externas de la tabla tienen que quedar fijas al mover una línea interna.**
+   Confirmado en el código actual (`accionRedimensionar` en `tablaObjeto.ts`, línea ~97): cada
+   columna y cada fila tiene su propio control (`col0`, `col1`, …, incluida la última), y arrastrar
+   cualquiera de ellos hoy cambia **solo** `cols[i]` (o `rows[i]`) sin tocar a sus vecinas — como el
+   ancho/alto total de la tabla es la suma de todas, mover una división interna cambia el tamaño
+   total de la tabla entera, que es justo lo que Germán no quiere.
+   **El arreglo, ya sin ambigüedad porque la estructura de controles lo deja claro**: para toda
+   columna `i` que **no** sea la última (`i < cols.length - 1`), arrastrar su control tiene que
+   repartir entre `cols[i]` y `cols[i+1]` — si una crece, la vecina siguiente se achica lo mismo,
+   así la suma total no cambia (con el mínimo de 8pt/6pt de siempre como piso). Mismo criterio para
+   filas. **El control de la última columna/fila queda como está**: como no tiene una vecina
+   siguiente a la que restarle, cambiar su tamaño ya cambia el total — y es exactamente lo que
+   Germán pidió que pase ahí ("los controles de la última fila/columna" sí pueden tocar las
+   dimensiones externas). Los 4 controles de las esquinas (`createObjectDefaultControls`, sin tocar
+   en este archivo) siguen escalando la tabla entera como hasta ahora — no cambian con este pedido.
+   Cubierto hoy por `npm run verificar-objetos`; conviene correrlo después del cambio y sumarle un
+   caso que arrastre una columna que no sea la última y confirme que el ancho total no se movió.
+
 ## Fuera del código
 
 Germán quiso conectar el proyecto a **Claude Code en la nube** y no se pudo. Del lado de GitHub la
@@ -292,19 +327,23 @@ pushea como hasta ahora.
 
 **Empezá por acá si sos el agente que retoma.** El trabajo es de a uno por vez, en relevo: `git pull`
 antes de tocar nada y releer CLAUDE.md, que es donde están la regla de alcance, las convenciones y
-las 64 lecciones de bugs ya resueltos.
+las 65 lecciones de bugs ya resueltos — y ahora también la regla de correr
+`node scripts/subirVersion.cjs` antes de commitear una corrección.
 
 Al 17/08/2026 **no hay nada funcional a medias**: el editor está completo en navegador y en
-escritorio, todo commiteado y pusheado en `main`, sin cambios sueltos en el árbol de trabajo. Lo
-que queda abierto, en orden de lo que vale la pena:
+escritorio, todo commiteado y pusheado en `main` (versión 1.0.1), sin cambios sueltos en el árbol
+de trabajo. Lo que queda abierto, en orden de lo que vale la pena:
 
-1. **Esperar a SignPath** (punto 14). Es lo único con una fecha ajena: si aprueban, hay que agregar
+1. **Los dos pedidos de tabla** (sección de arriba, "Pedidos pendientes de Germán"): editar la
+   cantidad de filas/columnas desde Propiedades, y que mover una división interna no cambie el
+   tamaño total de la tabla. Los más nuevos, pero los más concretos — ya están sin ambigüedad.
+2. **Esperar a SignPath** (punto 14). Es lo único con una fecha ajena: si aprueban, hay que agregar
    el paso de firma a `.github/workflows/build-windows.yml` —eso sí lo puede hacer un agente— y con
    eso se va el aviso de SmartScreen al instalar. Si rechazan, no hay nada que tocar en el código.
-2. **Las fuentes sin subsetear** (deudas técnicas). ~38 KB por familia, medido. **No lo intentes sin
+3. **Las fuentes sin subsetear** (deudas técnicas). ~38 KB por familia, medido. **No lo intentes sin
    correr antes `npm run medir-fuentes`**, que deja la línea base: el arreglo obvio (`subset: true`)
    ya se probó y rompe.
-3. **Usar la aplicación con archivos de verdad.** Es lo que más bugs encontró en todo el proyecto,
+4. **Usar la aplicación con archivos de verdad.** Es lo que más bugs encontró en todo el proyecto,
    muy por encima de las auditorías y de los arneses (ver el punto 12 y la lección 32). Para PDFs
    ajenos está `npm run inspeccionar -- archivo.pdf`.
 
