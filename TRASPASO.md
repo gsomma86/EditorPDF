@@ -470,11 +470,8 @@ más abajo: es la misma revisión de una decisión ya tomada, para las cuatro fi
 
 ### ESTRELLA
 
-1. ~~Cantidad de puntas~~ — **ya existe y funciona.** Confirmado en el código: `ElementoForma.puntas`
-   ya es un campo real, el panel ya lo muestra (`campoForma()`, solo si `figura === 'estrella'`) y
-   ya está cableado (`numero('#ed-p-puntas', ...)` en `wireCampos`). Si a Germán no le aparece el
-   control, puede ser que no haya vuelto a abrir el panel después de actualizar, o que esté mirando
-   otra figura — vale la pena que lo pruebe de nuevo antes de anotar más trabajo acá.
+1. ~~Cantidad de puntas~~ — **descartado (17/08/2026): ya existe y funciona**, Germán lo confirmó
+   probándolo de nuevo en el panel. Era `ElementoForma.puntas`, ya cableado desde antes.
 2. **Qué tan puntiaguda es la estrella** — esto sí falta. `HUNDIDO_ESTRELLA = 0.42` en `figuras.ts`
    es una constante fija (qué tan adentro caen los vértices interiores respecto del radio exterior)
    y no depende de nada del elemento. Mismo patrón que `puntas`: agregar un campo nuevo (por ejemplo
