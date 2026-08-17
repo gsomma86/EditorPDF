@@ -229,9 +229,11 @@ Con un PDF real, no con uno armado en el arnés (lección 32 y 55):
   "¿guardar antes de cerrar?" no: para que salte hay que hacer un cambio en el editor, y no se pudo
   simular porque **la pantalla estaba bloqueada** — con la sesión bloqueada las teclas no llegan al
   WebView y las capturas de pantalla fallan.
-  Lo que sí está comprobado: el enganche se registra sin error —se sabe porque el aviso de "editor
-  listo" funciona, y ese código corre después—, y **sin cambios la ventana cierra directo**, que es
-  la mitad del comportamiento.
+  **Al probarlo la primera vez no preguntaba, y la causa era un bug real ya corregido**: el archivo
+  de capacidades de Tauri daba permisos a una ventana "main" que dejó de existir al agregar la
+  bienvenida (ahora son "principal" y "splash"), así que `onCloseRequested` no registraba nada —y
+  sin dar error, que es lo que lo hace difícil de encontrar— (lección 54). Con eso arreglado, **sin
+  cambios la ventana cierra directo**, que es la mitad del comportamiento y sí quedó comprobada.
   Al probarlo: abrir, dibujar cualquier cosa, apretar la ✕, y confirmar que salen las tres salidas;
   y que eligiendo "Guardar y cerrar" pero cancelando el cuadro del nombre de archivo la ventana
   **no** se cierra.

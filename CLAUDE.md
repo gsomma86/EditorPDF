@@ -525,7 +525,16 @@ validada — ver la sección Fase 0 del roadmap.
     mismo con "Nuevo proyecto", que vaciaba las hojas pero se olvidaba las capas. **Todo lo que
     reemplaza el documento entero —restaurar, importar, empezar de nuevo— tiene que refrescar cada
     panel a mano**, no esperar que un evento lo haga.
-54. **Un tema de color destapa cada color escrito a mano.** La interfaz se pintaba entera desde las
+54. **En Tauri, una ventana que no figura en `capabilities/` no puede usar las APIs del núcleo — y
+    falla en silencio.** Al agregar la pantalla de bienvenida, las ventanas pasaron a llamarse
+    `principal` y `splash`, pero `src-tauri/capabilities/default.json` seguía dando permisos a una
+    llamada `main`. Resultado: `onCloseRequested` no registraba nada, sin error ni aviso, así que
+    el botón de cerrar no preguntaba si guardar. **Lo que hace difícil de encontrar a este bug es
+    que los comandos propios —los de `lib.rs`— NO pasan por ese control**: seguían funcionando, la
+    bienvenida se cerraba bien y todo parecía correcto salvo lo que no andaba. Al tocar las
+    etiquetas de las ventanas, revisar siempre ese archivo. Y ojo con `core:default`, que **no**
+    incluye todo: `allow-destroy`, por ejemplo, hay que pedirlo aparte.
+55. **Un tema de color destapa cada color escrito a mano.** La interfaz se pintaba entera desde las
     variables de `:root`… salvo una docena de lugares con el hex puesto directo: el degradado de la
     barra superior, los menús flotantes, el fondo de los `select`, el resaltado de la capa destino y
     del objeto seleccionado. Con el tema claro nadie los notaba porque coincidían; con el oscuro
@@ -534,7 +543,7 @@ validada — ver la sección Fase 0 del roadmap.
     la hoja y de las miniaturas queda blanco siempre, porque representa lo que se va a imprimir—.
     Lo mismo vale para cualquier valor compuesto que mezcle una variable con un color fijo, como la
     sombra de las miniaturas: hay que rearmarlo desde el tema, no dejarlo en el CSS.
-55. **Las matrices de un PDF real llegan con ruido, así que los épsilon van en proporción, no en
+56. **Las matrices de un PDF real llegan con ruido, así que los épsilon van en proporción, no en
     valor absoluto.** Detectar imágenes andaba con PDFs armados en el arnés y fallaba con un manual
     de verdad: los íconos traían `b = 0,00002` y `c = -0,000013` donde debería haber ceros —resto de
     redondeos del generador— y el corte fijo en `1e-6` los leía como sesgo y los descartaba. Ese
@@ -546,20 +555,20 @@ validada — ver la sección Fase 0 del roadmap.
     se descubrieron **probando con un archivo real**, no con los del arnés: para todo lo que lea PDF
     ajeno, un PDF fabricado en la prueba comprueba la lógica pero no el mundo. Hay
     `npm run inspeccionar -- archivo.pdf` justamente para eso.
-56. **La transparencia de una imagen de PDF no está en la imagen.** Vive en una *soft mask* aparte
+57. **La transparencia de una imagen de PDF no está en la imagen.** Vive en una *soft mask* aparte
     —otra imagen, en grises, donde 0 es transparente y 255 opaco— así que `toPixmap()` sola devuelve
     negro opaco donde debería no haber nada: los íconos de un manual aparecían sobre un cuadrado
     negro. Hay que pedir `getMask()` y combinarlas. Ojo con el segundo caso: **la base puede venir
     sin canal alfa** (RGB puro, con toda la transparencia en la máscara), y entonces no hay dónde
     escribir el alfa — hay que armar un pixmap nuevo con alfa y copiar color + máscara.
-57. **Una caché que nadie invalida miente con cara de estar bien.** La miniatura de la hoja se
+58. **Una caché que nadie invalida miente con cara de estar bien.** La miniatura de la hoja se
     guardaba por página del PDF y `refrescarPaginaDibujada` no la borraba, así que la tira seguía
     mostrando el texto o la imagen recién sacados. Al invalidarla apareció el problema de fondo, que
     la caché venía tapando por accidente: **la miniatura se dibujaba solo desde la página del PDF**
     y nunca mostró nada de lo dibujado encima. Moraleja doble: si algo se ve bien por una caché
     vieja, no está bien; y una miniatura tiene que salir de lo mismo que ve el usuario —el lienzo—
     y no de una de sus partes.
-58. **Una prueba cuyos casos dan todos el mismo resultado no está probando nada.** Escribiendo
+59. **Una prueba cuyos casos dan todos el mismo resultado no está probando nada.** Escribiendo
     `verificar-apilado`, el caso de "cambiar un elemento de capa" comparaba tres estados que daban
     los tres `["b1","x"]`: pasaba en verde y habría pasado igual con el código roto. Al armar el caso
     para que el movimiento se notara —un testigo en cada capa— apareció un problema real: devolver
@@ -568,14 +577,14 @@ validada — ver la sección Fase 0 del roadmap.
     arregló mandándolo al frente de su capa nueva al cambiarlo de capa. Antes de dar por buena una
     prueba, mirar si sus casos **pueden** fallar: si el valor esperado es el mismo antes y después
     de la operación, la prueba no la está mirando.
-59. **Un valor que indexa una lista tiene que sostenerse cuando la lista cambia.**
+60. **Un valor que indexa una lista tiene que sostenerse cuando la lista cambia.**
     `capasSobreElFondo` dice cuántas capas van delante de la página, así que crear, borrar, duplicar
     o reordenar una capa lo corre: al borrar una capa de adelante hay que restarle uno, al crear
     sumarle, y al reemplazar la lista entera recortarlo a la nueva longitud (lo hace
     `establecerCapas`). Sin eso, la página termina apuntando a un lugar que ya no existe y salta al
     fondo sin que nadie lo haya pedido. La alternativa —una marca por capa— se descartó porque
     permite el estado imposible de explicar: capas de los dos lados de la página, intercaladas.
-60. **Entre dos reglas de CSS con la misma especificidad gana la que está más abajo en el archivo, y
+61. **Entre dos reglas de CSS con la misma especificidad gana la que está más abajo en el archivo, y
     el síntoma es que el cambio no hace NADA.** Es la variante de la lección 24 que más cuesta ver.
     El botón de plegar una capa lleva dos clases (`class="ed-obj-btn ed-capa-plegar"`); se le puso
     `font-size: 15px` en `.ed-capa-plegar` (línea 1447) y siguió viéndose de 9px, porque
@@ -585,7 +594,7 @@ validada — ver la sección Fase 0 del roadmap.
     nada—. La salida es **especificidad, no orden**: `.ed-obj-btn.ed-capa-plegar` o
     `.ed-capa-head .ed-obj-btn`, que ganan estén donde estén. Reordenar el archivo también
     "funciona" pero deja la trampa armada para el próximo que agregue una regla abajo.
-61. **Un emoji se dibuja mucho más grande que un carácter geométrico del mismo `font-size`.** Los
+62. **Un emoji se dibuja mucho más grande que un carácter geométrico del mismo `font-size`.** Los
     botones de la cabecera de capa son 👁 y 🔒 a 9px y se ven bien; el `▾` de plegar al mismo cuerpo
     quedaba de unos cuatro píxeles. No hay un número que sirva para los dos: en esa cabecera conviven
     12px para los emoji y 15px para el triángulo, y **se ven del mismo tamaño**. Al mezclar los dos
