@@ -235,12 +235,18 @@ Con un PDF real, no con uno armado en el arnés (lección 32 y 55):
   sin dar error, que es lo que lo hace difícil de encontrar— (lección 54). Con eso arreglado, **sin
   cambios la ventana cierra directo**, que es la mitad del comportamiento y sí quedó comprobada.
   **Segundo bug, también corregido**: eligiendo "Guardar y cerrar" el archivo no aparecía en ningún
-  lado. Guardar baja un archivo —eso es asincrónico— y cerrar la ventana enseguida lo cortaba a
-  medio escribir. Ahora se espera el aviso real de Tauri (`on_download`, evento `Finished`, que
-  trae la ruta final y si salió bien) en vez de un plazo, con un cartel de "Guardando…" a la vista,
-  y al terminar **se muestra dónde quedó el archivo**. Si falla, o si no llega confirmación en 20 s,
-  la ventana **no** se cierra: es preferible una ventana abierta a un archivo que nunca existió.
-  Para engancharlo, la ventana principal pasó a crearse en `lib.rs` en vez de en `tauri.conf.json`.
+  lado. Guardar bajaba un archivo —eso es asincrónico— y cerrar la ventana enseguida lo cortaba a
+  medio escribir. Se probó esperar el aviso de descarga del WebView (`on_download`, evento
+  `Finished`): **con un enlace `blob:` no llega nunca**, así que la aplicación quedaba esperando y
+  terminaba avisando que no podía confirmar. La solución no fue perseguir ese evento sino **sacar la
+  descarga del medio**: en escritorio el archivo lo escribe el proceso de Tauri
+  (`guardar_en_disco`, en `lib.rs`), que va a la carpeta de Descargas —o a Documentos si no
+  existiera—, limpia el nombre de los caracteres que Windows no admite, no pisa lo que ya haya
+  (`proyecto (2).json`) y **devuelve la ruta**. Cuando esa llamada vuelve el archivo ya está en
+  disco: no queda nada en vuelo que cerrar la ventana pueda cortar. Se muestra dónde quedó, con un
+  botón para copiar la ruta. En el navegador no cambia nada: ahí sigue siendo una descarga.
+  Si falla, la ventana **no** se cierra: es preferible una ventana abierta a un archivo que nunca
+  existió. La ventana principal se crea en `lib.rs` y no en `tauri.conf.json` (nace oculta).
   Al probarlo: abrir, dibujar cualquier cosa, apretar la ✕, y confirmar que (a) salen las tres
   salidas, (b) "Guardar y cerrar" muestra el cartel, avisa la ruta y el archivo está ahí de verdad,
   y (c) cancelando el cuadro del nombre de archivo la ventana **no** se cierra.

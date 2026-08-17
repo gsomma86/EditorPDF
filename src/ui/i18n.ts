@@ -194,6 +194,8 @@ const ES = {
 
   'cerrar.guardandoTitulo': 'Guardando…',
   'cerrar.guardandoMensaje': 'Esperando a que el archivo termine de escribirse.',
+  'cerrar.copiar': 'Copiar',
+  'cerrar.copiado': '¡Copiado!',
   'cerrar.guardadoTitulo': 'Proyecto guardado',
   'cerrar.guardadoMensaje': 'El archivo quedó en:',
   'cerrar.noSeGuardoTitulo': 'No se pudo confirmar el guardado',
@@ -591,6 +593,8 @@ const EN: Record<ClaveI18n, string> = {
 
   'cerrar.guardandoTitulo': 'Saving…',
   'cerrar.guardandoMensaje': 'Waiting for the file to finish writing.',
+  'cerrar.copiar': 'Copy',
+  'cerrar.copiado': 'Copied!',
   'cerrar.guardadoTitulo': 'Project saved',
   'cerrar.guardadoMensaje': 'The file was written to:',
   'cerrar.noSeGuardoTitulo': 'Could not confirm the save',
@@ -986,6 +990,8 @@ const PT: Record<ClaveI18n, string> = {
 
   'cerrar.guardandoTitulo': 'Salvando…',
   'cerrar.guardandoMensaje': 'Aguardando o arquivo terminar de ser gravado.',
+  'cerrar.copiar': 'Copiar',
+  'cerrar.copiado': 'Copiado!',
   'cerrar.guardadoTitulo': 'Projeto salvo',
   'cerrar.guardadoMensaje': 'O arquivo ficou em:',
   'cerrar.noSeGuardoTitulo': 'Não foi possível confirmar o salvamento',

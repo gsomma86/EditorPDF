@@ -600,3 +600,12 @@ validada — ver la sección Fase 0 del roadmap.
     12px para los emoji y 15px para el triángulo, y **se ven del mismo tamaño**. Al mezclar los dos
     tipos de glifo en una fila, calibrarlos por separado y no buscar el valor único que los empareje,
     porque no existe.
+63. **Cuando algo no se puede confirmar, a veces la salida es no necesitar la confirmación.** Guardar
+    en escritorio bajaba un `blob:` y cerrar la ventana enseguida cortaba la escritura. El primer
+    intento fue esperar un plazo; el segundo, esperar el aviso real de Tauri (`on_download`, evento
+    `Finished`) — que **para descargas `blob:` no llega nunca**, así que la aplicación quedaba
+    trabada avisando que no podía confirmar: peor que el bug original. Lo que lo resolvió fue
+    cambiar el mecanismo, no afinar la espera: en escritorio el archivo lo escribe el proceso de
+    Tauri (`guardar_en_disco`), de forma sincrónica, y devuelve la ruta. **Si hace falta un evento
+    que no controlamos para saber si algo terminó, conviene preguntarse si se puede reemplazar por
+    una operación que termine cuando vuelve.**

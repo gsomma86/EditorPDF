@@ -1686,3 +1686,39 @@ button {
     transform: rotate(360deg);
   }
 }
+
+/* ---------- Ruta del archivo guardado, con botón de copiar ---------- */
+
+.ed-ruta {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  margin: 10px 0 4px;
+}
+.ed-ruta code {
+  flex: 1;
+  min-width: 0;
+  /* La ruta puede ser larga: da la vuelta en vez de estirar el cuadro. Corta en cualquier letra
+     porque no tiene espacios donde partir. */
+  word-break: break-all;
+  background: var(--fondo-suave);
+  border: 1px solid var(--borde-fuerte);
+  border-radius: 6px;
+  padding: 7px 9px;
+  font-family: Consolas, ui-monospace, monospace;
+  font-size: 11.5px;
+  color: var(--texto);
+}
+.ed-ruta button {
+  flex: none;
+  border: 1px solid var(--borde-fuerte);
+  background: var(--card-1);
+  color: var(--texto-2);
+  border-radius: 6px;
+  padding: 0 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.ed-ruta button:hover {
+  background: var(--fondo-suave);
+}

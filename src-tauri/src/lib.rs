@@ -1,15 +1,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use tauri::webview::DownloadEvent;
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
-
-/// Lo que se le avisa al editor cuando una descarga termina de escribirse en disco.
-#[derive(Clone, serde::Serialize)]
-struct DescargaTerminada {
-    ruta: String,
-    ok: bool,
-}
 
 /// Cuánto se muestra la bienvenida como mínimo. Sin esto, en una máquina rápida aparecería y
 /// desaparecería de golpe, que se ve peor que no tenerla.
@@ -63,6 +55,42 @@ async fn terminar(app: &AppHandle, estado: &Bienvenida) {
     }
 }
 
+/// Escribe el proyecto en disco y devuelve dónde quedó.
+///
+/// **En escritorio guardar no pasa por una descarga.** Bajar un archivo con un enlace `blob:` es
+/// asincrónico y no avisa cuándo terminó: cerrar la ventana enseguida lo cortaba a medio escribir y
+/// el archivo no aparecía. Se probó esperar el aviso de descarga del WebView (`on_download`), pero
+/// con un `blob:` no llega nunca. Escribiéndolo desde acá el problema no existe: cuando esta
+/// función vuelve, el archivo **está**, y encima se sabe la ruta exacta para poder mostrarla.
+#[tauri::command]
+fn guardar_en_disco(app: AppHandle, nombre: String, contenido: String) -> Result<String, String> {
+    let carpeta = app
+        .path()
+        .download_dir()
+        .or_else(|_| app.path().document_dir())
+        .map_err(|e| format!("No se encontró una carpeta donde guardar: {e}"))?;
+
+    // El nombre viene de un cuadro de texto: se le sacan los caracteres que Windows no admite en
+    // un nombre de archivo, que si no fallaría al escribir con un error incomprensible.
+    let limpio: String = nombre
+        .trim()
+        .chars()
+        .filter(|c| !matches!(c, '\\' | '/' | ':' | '*' | '?' | '"' | '<' | '>' | '|'))
+        .collect();
+    let base = if limpio.is_empty() { "proyecto" } else { &limpio };
+
+    // Sin pisar lo que ya haya: "proyecto.json", "proyecto (2).json", y así.
+    let mut destino = carpeta.join(format!("{base}.json"));
+    let mut n = 2;
+    while destino.exists() {
+        destino = carpeta.join(format!("{base} ({n}).json"));
+        n += 1;
+    }
+
+    std::fs::write(&destino, contenido).map_err(|e| format!("No se pudo escribir el archivo: {e}"))?;
+    Ok(destino.display().to_string())
+}
+
 /// La llama el editor al pasar de un paso del arranque al siguiente.
 #[tauri::command]
 fn paso_arranque(paso: String, app: AppHandle, estado: tauri::State<'_, Arc<Bienvenida>>) {
@@ -97,7 +125,7 @@ async fn editor_listo(app: AppHandle, estado: tauri::State<'_, Arc<Bienvenida>>)
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![editor_listo, paso_arranque, paso_actual])
+        .invoke_handler(tauri::generate_handler![editor_listo, paso_arranque, paso_actual, guardar_en_disco])
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -107,33 +135,16 @@ pub fn run() {
                 )?;
             }
 
-            // La ventana principal se arma acá y no en tauri.conf.json porque `on_download` se
-            // engancha al construirla. Es lo que permite cerrar la aplicación **cuando el archivo
-            // terminó de escribirse** y no a los tantos segundos: guardar un proyecto baja un
-            // archivo, y la web no avisa cuándo terminó — pero el WebView sí, y por acá pasa.
-            let avisador = app.handle().clone();
+            // La ventana principal se arma acá y no en tauri.conf.json porque tiene que nacer
+            // oculta y que la muestre `terminar()` recién cuando el editor avisa que está listo:
+            // así nunca se ve una ventana en blanco detrás de la bienvenida.
             WebviewWindowBuilder::new(app, "principal", WebviewUrl::App("index.html".into()))
                 .title("EditorPDF")
                 .inner_size(1280.0, 800.0)
                 .min_inner_size(900.0, 600.0)
                 .resizable(true)
                 .center()
-                // Arranca oculta: la muestra `terminar()` cuando el editor avisa que está listo,
-                // así nunca se ve una ventana en blanco detrás de la bienvenida.
                 .visible(false)
-                .on_download(move |_webview, evento| {
-                    if let DownloadEvent::Finished { path, success, .. } = evento {
-                        let _ = avisador.emit(
-                            "descarga-terminada",
-                            DescargaTerminada {
-                                ruta: path.map(|p| p.display().to_string()).unwrap_or_default(),
-                                ok: success,
-                            },
-                        );
-                    }
-                    // Siempre se deja seguir: acá solo se escucha, no se decide nada.
-                    true
-                })
                 .build()?;
 
             let estado = Arc::new(Bienvenida {

@@ -399,6 +399,49 @@ export function mostrarGuardando(): { cerrar(): void } {
   return { cerrar: () => overlay.remove() };
 }
 
+/**
+ * Avisa dónde quedó el archivo guardado, con un botón para copiar la ruta.
+ *
+ * La ruta es larga y seleccionarla a mano dentro de un cuadro que se va a cerrar es incómodo: el
+ * botón existe para poder pegarla en el explorador y llegar al archivo de una.
+ */
+export function mostrarRutaGuardada(ruta: string): Promise<unknown> {
+  return abrir(
+    `<div class="ed-modal-tit">${t('cerrar.guardadoTitulo')}</div>
+     <div class="ed-modal-sub">${t('cerrar.guardadoMensaje')}</div>
+     <div class="ed-ruta">
+       <code data-ruta>${escapeHtml(ruta)}</code>
+       <button type="button" data-copiar>${t('cerrar.copiar')}</button>
+     </div>
+     <div class="ed-modal-acciones">
+       <button type="button" class="primario" data-confirmar>${t('modal.btn.entendido')}</button>
+     </div>`,
+    () => true,
+    (raiz) => {
+      const boton = raiz.querySelector<HTMLButtonElement>('[data-copiar]')!;
+      boton.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(ruta);
+        } catch {
+          // El portapapeles puede estar vedado —sin permiso, o sin foco—; con un campo temporal
+          // funciona igual y no hace falta pedir nada.
+          const campo = document.createElement('textarea');
+          campo.value = ruta;
+          campo.style.position = 'fixed';
+          campo.style.opacity = '0';
+          raiz.appendChild(campo);
+          campo.select();
+          document.execCommand('copy');
+          campo.remove();
+        }
+        // El propio botón hace de confirmación: un cartel aparte sería mucho para esto.
+        boton.textContent = t('cerrar.copiado');
+        setTimeout(() => (boton.textContent = t('cerrar.copiar')), 1600);
+      });
+    }
+  );
+}
+
 export function preguntarAlCerrar(): Promise<SalidaAlCerrar> {
   // En una variable de cierre y no en el DOM: `abrir` saca el cuadro de la página **antes** de
   // resolver, así que después ya no habría dónde leer la respuesta.

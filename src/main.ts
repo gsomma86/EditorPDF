@@ -7,7 +7,7 @@ import { escapeHtml, mostrarMultiSeleccion, mostrarPropiedades, mostrarSinSelecc
 import { ActiveSelection, type FabricObject } from 'fabric';
 import { borrarAutoguardado, hayAutoguardado, programarAutoguardado, restaurarAutoguardado } from './editor/autoguardado';
 import { camposDesdeCsv, csvDesdeCampos, descargarCsv } from './editor/csvCampos';
-import { confirmar, mostrarAyuda, mostrarPreflight, pedirExportarPdf, pedirFilasColumnas, pedirMargenes, pedirNombreArchivo, pedirNuevoProyecto, pedirTemaPersonalizado } from './ui/modales';
+import { confirmar, mostrarAyuda, mostrarPreflight, pedirExportarPdf, pedirFilasColumnas, pedirMargenes, pedirNombreArchivo, pedirNuevoProyecto, pedirTemaPersonalizado, mostrarGuardando } from './ui/modales';
 import { formatearPeso, pesoDelPdf, verificarDiseno } from './editor/preflight';
 import { montarPanelCampos } from './ui/panelCampos';
 import { montarPanelCapas } from './ui/panelCapas';
@@ -19,7 +19,7 @@ import { agregarHoja, aplicarConfigPagina, aplicarFondo, cantidadDeHojas, captur
 import { activarVista, configurarVista, establecerZoom, vistaActual } from './editor/vista';
 import { configPorDefecto, type Orientacion, type TamanoPagina } from './editor/pagina';
 import { GRUPOS, TEMAS, aplicarTema, establecerCustom, iniciarTema, paletaActual, previsualizar, repintar, temaActual, type NombreTema, type Paleta } from './ui/temas';
-import { cablearCierre, editorListo, enEscritorio, marcarCambios, marcarGuardado, pasoDeArranque } from './ui/bienvenida';
+import { cablearCierre, editorListo, enEscritorio, guardarEnDisco, marcarCambios, marcarGuardado, pasoDeArranque, type ResultadoGuardado } from './ui/bienvenida';
 import { cargarProyecto, descargarProyecto, leerProyecto, serializarProyecto } from './editor/proyecto';
 import type { CampoDelPdf, FirmaDelPdf } from './editor/pdfExistente';
 
@@ -1427,11 +1427,28 @@ document.getElementById('ed-nuevo')!.addEventListener('click', async () => {
  * Guarda el proyecto en un `.json`. Devuelve si llegó a guardarse: quien cierra la ventana necesita
  * saberlo, porque si el usuario canceló el cuadro del nombre no hay que cerrar igual.
  */
-async function guardarProyecto(): Promise<boolean> {
+async function guardarProyecto(): Promise<ResultadoGuardado> {
   const nombre = await pedirNombreArchivo(t('confirmar.guardarProyecto.titulo'), t('confirmar.guardarProyecto.mensaje'), 'proyecto');
   if (nombre === null) return false;
+
   // Con el PDF de base adentro: así el archivo se basta a sí mismo para seguir en otra máquina.
-  descargarProyecto(serializarProyecto(lienzo, panelCampos.obtenerCatalogo(), true), nombre);
+  const proyecto = serializarProyecto(lienzo, panelCampos.obtenerCatalogo(), true);
+
+  if (enEscritorio()) {
+    // El cartel tapa la escritura, que con un PDF de base adentro puede tardar un momento.
+    const cartel = mostrarGuardando();
+    try {
+      const ruta = await guardarEnDisco(nombre, JSON.stringify(proyecto, null, 2));
+      marcarGuardado();
+      return ruta ?? true;
+    } catch {
+      return 'error';
+    } finally {
+      cartel.cerrar();
+    }
+  }
+
+  descargarProyecto(proyecto, nombre);
   marcarGuardado();
   return true;
 }
