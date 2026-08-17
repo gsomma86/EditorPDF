@@ -593,6 +593,14 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
     trampa se veía desde antes: `mostrarAyuda` llevaba un botón de cancelar escondido con
     `display:none`, puesto para esquivarla en vez de arreglarla. **Cuando algo lleva un parche así,
     el arreglo es el parche que falta.**
+65. **Un `return` temprano puede tapar una feature entera, no solo el resto de la función.** En
+    `vista.ts`, `object:moving` ajustaba la posición a la cuadrícula y hacía `return` antes de
+    llegar al cálculo de las guías rojas de alineación: con la cuadrícula prendida, las guías no se
+    calculaban nunca, aunque `estado.guias` siguiera en `true`. El arreglo no es elegir una u otra:
+    la cuadrícula sigue mandando en la posición final (si no, temblarían entre dos ajustes
+    compitiendo), pero la guía se marca igual cuando la posición ya cuadriculada coincide con una
+    referencia — son dos cosas distintas (dónde cae el objeto vs. qué se le muestra al usuario) y
+    conviene no fusionarlas en un solo `if`/`return`.
 
 ## Cómo verificar cambios
 

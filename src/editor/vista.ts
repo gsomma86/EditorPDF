@@ -216,27 +216,30 @@ export function activarVista(lienzo: Canvas): void {
     guiasX = [];
     guiasY = [];
 
-    if (estado.cuadricula && estado.paso >= 2) {
+    const cuadriculaActiva = estado.cuadricula && estado.paso >= 2;
+    if (cuadriculaActiva) {
       objeto.set({
         left: Math.round((objeto.left ?? 0) / estado.paso) * estado.paso,
         top: Math.round((objeto.top ?? 0) / estado.paso) * estado.paso,
       });
-      return;
     }
 
     if (!estado.guias) return;
 
+    // Con la cuadrícula puesta, la posición ya la decidió ella: la guía roja se muestra si
+    // coincide justo con una referencia, pero no vuelve a mover el objeto — si no, se pisarían
+    // entre sí y el objeto quedaría temblando entre los dos ajustes.
     const refs = referencias(lienzo, objeto);
     const bordes = bordesDe(objeto);
 
     const enX = engancharEje(bordes.x, refs.x);
     if (enX) {
-      objeto.set({ left: (objeto.left ?? 0) + enX.ajuste });
+      if (!cuadriculaActiva) objeto.set({ left: (objeto.left ?? 0) + enX.ajuste });
       guiasX.push(enX.guia);
     }
     const enY = engancharEje(bordes.y, refs.y);
     if (enY) {
-      objeto.set({ top: (objeto.top ?? 0) + enY.ajuste });
+      if (!cuadriculaActiva) objeto.set({ top: (objeto.top ?? 0) + enY.ajuste });
       guiasY.push(enY.guia);
     }
   });
