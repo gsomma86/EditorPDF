@@ -1,11 +1,13 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "enables the default permissions",
+  "description": "Permisos de las APIs del núcleo para las dos ventanas de la aplicación. Las ventanas van por etiqueta y tienen que coincidir con las de tauri.conf.json: si acá falta una, sus llamadas a las APIs del núcleo —la de ventana, la de eventos— fallan EN SILENCIO, sin error a la vista. Los comandos propios (los de lib.rs) no pasan por este control, así que pueden seguir andando y hacer creer que todo está bien. Y core:default NO incluye allow-destroy, que hace falta para cerrar la ventana después de preguntar si se quiere guardar: volver a llamar a close() dispararía otra vez el mismo enganche y quedaría preguntando en círculos.",
   "windows": [
-    "main"
+    "principal",
+    "splash"
   ],
   "permissions": [
-    "core:default"
+    "core:default",
+    "core:window:allow-destroy"
   ]
 }
