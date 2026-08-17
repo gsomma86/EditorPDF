@@ -340,6 +340,173 @@ actual de `tablaObjeto.ts` y `figuras.ts`** — puede haber cambiado.
    - Falta pensar también, al implementarlo: cómo se **deshace** una combinación ya hecha (¿un botón
      al seleccionar la zona combinada, o basta con volver a seleccionarla y "Combinar" hace toggle?).
 
+4. **Controles numéricos para el tamaño total de la tabla.** Hoy `campoTabla()` no muestra ni
+   Ancho ni Alto (la sección "Posición y tamaño" se salta la tabla a propósito, igual que el texto:
+   `seccionPosicion` tiene `conTamano = elemento.clase !== 'texto' && elemento.clase !== 'tabla'`).
+   Al agregarlos, tienen que repartir el cambio entre todas las columnas/filas proporcionalmente —
+   es lo mismo que ya hace arrastrar una esquina (`accionEscalar`/los controles por defecto en
+   `tablaObjeto.ts`), así que la cuenta ya existe; falta nomás el input numérico que la dispare.
+
+### TEXTO
+
+Todo esto está pendiente porque **`ElementoTexto` hoy no tiene `w`/`h` en absoluto** (se autoajusta
+al contenido) — no son ajustes menores, hace falta agregarle una caja al modelo primero, y varios de
+estos pedidos dependen de esa caja existiendo.
+
+1. Mover el control de Alineación para que quede debajo del tilde "Varias líneas" (`campoTexto()` en
+   `panelPropiedades.ts` — es reordenar HTML, no toca lógica).
+2. **Tilde "el tamaño de fuente no cambia al redimensionar"**, antes del control Tamaño. Con la caja
+   agregada (punto anterior de esta lista), redimensionar el objeto hoy solo puede leerse como "subir
+   el cuerpo de la fuente" (así se resolvió cuando se agregó `w`/`h` a otros tipos). Este tilde le
+   da un segundo sentido: la caja crece pero el texto adentro se queda del mismo tamaño, alineado
+   como diga `align` dentro de esa caja más grande — que es, como bien dice Germán, lo único que le
+   da sentido real a la alineación (con el texto ocupando siempre el 100% del ancho, alinear a la
+   izquierda o al centro no se nota).
+3. Color de fondo del recuadro de texto, con opción "Ninguno" (transparente, como es hoy). Mismo
+   patrón que `conFondo`/`fondoColor` de campo/firma/imagen — no hay nada nuevo que inventar, es
+   copiar el patrón ya usado tres veces.
+4. **"La separación funciona distinto en vertical que en horizontal."** Confirmado en el modelo: un
+   solo campo `separacion` cubre dos casos con semántica distinta —"entre las letras si es vertical,
+   entre las líneas si es horizontal" (comentario en `elemento.ts`, campo `ElementoTexto.separacion`).
+   Falta escuchar a Germán en qué anda mal exactamente: ¿la etiqueta del control no aclara cuál de
+   las dos cosas está cambiando, o el número se comporta distinto de lo esperado en algún caso
+   puntual (por ejemplo, con `multilinea` Y `vertical` prendidos los dos a la vez)? Probar ese
+   combo antes de tocar nada — puede que el bug esté justo ahí, en la intersección de los dos.
+5. Controles numéricos de Ancho/Alto del objeto texto en Propiedades — depende directo de agregar
+   `w`/`h` al modelo (punto de arriba de esta lista): una vez que existan, es el mismo `seccionPosicion`
+   genérico que ya usan línea/recuadro/forma/imagen/campo/firma/QR, sacando a `texto` de la
+   exclusión de `conTamano`.
+
+### TABLA — ver arriba (puntos 1 a 4 de esta sección)
+
+### IMAGEN
+
+1. Color de fondo del recuadro de imagen, con opción "Ninguno" (transparente, como es hoy). Mismo
+   comentario que en texto: patrón ya usado en campo/firma, copiarlo tal cual.
+
+### QR — bug confirmado
+
+**Confirmado en el código** (`panelPropiedades.ts`): el campo "Tamaño" (`#ed-p-size`, línea ~857)
+sí escribe `elemento.w`/`elemento.h` y repinta el QR — funciona. El problema es que la sección
+genérica "Posición y tamaño" **también** muestra Ancho y Alto por separado (`seccionPosicion`, ya
+que QR no está en la lista de exclusión), pero **no existe ningún `$('#ed-p-w')`/`$('#ed-p-h')`
+para `elemento.clase === 'qr'`** en toda la función `wireCampos` — se puede confirmar buscando
+`'qr'` ahí: no aparece ningún wiring de esos dos ids. Por eso:
+- Tipear en Ancho/Alto no hace nada (no están escuchados).
+- Cambiar Tamaño sí cambia la figura, pero como no toca el `.value` de esos dos inputs (que están
+  ahí, mostrando el número viejo), se ven desactualizados hasta reseleccionar (ahí sí se
+  reconstruye el panel entero desde el modelo y muestran el valor correcto).
+**Arreglo**: o se sacan Ancho/Alto de la sección genérica para QR (ya que "Tamaño" los reemplaza,
+al ser siempre cuadrado) y no hay dos controles para lo mismo, o se los cablea igual que en
+`imagen`/`campo` y se saca el campo "Tamaño" — mejor lo primero, es menos código y evita el
+control duplicado que generó la confusión.
+
+### FIRMA — bug grande confirmado (el panel entero no hace nada)
+
+**Confirmado en el código**: `campoFirma()` en `panelPropiedades.ts` (línea ~379) arma el HTML del
+panel completo —Nombre, Leyenda, Obligatorio, y en Formato: grosor de borde, color de borde, con
+fondo, color de fondo, más Ancho/Alto de la sección genérica— pero **`wireCampos` no tiene ningún
+bloque `if (elemento.clase === 'firma')`** (se puede confirmar: `'firma'` no aparece ni una vez en
+esa función, solo en la que arma el HTML). Ni un solo control del panel de firma está escuchado.
+Por eso:
+- **Leyenda** no aparece en el PDF: si tenía, no es porque no se dibuje (sí lo hace —
+  `exportarPdf.ts` línea ~351, la escribe centrada en el recuadro con la fuente Helvetica— es
+  porque lo que se tipea en el panel nunca llega a `elemento.leyenda`, que se queda en el valor con
+  el que se creó el campo, string vacío por defecto).
+- **Obligatorio** no hace nada porque el tilde no está escuchado — nunca cambia
+  `elemento.obligatorio` (que además, revisando `exportarPdf.ts`, tampoco se usa todavía en la
+  exportación: ni siquiera está enganchado del otro lado).
+- Los cuatro controles de "Formato" (grosor, color de borde, con fondo, color de fondo) no hacen
+  nada por la misma razón: nunca escuchados.
+- Ancho/Alto: mismo bug exacto que en QR, pero sin ningún control alternativo que sí funcione — acá
+  no hay ni un "Tamaño" que compense, el objeto de firma no se puede redimensionar desde el panel
+  de ninguna manera hoy.
+**Arreglo**: escribir el bloque `if (elemento.clase === 'firma')` en `wireCampos` entero, siguiendo
+el mismo patrón que `campo`/`imagen` (que ya cablean bordeGrosor/bordeColor/conFondo/fondoColor/w/h).
+Es la sección con más trabajo de todo este lote, pero también la de diagnóstico más simple: no hay
+ninguna decisión de diseño por tomar, es cablear lo que el HTML ya ofrece.
+
+### LÍNEA
+
+**Curvatura, centrada siempre.** Es el pedido más grande de esta lista en términos de arquitectura:
+hoy `LineaObjeto` (`editor/lineaObjeto.ts`) dibuja un segmento recto — un rectángulo angosto, no un
+trazo curvo — y su `width`/`height` son directamente su caja de selección. Agregar curvatura no es
+prender una opción: cambia la forma de dibujarla (de rectángulo relleno a trazo con
+`ctx.quadraticCurveTo`, grosor puesto con `lineWidth`) y probablemente la caja de selección (una
+línea curva ocupa más espacio perpendicular a su eje que una recta del mismo largo). También hace
+falta un camino nuevo en `exportarPdf.ts` (pdf-lib puede dibujar un path SVG con curva, hoy ahí se
+usa `drawLine` derecho). Guardar como campo nuevo `curvatura: number` (el desplazamiento del punto
+medio, perpendicular al eje de la línea) alcanza para el modelo; lo que lleva tiempo es la parte de
+dibujo y exportación, no el dato en sí.
+
+### ELIPSE
+
+Agregar el estilo "doble" a la línea del contorno. Ver la nota general de FLECHA/TRIÁNGULO/ESTRELLA
+más abajo: es la misma revisión de una decisión ya tomada, para las cuatro figuras a la vez.
+
+### TRIÁNGULO
+
+1. **Que no sea siempre isósceles con el vértice centrado.** Hoy `puntosDeFigura()` en
+   `figuras.ts` (caso `'triangulo'`) pone el vértice superior siempre en `x: w/2` — fijo en el
+   centro. Lo que Germán describe como "que no todos sean equiláteros" es en realidad esto: mover
+   ese vértice a los costados para lograr un triángulo asimétrico (escaleno), no una cuestión de
+   ángulos. Se resolvería con un campo nuevo, mismo patrón que `puntas` en la estrella (que "solo
+   mira" una figura): algo como `verticeX: number` de 0 a 1 (0.5 = como está hoy, centrado), con su
+   control numérico en el panel.
+2. Agregar el estilo "doble". Ver la nota general más abajo.
+
+### FLECHA
+
+1. **Controles separados para el grosor del asta y la forma de la cabeza, tipo Word.** Hoy
+   `puntosDeFigura()` (`figuras.ts`, caso `'flecha'`) calcula los dos con proporciones fijas de la
+   caja: `cabeza = Math.min(w/2, h)` y `cuerpo = h/4` (el asta mide un cuarto del alto, siempre) —
+   no hay ningún control independiente hoy, todo sale de w/h. Se explicaste bien: es exactamente lo
+   que Word deja tocar con las "palancas" amarillas de ajuste sobre la forma. Se resuelve agregando
+   dos campos nuevos (algo como `grosorAsta` y `tamanoCabeza`, ambos una fracción de la caja) que
+   reemplacen a esas dos constantes fijas — y ahí se puede elegir si el control va en el panel (dos
+   números) o como controles arrastrables sobre la figura, igual que ya se hizo con las divisorias
+   de la tabla (`tablaObjeto.ts`) — el segundo camino es más "como en Word" pero más trabajo.
+2. Agregar el estilo "doble". Ver la nota general más abajo.
+
+### ESTRELLA
+
+1. ~~Cantidad de puntas~~ — **ya existe y funciona.** Confirmado en el código: `ElementoForma.puntas`
+   ya es un campo real, el panel ya lo muestra (`campoForma()`, solo si `figura === 'estrella'`) y
+   ya está cableado (`numero('#ed-p-puntas', ...)` en `wireCampos`). Si a Germán no le aparece el
+   control, puede ser que no haya vuelto a abrir el panel después de actualizar, o que esté mirando
+   otra figura — vale la pena que lo pruebe de nuevo antes de anotar más trabajo acá.
+2. **Qué tan puntiaguda es la estrella** — esto sí falta. `HUNDIDO_ESTRELLA = 0.42` en `figuras.ts`
+   es una constante fija (qué tan adentro caen los vértices interiores respecto del radio exterior)
+   y no depende de nada del elemento. Mismo patrón que `puntas`: agregar un campo nuevo (por ejemplo
+   `hundido: number`, 0 a 1) que reemplace la constante, con su control en el panel.
+3. Agregar el estilo "doble". Ver la nota general de acá abajo.
+
+### Nota general — "doble" en elipse/triángulo/flecha/estrella
+
+Las cuatro piden lo mismo, y hoy está descartado a propósito: `ElementoForma.estilo` tipa
+`EstiloLinea` completo (incluye `'doble'`), pero el panel solo ofrece sólido/punteado
+(`opcionesEstilo(elemento.estilo, ['solido', 'punteado'])` en `campoForma()`) y el comentario en
+`elemento.ts` explica por qué: *"doble necesitaría dos caminos paralelos y no vale lo que cuesta"*.
+Germán ahora lo quiere, así que es revisar esa decisión vieja, no descubrir algo nuevo. Para
+figuras con curvas (elipse) o vértices (triángulo/flecha/estrella) el segundo camino paralelo no es
+tan directo como en un rectángulo (que es la única figura donde ya funciona, vía `trazos.ts`):
+haría falta ofsetear el contorno hacia adentro en cada figura; en la elipse se resolvería más
+simple, con dos radios distintos en vez de un segundo camino. Antes de arrancar, medir de nuevo si
+vale la pena el costo —
+la razón original para no hacerlo no cambió, solo cambió que ahora lo piden.
+
+### CAMPOS ACROFORM — bug confirmado
+
+**"Ocultar campos" no oculta las copias fantasma de un campo repetible.** Confirmado en el código:
+`ocultarCampos()` (`objetosFabric.ts`, línea ~83) apaga el objeto de Fabric del campo **origen**,
+pero las filas fantasma de un campo con `repFilas > 1` no son objetos de Fabric — se dibujan aparte,
+directo en el canvas, dentro de `dibujarAdornos()` en `vista.ts` (el mismo lugar que dibuja la
+cuadrícula y los márgenes). Ese bloque **no importa `camposEstanOcultos()` de `objetosFabric.ts` en
+ningún lado**, así que dibuja las fantasmas sin fijarse si "Ocultar campos" está prendido.
+**Arreglo**: agregar `if (camposEstanOcultos()) return;` (o el `continue` correspondiente) al
+principio del bloque que dibuja las fantasmas en `vista.ts`, importando `camposEstanOcultos` de
+`objetosFabric.ts`. Un cambio de una línea, ya diagnosticado del todo.
+
 ## Fuera del código
 
 Germán quiso conectar el proyecto a **Claude Code en la nube** y no se pudo. Del lado de GitHub la
@@ -360,11 +527,18 @@ Al 17/08/2026 **no hay nada funcional a medias**: el editor está completo en na
 escritorio, todo commiteado y pusheado en `main` (versión 1.0.1), sin cambios sueltos en el árbol
 de trabajo. Lo que queda abierto, en orden de lo que vale la pena:
 
-1. **Los tres pedidos de tabla** (sección de arriba, "Pedidos pendientes de Germán"): editar la
-   cantidad de filas/columnas desde Propiedades, que mover una división interna no cambie el
-   tamaño total de la tabla, y combinar celdas. Los dos primeros ya están sin ambigüedad; el de
-   combinar celdas tiene la decisión de diseño tomada (arrastrar sobre la tabla) pero la interacción
-   de mouse en sí queda por resolver al implementarlo.
+1. **La lista grande de pedidos pendientes** (sección de arriba, "Pedidos pendientes de Germán"):
+   tabla (4 puntos), texto, imagen, QR, firma, línea, elipse, triángulo, flecha, estrella y campos
+   AcroForm. Adentro hay dos bugs grandes ya diagnosticados del todo, sin nada de diseño por
+   pensar — **empezar por esos, son los más baratos y los que más se nota que están rotos**:
+   - El panel de Propiedades de **Firma no tiene ni un solo control cableado** (ni Leyenda, ni
+     Obligatorio, ni Formato, ni Ancho/Alto). Sección "FIRMA" de arriba.
+   - **QR** tiene Ancho/Alto sin cablear también, más un control "Tamaño" que no les actualiza el
+     valor mostrado. Sección "QR" de arriba.
+   - **"Ocultar campos"** no oculta las filas fantasma de un campo repetible — un `if` de una línea
+     en `vista.ts`. Sección "CAMPOS ACROFORM" de arriba.
+   El resto son pedidos de diseño (algunos chicos, como mover un control o agregar un color de
+   fondo; otros grandes, como la curvatura de línea o separar el asta de la cabeza de la flecha).
 2. **Esperar a SignPath** (punto 14). Es lo único con una fecha ajena: si aprueban, hay que agregar
    el paso de firma a `.github/workflows/build-windows.yml` —eso sí lo puede hacer un agente— y con
    eso se va el aviso de SmartScreen al instalar. Si rechazan, no hay nada que tocar en el código.
