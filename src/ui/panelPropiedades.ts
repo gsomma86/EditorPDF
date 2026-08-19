@@ -472,6 +472,8 @@ function campoForma(elemento: Elemento & { clase: 'forma' }): string {
     'comun.formato',
     // Cada figura suma sus propios controles; en las demás ese `<div>` no existe y el `numero()`
     // que lo escucha en wireCampos no engancha nada (usa `?.`).
+    // "Doble" no se ofrece para 'camino' (formas convertidas de un PDF, con tramos curvos libres):
+    // ahí no hay un contorno de puntos al que sacarle una copia concéntrica hacia adentro y afuera.
     `${
       elemento.figura === 'estrella'
         ? `<div class="ed-row2">
@@ -496,7 +498,7 @@ function campoForma(elemento: Elemento & { clase: 'forma' }): string {
     <div class="ed-row2">
       <div><label class="ed-lbl" data-i18n="comun.grosorBordePt"></label><input type="number" id="ed-p-grosor" class="mono" value="${elemento.grosor}" min="0.5" step="0.5"></div>
       <div><label class="ed-lbl" data-i18n="comun.estilo"></label><select id="ed-p-estilo">
-        ${opcionesEstilo(elemento.estilo, ['solido', 'punteado'])}
+        ${opcionesEstilo(elemento.estilo, elemento.figura === 'camino' ? ['solido', 'punteado'] : ['solido', 'punteado', 'doble'])}
       </select></div>
     </div>
     <div><label class="ed-lbl" data-i18n="comun.colorBorde"></label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
@@ -820,6 +822,11 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
     });
     $('#ed-p-estilo')!.addEventListener('change', (e) => {
       elemento.estilo = (e.target as HTMLSelectElement).value as typeof elemento.estilo;
+      if (elemento.estilo === 'doble' && elemento.grosor < GROSOR_MINIMO_DOBLE) {
+        elemento.grosor = GROSOR_MINIMO_DOBLE;
+        const campo = $<HTMLInputElement>('#ed-p-grosor');
+        if (campo) campo.value = String(GROSOR_MINIMO_DOBLE);
+      }
       refrescar();
     });
     $('#ed-p-con-relleno')!.addEventListener('change', (e) => {

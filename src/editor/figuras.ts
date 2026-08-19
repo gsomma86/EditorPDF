@@ -135,6 +135,50 @@ export function puntosDeFigura(el: ElementoForma): Punto[] | null {
   }
 }
 
+/** Las dos copias de "doble" para una figura: una elipse va con dos radios, un polígono con dos
+ *  contornos de puntos. Nunca las dos juntas — cada figura resuelve la suya. */
+export interface TrazoDobleForma {
+  grosor: number;
+  radios?: { exterior: { rx: number; ry: number }; interior: { rx: number; ry: number } };
+  poligonos?: { exterior: Punto[]; interior: Punto[] };
+}
+
+/**
+ * "Doble" para elipse/triángulo/flecha/estrella: dos trazos finos, uno un poco más afuera y otro un
+ * poco más adentro del contorno normal, que en conjunto se leen como un borde doble.
+ *
+ * En la elipse es exacto —dos radios distintos—. En un polígono no hay una manera barata de
+ * ofsetear el contorno hacia adentro y afuera en todos sus vértices (a diferencia del rectángulo,
+ * donde los cuatro lados son rectos y paralelos a los ejes): en cambio se escala el mismo contorno
+ * desde el centro de la caja. No da un ancho de trazo perfectamente constante en figuras muy
+ * alargadas o asimétricas (la flecha, sobre todo), pero para el grosor fino que usa "doble" la
+ * diferencia no se nota, y evita traer un offset de polígonos real solo para este caso.
+ */
+export function dobleDeFigura(el: ElementoForma): TrazoDobleForma {
+  const fino = Math.max(0.5, el.grosor / 3);
+
+  if (el.figura === 'elipse') {
+    return {
+      grosor: fino,
+      radios: {
+        exterior: { rx: el.w / 2 + fino, ry: el.h / 2 + fino },
+        interior: { rx: Math.max(0, el.w / 2 - fino), ry: Math.max(0, el.h / 2 - fino) },
+      },
+    };
+  }
+
+  const puntos = puntosDeFigura(el) ?? [];
+  const cx = el.w / 2;
+  const cy = el.h / 2;
+  const radio = Math.max(1, Math.min(el.w, el.h) / 2);
+  const escalar = (escala: number): Punto[] => puntos.map((p) => ({ x: cx + (p.x - cx) * escala, y: cy + (p.y - cy) * escala }));
+
+  return {
+    grosor: fino,
+    poligonos: { exterior: escalar(1 + fino / radio), interior: escalar(Math.max(0, 1 - fino / radio)) },
+  };
+}
+
 /** Un trazo interno de la tabla, en coordenadas locales: (0,0) es su esquina superior izquierda. */
 export interface TrazoTabla {
   x1: number;

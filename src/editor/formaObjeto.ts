@@ -1,6 +1,6 @@
 import { FabricObject } from 'fabric';
 import type { ElementoForma } from './elemento';
-import { puntosDeFigura, recorrerCamino } from './figuras';
+import { dobleDeFigura, puntosDeFigura, recorrerCamino, type Punto } from './figuras';
 import { guionDe } from './trazos';
 
 /**
@@ -63,9 +63,34 @@ export class FormaObjeto extends FabricObject {
     }
 
     ctx.strokeStyle = color;
-    ctx.lineWidth = grosor;
-    ctx.setLineDash(guionDe(estilo, grosor));
-    ctx.stroke();
+
+    if (estilo === 'doble') {
+      const trazarPoligono = (pts: Punto[]) => {
+        ctx.beginPath();
+        pts.forEach((p, i) => (i === 0 ? ctx.moveTo(dx + p.x, dy + p.y) : ctx.lineTo(dx + p.x, dy + p.y)));
+        ctx.closePath();
+        ctx.stroke();
+      };
+      const doble = dobleDeFigura(this.datos);
+      ctx.setLineDash([]);
+      ctx.lineWidth = doble.grosor;
+      if (doble.radios) {
+        ctx.beginPath();
+        ctx.ellipse(0, 0, doble.radios.exterior.rx, doble.radios.exterior.ry, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.ellipse(0, 0, doble.radios.interior.rx, doble.radios.interior.ry, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (doble.poligonos) {
+        trazarPoligono(doble.poligonos.exterior);
+        trazarPoligono(doble.poligonos.interior);
+      }
+    } else {
+      ctx.lineWidth = grosor;
+      ctx.setLineDash(guionDe(estilo, grosor));
+      ctx.stroke();
+    }
+
     ctx.restore();
   }
 }

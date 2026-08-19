@@ -110,7 +110,10 @@ export interface ElementoForma {
   w: number;
   h: number;
   color: string;
-  /** Solo sólido o punteado: "doble" necesitaría dos caminos paralelos y no vale lo que cuesta. */
+  /**
+   * "Doble" en un camino ('figura: camino') no está pensado: el panel no lo ofrece para esa figura,
+   * porque no hay un contorno de puntos al que sacarle una copia concéntrica.
+   */
   estilo: EstiloLinea;
   grosor: number;
   conRelleno: boolean;

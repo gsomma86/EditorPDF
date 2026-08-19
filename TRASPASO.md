@@ -421,15 +421,15 @@ dibujo y exportación, no el dato en sí.
 
 ### ELIPSE
 
-Agregar el estilo "doble" a la línea del contorno. Ver la nota general de FLECHA/TRIÁNGULO/ESTRELLA
-más abajo: es la misma revisión de una decisión ya tomada, para las cuatro figuras a la vez.
+~~Agregar el estilo "doble" a la línea del contorno.~~ — **hecho (19/08/2026)**. Ver la nota
+general más abajo.
 
 ### TRIÁNGULO
 
 1. ~~Que no sea siempre isósceles con el vértice centrado.~~ — **hecho (19/08/2026)**: nuevo campo
    `ElementoForma.verticeX` (0 a 1, default 0.5 = como antes), con su control numérico en el panel
    solo para esta figura. `puntosDeFigura()` en `figuras.ts` ahora arma el vértice en `w * verticeX`.
-2. Agregar el estilo "doble". Ver la nota general más abajo.
+2. ~~Agregar el estilo "doble".~~ — **hecho (19/08/2026)**. Ver la nota general más abajo.
 
 ### FLECHA
 
@@ -439,7 +439,8 @@ más abajo: es la misma revisión de una decisión ya tomada, para las cuatro fi
    `ElementoForma`: `grosorAsta` (fracción del alto, default 0.25 = el `h/4` de antes) y
    `tamanoCabeza` (fracción del alto, default 1 = el `Math.min(w/2, h)` de antes). `puntosDeFigura()`
    ya no tiene las dos constantes fijas.
-2. Agregar el estilo "doble". Ver la nota general más abajo.
+2. ~~Agregar el estilo "doble".~~ — **hecho (19/08/2026)**. Ver la nota general más abajo — es la
+   figura donde el resultado es menos exacto, por lo asimétrica que es la forma.
 
 ### ESTRELLA
 
@@ -447,21 +448,20 @@ más abajo: es la misma revisión de una decisión ya tomada, para las cuatro fi
    probándolo de nuevo en el panel. Era `ElementoForma.puntas`, ya cableado desde antes.
 2. ~~Qué tan puntiaguda es la estrella~~ — **hecho (19/08/2026)**: nuevo campo `hundido` (0 a 1,
    default 0.42 = la constante `HUNDIDO_ESTRELLA` que reemplaza), con su control en el panel.
-3. Agregar el estilo "doble". Ver la nota general de acá abajo.
+3. ~~Agregar el estilo "doble".~~ — **hecho (19/08/2026)**. Ver la nota general de acá abajo.
 
-### Nota general — "doble" en elipse/triángulo/flecha/estrella
+### Nota general — "doble" en elipse/triángulo/flecha/estrella — hecho (19/08/2026)
 
-Las cuatro piden lo mismo, y hoy está descartado a propósito: `ElementoForma.estilo` tipa
-`EstiloLinea` completo (incluye `'doble'`), pero el panel solo ofrece sólido/punteado
-(`opcionesEstilo(elemento.estilo, ['solido', 'punteado'])` en `campoForma()`) y el comentario en
-`elemento.ts` explica por qué: *"doble necesitaría dos caminos paralelos y no vale lo que cuesta"*.
-Germán ahora lo quiere, así que es revisar esa decisión vieja, no descubrir algo nuevo. Para
-figuras con curvas (elipse) o vértices (triángulo/flecha/estrella) el segundo camino paralelo no es
-tan directo como en un rectángulo (que es la única figura donde ya funciona, vía `trazos.ts`):
-haría falta ofsetear el contorno hacia adentro en cada figura; en la elipse se resolvería más
-simple, con dos radios distintos en vez de un segundo camino. Antes de arrancar, medir de nuevo si
-vale la pena el costo —
-la razón original para no hacerlo no cambió, solo cambió que ahora lo piden.
+Se revisó la decisión vieja (descrita antes acá mismo) y se implementó con el camino que esa misma
+nota dejaba anotado como el más barato: para la elipse, dos radios distintos (`rx`/`ry` ± un tercio
+del grosor) — exacto. Para las otras tres, **no** un offset real del polígono (que para vértices
+cóncavos o muy agudos puede autointersectarse): en cambio, el mismo contorno de `puntosDeFigura()`
+escalado dos veces desde el centro de la caja (`dobleDeFigura()` en `figuras.ts`, nuevo, compartido
+por el lienzo y el exportador). No da un ancho de trazo perfectamente constante en los bordes —se
+nota más en la flecha, que es la figura más asimétrica de las cuatro—, pero con el grosor fino que
+usa "doble" la diferencia no debería notarse a simple vista. **Falta que Germán lo mire en el
+navegador**, sobre todo la flecha: si el efecto no convence ahí, la alternativa es un offset real de
+polígono (más caro, sin problema de autointersección) en vez de este escalado.
 
 ### CAMPOS ACROFORM — hecho (19/08/2026)
 

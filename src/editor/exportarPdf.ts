@@ -15,7 +15,7 @@ import {
   type EstiloLinea,
 } from './elemento';
 import { dimensionesDeHoja, elementoVisible, hojasDelDocumento } from './documento';
-import { internasDeTabla, puntosDeFigura, recorrerCamino } from './figuras';
+import { dobleDeFigura, internasDeTabla, puntosDeFigura, recorrerCamino } from './figuras';
 import { bytesDeFuente } from './fuentes';
 import { bytesDelPdf } from './pdfExistente';
 import { generarQr } from './objetosFabric';
@@ -193,6 +193,35 @@ function dibujarForma(pagina: PDFPage, el: ElementoForma, ubi: Ubicador): void {
   }
 
   const puntos = puntosDeFigura(el);
+
+  // "Doble" no cabe en un solo `drawEllipse`/`drawSvgPath` como sólido/punteado (ahí un llamado
+  // combina relleno y borde): son dos contornos de borde nomás, con el relleno aparte usando el
+  // contorno normal —igual que en pantalla— para que no se vea más chico o más grande según el trazo.
+  if (el.estilo === 'doble') {
+    if (el.conRelleno) {
+      const relleno = { color: color(el.rellenoColor), rotate: ubi.grados };
+      if (!puntos) {
+        const centro = ubi.punto(el.w / 2, el.h / 2);
+        pagina.drawEllipse({ ...relleno, x: centro.x, y: centro.y, xScale: el.w / 2, yScale: el.h / 2 });
+      } else {
+        pagina.drawSvgPath(`M ${puntos.map((p) => `${p.x} ${p.y}`).join(' L ')} Z`, { ...relleno, x: esquina.x, y: esquina.y });
+      }
+    }
+
+    const doble = dobleDeFigura(el);
+    const trazo = { borderColor: color(el.color), borderWidth: doble.grosor, opacity: 0, rotate: ubi.grados };
+    if (doble.radios) {
+      const centro = ubi.punto(el.w / 2, el.h / 2);
+      pagina.drawEllipse({ ...trazo, x: centro.x, y: centro.y, xScale: doble.radios.exterior.rx, yScale: doble.radios.exterior.ry });
+      pagina.drawEllipse({ ...trazo, x: centro.x, y: centro.y, xScale: doble.radios.interior.rx, yScale: doble.radios.interior.ry });
+    } else if (doble.poligonos) {
+      for (const pts of [doble.poligonos.exterior, doble.poligonos.interior]) {
+        if (pts.length) pagina.drawSvgPath(`M ${pts.map((p) => `${p.x} ${p.y}`).join(' L ')} Z`, { ...trazo, x: esquina.x, y: esquina.y });
+      }
+    }
+    return;
+  }
+
   if (!puntos) {
     const centro = ubi.punto(el.w / 2, el.h / 2);
     pagina.drawEllipse({ ...comun, x: centro.x, y: centro.y, xScale: el.w / 2, yScale: el.h / 2 });
