@@ -170,6 +170,8 @@ export interface ElementoImagen {
   src: string;
   opacidad: number;
   proporcion: boolean;
+  conFondo: boolean;
+  fondoColor: string;
   /**
    * Se dibuja *debajo* de la página del PDF. Lo llevan las imágenes sacadas de uno: allá estaban
    * debajo del texto y ahí tienen que seguir, o al convertirlas taparían el renglón que tenían
@@ -397,6 +399,8 @@ export function crearElementoImagen(src: string, anchoNatural: number, altoNatur
     src,
     opacidad: 100,
     proporcion: true,
+    conFondo: false,
+    fondoColor: '#ffffff',
   };
 }
 

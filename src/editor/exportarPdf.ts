@@ -328,6 +328,11 @@ async function dibujarHoja(
         break;
 
       case 'imagen':
+        // El fondo va primero: es lo que se ve detrás de una imagen con transparencia (un PNG,
+        // un logo), así que si se dibujara después la taparía entera.
+        if (el.conFondo) {
+          dibujarRectangulo(pagina, ubi, 0, 0, el.w, el.h, { color: el.fondoColor, estilo: 'solido', grosor: 0, conRelleno: true, rellenoColor: el.fondoColor });
+        }
         await dibujarImagen(doc, pagina, el.src, ubi, el.w, el.h, el.opacidad / 100);
         break;
 

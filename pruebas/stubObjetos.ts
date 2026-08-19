@@ -27,6 +27,11 @@ export function esPaginaFija(): boolean {
   return false;
 }
 
+/** "Ocultar campos" es una vista del editor; estos arneses exportan directo del modelo. */
+export function camposEstanOcultos(): boolean {
+  return false;
+}
+
 export function generarQr(elemento: ElementoQr): Promise<string> {
   return QRCode.toDataURL(elemento.texto || ' ', {
     margin: 0,

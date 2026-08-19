@@ -370,10 +370,13 @@ estos pedidos dependen de esa caja existiendo.
 
 ### TABLA — ver arriba (puntos 1 a 4 de esta sección)
 
-### IMAGEN
+### IMAGEN — hecho (19/08/2026)
 
-1. Color de fondo del recuadro de imagen, con opción "Ninguno" (transparente, como es hoy). Mismo
-   comentario que en texto: patrón ya usado en campo/firma, copiarlo tal cual.
+Color de fondo, con "Con fondo" + color, igual que campo/firma/QR. A diferencia de esos —que son un
+`Group` con un `Rect` de fondo aparte—, la imagen es un solo `FabricImage`: se usa la propiedad
+`backgroundColor` que trae todo objeto de Fabric (pinta detrás del objeto entero, así se nota con
+transparencia real como un PNG), sin tener que convertirla en Group. En la exportación se dibuja un
+rectángulo relleno antes que la imagen, con `dibujarRectangulo` (mismo camino que usa firma).
 
 ### QR — hecho (19/08/2026)
 

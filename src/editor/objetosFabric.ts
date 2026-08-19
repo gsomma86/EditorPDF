@@ -480,6 +480,9 @@ async function construirObjeto(elemento: Elemento): Promise<FabricObject> {
         scaleX: elemento.w / (imagen.width || elemento.w),
         scaleY: elemento.h / (imagen.height || elemento.h),
         opacity: elemento.opacidad / 100,
+        // Todo objeto de Fabric sabe pintar un fondo detrás suyo con esta propiedad: sirve tal
+        // cual para que se note el color debajo de una imagen con transparencia (un PNG, un logo).
+        backgroundColor: elemento.conFondo ? elemento.fondoColor : '',
       });
       return imagen;
     }

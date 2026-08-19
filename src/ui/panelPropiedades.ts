@@ -540,7 +540,9 @@ function campoImagen(elemento: Elemento & { clase: 'imagen' }): string {
     `<div id="ed-p-imagen-prev" class="ed-img-prev" style="background-image:url('${elemento.src}')"></div>
     <button type="button" id="ed-p-imagen-reemplazar" class="ed-toggle" style="width:100%;margin-bottom:10px;" data-i18n="props.imagen.reemplazar"></button>
     <label class="ed-check"><input type="checkbox" id="ed-p-proporcion" ${elemento.proporcion ? 'checked' : ''}> <span data-i18n="props.imagen.mantenerProporcion"></span></label>
-    <label class="ed-lbl" style="margin-top:8px;" data-i18n="props.imagen.opacidad"></label><input type="range" id="ed-p-opacidad" min="10" max="100" value="${elemento.opacidad}">`
+    <label class="ed-lbl" style="margin-top:8px;" data-i18n="props.imagen.opacidad"></label><input type="range" id="ed-p-opacidad" min="10" max="100" value="${elemento.opacidad}">
+    <label class="ed-check" style="margin-top:8px;"><input type="checkbox" id="ed-p-imagen-fondo" ${elemento.conFondo ? 'checked' : ''}> <span data-i18n="comun.conFondo"></span></label>
+    <div><label class="ed-lbl" data-i18n="comun.colorFondo"></label><input type="color" id="ed-p-imagen-fondocolor" value="${elemento.fondoColor}"></div>`
   );
 }
 
@@ -962,6 +964,16 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
     $('#ed-p-opacidad')!.addEventListener('input', (e) => {
       elemento.opacidad = Number((e.target as HTMLInputElement).value);
       objeto.set({ opacity: elemento.opacidad / 100 });
+      repintar();
+    });
+    $('#ed-p-imagen-fondo')!.addEventListener('change', (e) => {
+      elemento.conFondo = (e.target as HTMLInputElement).checked;
+      objeto.set({ backgroundColor: elemento.conFondo ? elemento.fondoColor : '' });
+      repintar();
+    });
+    $('#ed-p-imagen-fondocolor')!.addEventListener('change', (e) => {
+      elemento.fondoColor = (e.target as HTMLInputElement).value;
+      if (elemento.conFondo) objeto.set({ backgroundColor: elemento.fondoColor });
       repintar();
     });
   }
