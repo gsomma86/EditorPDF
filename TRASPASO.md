@@ -469,17 +469,11 @@ simple, con dos radios distintos en vez de un segundo camino. Antes de arrancar,
 vale la pena el costo —
 la razón original para no hacerlo no cambió, solo cambió que ahora lo piden.
 
-### CAMPOS ACROFORM — bug confirmado
+### CAMPOS ACROFORM — hecho (19/08/2026)
 
-**"Ocultar campos" no oculta las copias fantasma de un campo repetible.** Confirmado en el código:
-`ocultarCampos()` (`objetosFabric.ts`, línea ~83) apaga el objeto de Fabric del campo **origen**,
-pero las filas fantasma de un campo con `repFilas > 1` no son objetos de Fabric — se dibujan aparte,
-directo en el canvas, dentro de `dibujarAdornos()` en `vista.ts` (el mismo lugar que dibuja la
-cuadrícula y los márgenes). Ese bloque **no importa `camposEstanOcultos()` de `objetosFabric.ts` en
-ningún lado**, así que dibuja las fantasmas sin fijarse si "Ocultar campos" está prendido.
-**Arreglo**: agregar `if (camposEstanOcultos()) return;` (o el `continue` correspondiente) al
-principio del bloque que dibuja las fantasmas en `vista.ts`, importando `camposEstanOcultos` de
-`objetosFabric.ts`. Un cambio de una línea, ya diagnosticado del todo.
+`vista.ts` importa ahora `camposEstanOcultos` de `objetosFabric.ts` y el bucle que dibuja las
+fantasmas en `dibujarAdornos()` las salta si está prendido — exactamente el cambio de una línea que
+ya estaba diagnosticado.
 
 ### CARGA DE PDF — hecho (19/08/2026)
 
@@ -516,14 +510,11 @@ de trabajo. Lo que queda abierto, en orden de lo que vale la pena:
 
 1. **La lista grande de pedidos pendientes** (sección de arriba, "Pedidos pendientes de Germán"):
    tabla (2 puntos: combinar celdas y cantidad de filas/columnas), texto, imagen, línea, elipse,
-   triángulo, flecha, estrella y campos AcroForm — tabla (redimensionar y tamaño total), firma y QR
-   ya se hicieron el 19/08/2026, y de paso se resolvió un bug de foco real (lección 66 de CLAUDE.md).
-   Adentro hay un bug ya diagnosticado del todo, sin nada de diseño por pensar — **empezar por ese,
-   es el más barato y el que más se nota que está roto**:
-   - **"Ocultar campos"** no oculta las filas fantasma de un campo repetible — un `if` de una línea
-     en `vista.ts`. Sección "CAMPOS ACROFORM" de arriba.
-   El resto son pedidos de diseño (algunos chicos, como mover un control o agregar un color de
-   fondo; otros grandes, como la curvatura de línea o separar el asta de la cabeza de la flecha).
+   triángulo, flecha y estrella — todos son pedidos de diseño (algunos chicos, como mover un control
+   o agregar un color de fondo; otros grandes, como la curvatura de línea o separar el asta de la
+   cabeza de la flecha). Los bugs ya diagnosticados de este lote (tabla, firma, QR, carga de PDF y
+   campos AcroForm) se resolvieron todos el 19/08/2026, y de paso se encontró y resolvió un bug de
+   foco real (lección 66 de CLAUDE.md).
 2. **Esperar a SignPath** (punto 14). Es lo único con una fecha ajena: si aprueban, hay que agregar
    el paso de firma a `.github/workflows/build-windows.yml` —eso sí lo puede hacer un agente— y con
    eso se va el aviso de SmartScreen al instalar. Si rechazan, no hay nada que tocar en el código.

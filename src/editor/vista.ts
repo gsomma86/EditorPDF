@@ -2,7 +2,7 @@ import type { Canvas, FabricObject } from 'fabric';
 import { configActual } from './documento';
 import { dimensionesDe } from './pagina';
 import { pasoRepeticion } from './elemento';
-import { elementoDe } from './objetosFabric';
+import { camposEstanOcultos, elementoDe } from './objetosFabric';
 
 const PASO_REGLA = 50;
 const UMBRAL_SNAP = 6;
@@ -128,9 +128,12 @@ function dibujarAdornos(lienzo: Canvas): void {
   // Fantasmas de un campo repetible: las filas 2 en adelante, que no son objetos del lienzo sino
   // repeticiones que aparecen recién al exportar. Se dibujan acá, como la cuadrícula y los
   // márgenes, para que no se puedan seleccionar ni entren al historial.
+  // "Ocultar campos" apaga el objeto origen (`aplicarVisibilidadDeCampo`), pero estas fantasmas no
+  // son objetos de Fabric: sin este chequeo se seguían dibujando igual, tildado o no.
+  const camposOcultos = camposEstanOcultos();
   for (const objeto of lienzo.getObjects()) {
     const elemento = elementoDe(objeto);
-    if (elemento?.clase !== 'campo' || elemento.repFilas <= 1) continue;
+    if (camposOcultos || elemento?.clase !== 'campo' || elemento.repFilas <= 1) continue;
 
     ctx.save();
     ctx.translate(elemento.x, elemento.y);
