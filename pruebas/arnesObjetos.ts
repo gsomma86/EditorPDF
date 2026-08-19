@@ -13,7 +13,7 @@
  */
 import { StaticCanvas, Group } from 'fabric';
 import { agregarAlLienzo, elementoDe, sincronizarGeometria } from '../src/editor/objetosFabric';
-import { crearElemento, crearElementoCampo, crearElementoTabla } from '../src/editor/elemento';
+import { anchoTotalTabla, crearElemento, crearElementoCampo, crearElementoTabla } from '../src/editor/elemento';
 
 (globalThis as any).document ??= { fonts: { load: async () => [] } };
 
@@ -110,6 +110,20 @@ function nuevoLienzo(): any {
   // La escala se reparte entre las columnas, para que el grosor de las líneas no se deforme.
   comprobar('tabla', 'reparte el ancho entre columnas', tabla.cols[0], anchoCol * 2);
   comprobar('tabla', 'sin escala pegada', { x: objTabla.scaleX, y: objTabla.scaleY }, { x: 1, y: 1 });
+
+  // Arrastrar una división interna que no es la última reparte con su vecina: el ancho total
+  // de la tabla no se mueve. El control de la última columna, en cambio, sí lo cambia.
+  const tabla2 = crearElementoTabla(2, 2);
+  const objTabla2 = await agregarAlLienzo(lienzo, tabla2);
+  const anchoAntes = anchoTotalTabla(tabla2);
+  const controles2 = (objTabla2 as any).controls;
+
+  controles2.col0.actionHandler({}, { target: objTabla2, corner: 'col0' }, (objTabla2.left ?? 0) + 80, 0);
+  comprobar('tabla, división interna', 'reparte con la columna vecina', tabla2.cols, [80, 40]);
+  comprobar('tabla, división interna', 'el ancho total no cambia', anchoTotalTabla(tabla2), anchoAntes);
+
+  controles2.col1.actionHandler({}, { target: objTabla2, corner: 'col1' }, (objTabla2.left ?? 0) + 140, 0);
+  comprobar('tabla, última columna', 'sí cambia el ancho total', anchoTotalTabla(tabla2), anchoAntes + 20);
 
   const rect = crearElemento('rect') as any;
   const objRect = await agregarAlLienzo(lienzo, rect);

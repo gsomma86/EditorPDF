@@ -296,23 +296,15 @@ actual de `tablaObjeto.ts` y `figuras.ts`** — puede haber cambiado.
    hay una referencia a copiar — es una decisión nueva, más simple: agregar/quitar al final con el
    tamaño por defecto, sin redistribuir las demás.
 
-2. **Las dimensiones externas de la tabla tienen que quedar fijas al mover una línea interna.**
-   Confirmado en el código actual (`accionRedimensionar` en `tablaObjeto.ts`, línea ~97): cada
-   columna y cada fila tiene su propio control (`col0`, `col1`, …, incluida la última), y arrastrar
-   cualquiera de ellos hoy cambia **solo** `cols[i]` (o `rows[i]`) sin tocar a sus vecinas — como el
-   ancho/alto total de la tabla es la suma de todas, mover una división interna cambia el tamaño
-   total de la tabla entera, que es justo lo que Germán no quiere.
-   **El arreglo, ya sin ambigüedad porque la estructura de controles lo deja claro**: para toda
-   columna `i` que **no** sea la última (`i < cols.length - 1`), arrastrar su control tiene que
-   repartir entre `cols[i]` y `cols[i+1]` — si una crece, la vecina siguiente se achica lo mismo,
-   así la suma total no cambia (con el mínimo de 8pt/6pt de siempre como piso). Mismo criterio para
-   filas. **El control de la última columna/fila queda como está**: como no tiene una vecina
-   siguiente a la que restarle, cambiar su tamaño ya cambia el total — y es exactamente lo que
-   Germán pidió que pase ahí ("los controles de la última fila/columna" sí pueden tocar las
-   dimensiones externas). Los 4 controles de las esquinas (`createObjectDefaultControls`, sin tocar
-   en este archivo) siguen escalando la tabla entera como hasta ahora — no cambian con este pedido.
-   Cubierto hoy por `npm run verificar-objetos`; conviene correrlo después del cambio y sumarle un
-   caso que arrastre una columna que no sea la última y confirme que el ancho total no se movió.
+2. ~~Las dimensiones externas de la tabla tienen que quedar fijas al mover una línea interna.~~ —
+   **hecho (19/08/2026).** `accionRedimensionar` en `tablaObjeto.ts` ahora distingue: para toda
+   columna/fila que **no** sea la última, arrastrar su control reparte con la vecina siguiente (si
+   una crece, la otra se achica lo mismo, con el mínimo de 8pt/6pt como piso) y la suma —el ancho o
+   alto total— no cambia. El control de la última columna/fila queda igual que antes: sin vecina a
+   la que restarle, mover ese sí cambia el total, que es lo que Germán pidió que pasara ahí. Los 4
+   controles de las esquinas no se tocaron. Nuevo caso en `npm run verificar-objetos` que arrastra
+   una columna que no es la última (confirma que el total no se mueve) y la última (confirma que sí
+   cambia).
 
 3. **Combinar celdas.** Es más manejable de lo que parece: **no hace falta tocar `cols`/`rows` ni
    los controles de arrastre para nada**, porque hoy las líneas internas se dibujan como líneas

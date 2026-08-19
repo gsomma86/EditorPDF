@@ -108,10 +108,24 @@ function accionRedimensionar(tipo: 'col' | 'row', indice: number) {
     for (let k = 0; k < indice; k++) previas += lista[k];
 
     const minimo = tipo === 'col' ? MIN_COL : MIN_ROW;
-    const nueva = Math.max(minimo, Math.round(posicionLocal - previas));
-    if (nueva === lista[indice]) return false;
+    const esUltima = indice === lista.length - 1;
 
-    lista[indice] = nueva;
+    if (esUltima) {
+      // Sin vecina siguiente a la que restarle: mover este control sí cambia el ancho/alto
+      // total de la tabla, a propósito.
+      const nueva = Math.max(minimo, Math.round(posicionLocal - previas));
+      if (nueva === lista[indice]) return false;
+      lista[indice] = nueva;
+    } else {
+      // Reparte con la columna/fila siguiente para que la suma —y con ella el tamaño total de
+      // la tabla— no cambie: si una crece, la vecina se achica lo mismo.
+      const suma = lista[indice] + lista[indice + 1];
+      const nueva = Math.min(suma - minimo, Math.max(minimo, Math.round(posicionLocal - previas)));
+      if (nueva === lista[indice]) return false;
+      lista[indice] = nueva;
+      lista[indice + 1] = suma - nueva;
+    }
+
     objeto.refrescarDesdeDatos();
     return true;
   };
