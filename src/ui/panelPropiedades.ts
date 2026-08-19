@@ -470,11 +470,27 @@ function campoRect(elemento: Elemento & { clase: 'rect' }): string {
 function campoForma(elemento: Elemento & { clase: 'forma' }): string {
   return seccion(
     'comun.formato',
-    // "Doble" no se ofrece: en una figura curva o en punta habría que trazar dos caminos paralelos,
-    // y no vale lo que cuesta. La estrella es la única que suma un control propio.
+    // Cada figura suma sus propios controles; en las demás ese `<div>` no existe y el `numero()`
+    // que lo escucha en wireCampos no engancha nada (usa `?.`).
     `${
       elemento.figura === 'estrella'
-        ? `<div><label class="ed-lbl" data-i18n="props.forma.puntas"></label><input type="number" id="ed-p-puntas" class="mono" value="${elemento.puntas}" min="${PUNTAS_MIN}" max="${PUNTAS_MAX}"></div>`
+        ? `<div class="ed-row2">
+             <div><label class="ed-lbl" data-i18n="props.forma.puntas"></label><input type="number" id="ed-p-puntas" class="mono" value="${elemento.puntas}" min="${PUNTAS_MIN}" max="${PUNTAS_MAX}"></div>
+             <div><label class="ed-lbl" data-i18n="props.forma.hundido"></label><input type="number" id="ed-p-hundido" class="mono" value="${elemento.hundido}" min="0.05" max="0.95" step="0.05"></div>
+           </div>`
+        : ''
+    }
+    ${
+      elemento.figura === 'triangulo'
+        ? `<div><label class="ed-lbl" data-i18n="props.forma.verticeX"></label><input type="number" id="ed-p-verticex" class="mono" value="${elemento.verticeX}" min="0" max="1" step="0.05"></div>`
+        : ''
+    }
+    ${
+      elemento.figura === 'flecha'
+        ? `<div class="ed-row2">
+             <div><label class="ed-lbl" data-i18n="props.forma.grosorAsta"></label><input type="number" id="ed-p-grosorasta" class="mono" value="${elemento.grosorAsta}" min="0.05" max="0.5" step="0.05"></div>
+             <div><label class="ed-lbl" data-i18n="props.forma.tamanoCabeza"></label><input type="number" id="ed-p-tamanocabeza" class="mono" value="${elemento.tamanoCabeza}" min="0.2" max="2" step="0.1"></div>
+           </div>`
         : ''
     }
     <div class="ed-row2">
@@ -792,8 +808,12 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
     numero('#ed-p-w', (v) => (elemento.w = v));
     numero('#ed-p-h', (v) => (elemento.h = v));
     numero('#ed-p-grosor', (v) => (elemento.grosor = v));
-    // Solo lo tiene la estrella; en las demás figuras el control no existe y `numero` no engancha.
+    // Cada uno de estos solo existe en el HTML de su figura; en las demás `numero` no engancha nada.
     numero('#ed-p-puntas', (v) => (elemento.puntas = Math.max(PUNTAS_MIN, Math.min(PUNTAS_MAX, Math.round(v) || 5))));
+    numero('#ed-p-hundido', (v) => (elemento.hundido = Math.max(0.05, Math.min(0.95, v))));
+    numero('#ed-p-verticex', (v) => (elemento.verticeX = Math.max(0, Math.min(1, v))));
+    numero('#ed-p-grosorasta', (v) => (elemento.grosorAsta = Math.max(0.05, Math.min(0.5, v))));
+    numero('#ed-p-tamanocabeza', (v) => (elemento.tamanoCabeza = Math.max(0.2, Math.min(2, v))));
     $('#ed-p-color')!.addEventListener('input', (e) => {
       elemento.color = (e.target as HTMLInputElement).value;
       refrescar();

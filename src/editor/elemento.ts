@@ -117,6 +117,15 @@ export interface ElementoForma {
   rellenoColor: string;
   /** Cuántas puntas tiene la estrella. Las demás figuras lo ignoran. */
   puntas: number;
+  /** Qué tan adentro caen los vértices interiores de la estrella (0 a 1). Solo lo usa la estrella. */
+  hundido: number;
+  /** Dónde cae el vértice superior del triángulo (0 a 1 del ancho; 0.5 es el centro, como antes de
+   *  poder tocarlo). Solo lo usa el triángulo. */
+  verticeX: number;
+  /** Grosor del asta de la flecha, como fracción del alto de la caja. Solo lo usa la flecha. */
+  grosorAsta: number;
+  /** Largo de la cabeza de la flecha, como fracción del alto de la caja. Solo lo usa la flecha. */
+  tamanoCabeza: number;
   /**
    * Los tramos del dibujo, normalizados de 0 a 1 sobre su caja. Solo lo lleva `figura: 'camino'`;
    * las demás calculan su contorno con `puntosDeFigura`.
@@ -359,6 +368,10 @@ export function crearElementoForma(figura: Figura): ElementoForma {
     conRelleno: false,
     rellenoColor: '#ffffff',
     puntas: 5,
+    hundido: 0.42,
+    verticeX: 0.5,
+    grosorAsta: 0.25,
+    tamanoCabeza: 1,
   };
 }
 

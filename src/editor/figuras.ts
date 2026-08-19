@@ -90,17 +90,19 @@ export function puntosDeFigura(el: ElementoForma): Punto[] | null {
     case 'camino':
       return null;
 
-    case 'triangulo':
+    case 'triangulo': {
+      const verticeX = Math.max(0, Math.min(1, el.verticeX ?? 0.5)) * w;
       return [
-        { x: w / 2, y: 0 },
+        { x: verticeX, y: 0 },
         { x: w, y: h },
         { x: 0, y: h },
       ];
+    }
 
     case 'flecha': {
-      // La cabeza no puede comerse la flecha entera ni desaparecer: como mucho, la mitad del largo.
-      const cabeza = Math.min(w / 2, h);
-      const cuerpo = h / 4; // media altura del asta
+      // La cabeza no puede comerse la flecha entera: como mucho, todo el ancho disponible.
+      const cabeza = Math.min(w, Math.max(4, (el.tamanoCabeza ?? 1) * h));
+      const cuerpo = Math.max(1, (el.grosorAsta ?? 0.25) * h); // media altura del asta
       const medio = h / 2;
       const base = w - cabeza;
       return [
@@ -116,12 +118,13 @@ export function puntosDeFigura(el: ElementoForma): Punto[] | null {
 
     case 'estrella': {
       const n = Math.max(PUNTAS_MIN, Math.min(PUNTAS_MAX, Math.round(el.puntas) || 5));
+      const hundido = Math.max(0.05, Math.min(0.95, el.hundido ?? HUNDIDO_ESTRELLA));
       const puntos: Punto[] = [];
       // Los radios son los de la caja, así que la estrella se estira con ella en vez de quedar
       // siempre redonda. La primera punta va hacia arriba: es como se espera ver una estrella.
       for (let i = 0; i < n * 2; i++) {
         const angulo = -Math.PI / 2 + (i * Math.PI) / n;
-        const escala = i % 2 === 0 ? 1 : HUNDIDO_ESTRELLA;
+        const escala = i % 2 === 0 ? 1 : hundido;
         puntos.push({
           x: w / 2 + Math.cos(angulo) * (w / 2) * escala,
           y: h / 2 + Math.sin(angulo) * (h / 2) * escala,

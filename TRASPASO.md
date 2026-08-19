@@ -426,36 +426,27 @@ más abajo: es la misma revisión de una decisión ya tomada, para las cuatro fi
 
 ### TRIÁNGULO
 
-1. **Que no sea siempre isósceles con el vértice centrado.** Hoy `puntosDeFigura()` en
-   `figuras.ts` (caso `'triangulo'`) pone el vértice superior siempre en `x: w/2` — fijo en el
-   centro. Lo que Germán describe como "que no todos sean equiláteros" es en realidad esto: mover
-   ese vértice a los costados para lograr un triángulo asimétrico (escaleno), no una cuestión de
-   ángulos. Se resolvería con un campo nuevo, mismo patrón que `puntas` en la estrella (que "solo
-   mira" una figura): algo como `verticeX: number` de 0 a 1 (0.5 = como está hoy, centrado), con su
-   control numérico en el panel.
+1. ~~Que no sea siempre isósceles con el vértice centrado.~~ — **hecho (19/08/2026)**: nuevo campo
+   `ElementoForma.verticeX` (0 a 1, default 0.5 = como antes), con su control numérico en el panel
+   solo para esta figura. `puntosDeFigura()` en `figuras.ts` ahora arma el vértice en `w * verticeX`.
 2. Agregar el estilo "doble". Ver la nota general más abajo.
 
 ### FLECHA
 
-1. **Controles separados para el grosor del asta y la forma de la cabeza, tipo Word.** Hoy
-   `puntosDeFigura()` (`figuras.ts`, caso `'flecha'`) calcula los dos con proporciones fijas de la
-   caja: `cabeza = Math.min(w/2, h)` y `cuerpo = h/4` (el asta mide un cuarto del alto, siempre) —
-   no hay ningún control independiente hoy, todo sale de w/h. Se explicaste bien: es exactamente lo
-   que Word deja tocar con las "palancas" amarillas de ajuste sobre la forma. Se resuelve agregando
-   dos campos nuevos (algo como `grosorAsta` y `tamanoCabeza`, ambos una fracción de la caja) que
-   reemplacen a esas dos constantes fijas — y ahí se puede elegir si el control va en el panel (dos
-   números) o como controles arrastrables sobre la figura, igual que ya se hizo con las divisorias
-   de la tabla (`tablaObjeto.ts`) — el segundo camino es más "como en Word" pero más trabajo.
+1. ~~Controles separados para el grosor del asta y la forma de la cabeza, tipo Word.~~ — **hecho
+   (19/08/2026), con la versión barata: dos números en el panel**, no palancas arrastrables sobre la
+   figura (la otra opción que se había dejado anotada, más trabajo). Dos campos nuevos en
+   `ElementoForma`: `grosorAsta` (fracción del alto, default 0.25 = el `h/4` de antes) y
+   `tamanoCabeza` (fracción del alto, default 1 = el `Math.min(w/2, h)` de antes). `puntosDeFigura()`
+   ya no tiene las dos constantes fijas.
 2. Agregar el estilo "doble". Ver la nota general más abajo.
 
 ### ESTRELLA
 
 1. ~~Cantidad de puntas~~ — **descartado (17/08/2026): ya existe y funciona**, Germán lo confirmó
    probándolo de nuevo en el panel. Era `ElementoForma.puntas`, ya cableado desde antes.
-2. **Qué tan puntiaguda es la estrella** — esto sí falta. `HUNDIDO_ESTRELLA = 0.42` en `figuras.ts`
-   es una constante fija (qué tan adentro caen los vértices interiores respecto del radio exterior)
-   y no depende de nada del elemento. Mismo patrón que `puntas`: agregar un campo nuevo (por ejemplo
-   `hundido: number`, 0 a 1) que reemplace la constante, con su control en el panel.
+2. ~~Qué tan puntiaguda es la estrella~~ — **hecho (19/08/2026)**: nuevo campo `hundido` (0 a 1,
+   default 0.42 = la constante `HUNDIDO_ESTRELLA` que reemplaza), con su control en el panel.
 3. Agregar el estilo "doble". Ver la nota general de acá abajo.
 
 ### Nota general — "doble" en elipse/triángulo/flecha/estrella
