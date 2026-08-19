@@ -340,7 +340,37 @@ async function construirObjeto(elemento: Elemento): Promise<FabricObject> {
         fill: elemento.color,
         textAlign: elemento.align,
       });
-      return texto;
+
+      // Con `tamanoFijo` en false —de toda la vida— el texto es el objeto: se dibuja solo, del
+      // tamaño de su contenido, y `w`/`h` del modelo lo siguen sin mandar (`sincronizarGeometria`
+      // los deja al día para que el panel no muestre un número viejo).
+      if (!elemento.tamanoFijo) {
+        elemento.w = Math.round(texto.width);
+        elemento.h = Math.round(texto.height);
+        texto.set({ backgroundColor: elemento.conFondo ? elemento.fondoColor : '' });
+        return texto;
+      }
+
+      // Con `tamanoFijo` la caja manda: puede ser más grande que el contenido, así que el texto
+      // pasa a ser un hijo posicionado adentro según `align` (horizontal) y siempre centrado
+      // verticalmente — recién ahí la alineación tiene sentido, como pidió Germán.
+      // Los hijos van en coordenadas 0..w/0..h, igual que el campo: Fabric recentra el grupo solo
+      // al armarlo, así que no hay que restar la mitad a mano (y equivocarse, como la lección 42).
+      const fondo = new Rect({
+        left: 0,
+        top: 0,
+        width: elemento.w,
+        height: elemento.h,
+        fill: elemento.conFondo ? elemento.fondoColor : 'transparent',
+      });
+      texto.set({
+        left: elemento.align === 'right' ? elemento.w - texto.width : elemento.align === 'center' ? (elemento.w - texto.width) / 2 : 0,
+        top: (elemento.h - texto.height) / 2,
+      });
+      const grupo = new Group([fondo, texto]);
+      grupo.set({ left: elemento.x, top: elemento.y, angle: elemento.angulo });
+      grupo.setCoords();
+      return grupo;
     }
     case 'linea':
       return new LineaObjeto(elemento);
@@ -610,12 +640,29 @@ export async function sincronizarGeometria(lienzo: import('fabric').Canvas, obje
   if (elemento.clase === 'texto') {
     elemento.x = Math.round(objeto.left ?? elemento.x);
     elemento.y = Math.round(objeto.top ?? elemento.y);
-    // Estirar un texto desde una esquina equivale a cambiarle el cuerpo de la fuente.
+
+    if (elemento.tamanoFijo) {
+      // Con la caja fija, redimensionar cambia el tamaño de la caja y no el cuerpo de la fuente:
+      // la escala se vuelca a w/h y se reconstruye el grupo (fondo + texto) con las medidas
+      // nuevas, para que el texto quede bien centrado adentro y no solo estirado.
+      const escalaX = objeto.scaleX ?? 1;
+      const escalaY = objeto.scaleY ?? 1;
+      if (escalaX !== 1 || escalaY !== 1) {
+        elemento.w = Math.max(10, Math.round(elemento.w * escalaX));
+        elemento.h = Math.max(10, Math.round(elemento.h * escalaY));
+        return reemplazarObjeto(lienzo, objeto, elemento);
+      }
+      return objeto;
+    }
+
+    // Sin caja fija: estirar el texto equivale a cambiarle el cuerpo de la fuente, como siempre.
     const escala = objeto.scaleY ?? 1;
     if (escala !== 1) {
       elemento.size = Math.max(5, Math.round(elemento.size * escala));
       objeto.set({ fontSize: elemento.size, scaleX: 1, scaleY: 1 } as Partial<FabricObject>);
     }
+    elemento.w = Math.round((objeto as FabricText).width);
+    elemento.h = Math.round((objeto as FabricText).height);
     return objeto;
   }
 

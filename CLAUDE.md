@@ -626,6 +626,16 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
     Tamaño, Color, grosor de borde) y de arranque en 'firma' (todos sus campos, que se agregaron con
     el mismo patrón). Los controles que solo llaman `refrescar()`/`repintar()` —sin tocar
     `panel.innerHTML`— no tienen este problema y pueden seguir en `'input'`.
+67. **Para agregar un comportamiento opcional a un objeto muy probado, conviene bifurcar en vez de
+    generalizar.** Al sumarle una caja fija opcional al texto (`ElementoTexto.tamanoFijo`), la
+    tentación era hacer que el `FabricText` de siempre supiera todo lo nuevo. En cambio: con
+    `tamanoFijo: false` el objeto sigue siendo el mismo `FabricText` de antes, con el mismo código de
+    construcción, exportación y redimensionado —cero líneas nuevas activas en ese camino—, y solo con
+    `tamanoFijo: true` aparece un objeto distinto (`Group` de fondo + texto, igual que 'campo'). El
+    texto es lo más probado de todo el editor (redacción de PDFs ajenos, vertical, multilínea,
+    paridad de métricas con pdf-lib); bifurcar así deja **cero riesgo** de romper ese camino por una
+    función que ni se usa. Confirmado con los seis arneses después del cambio: mismo resultado que
+    antes, ni un delta nuevo.
 
 ## Cómo verificar cambios
 

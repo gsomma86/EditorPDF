@@ -37,6 +37,22 @@ export interface ElementoTexto {
   subrayado: boolean;
   color: string;
   align: 'left' | 'center' | 'right';
+  /**
+   * Con `tamanoFijo` en false (de toda la vida) se recalculan solos para abrazar el contenido —no
+   * son la fuente de verdad, son lo último que se dibujó—. Recién importan cuando se activa
+   * `tamanoFijo`: ahí sí quedan fijos y el contenido se acomoda adentro según `align`.
+   */
+  w: number;
+  h: number;
+  /**
+   * Apagado (de toda la vida): redimensionar el objeto sube o baja el cuerpo de la fuente, y la
+   * caja siempre es la del contenido —por eso `align` no se nota, el texto ocupa toda la caja—.
+   * Prendido: la caja queda del tamaño que se le puso, el cuerpo no cambia al redimensionar, y
+   * `align` por fin tiene sentido si la caja es más grande que el contenido.
+   */
+  tamanoFijo: boolean;
+  conFondo: boolean;
+  fondoColor: string;
 }
 
 export interface ElementoLinea {
@@ -331,7 +347,29 @@ export function crearElemento(clase: ClaseSimple): Elemento {
   switch (clase) {
     case 'texto': {
       const { x, y } = nuevaPosicion(60, 11);
-      return { clase, id, x, y, angulo: 0, text: 'Texto', vertical: false, separacion: 0, multilinea: false, size: 11, familia: 'Helvetica', negrita: false, cursiva: false, subrayado: false, color: '#111111', align: 'left' };
+      return {
+        clase,
+        id,
+        x,
+        y,
+        angulo: 0,
+        text: 'Texto',
+        vertical: false,
+        separacion: 0,
+        multilinea: false,
+        size: 11,
+        familia: 'Helvetica',
+        negrita: false,
+        cursiva: false,
+        subrayado: false,
+        color: '#111111',
+        align: 'left',
+        w: 60,
+        h: 11,
+        tamanoFijo: false,
+        conFondo: false,
+        fondoColor: '#ffffff',
+      };
     }
     case 'linea': {
       const { x, y } = nuevaPosicion(200, 1);

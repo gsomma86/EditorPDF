@@ -337,35 +337,64 @@ actual de `tablaObjeto.ts` y `figuras.ts`** — puede haber cambiado.
    desde una esquina (con el mínimo de 8pt/6pt de siempre). No dispara `registrarSnapshot` en cada
    tecla, igual que el resto de los campos numéricos en vivo.
 
-### TEXTO
+### TEXTO — 4 de 5 hechos (19/08/2026)
 
-Todo esto está pendiente porque **`ElementoTexto` hoy no tiene `w`/`h` en absoluto** (se autoajusta
-al contenido) — no son ajustes menores, hace falta agregarle una caja al modelo primero, y varios de
-estos pedidos dependen de esa caja existiendo.
+**Modelo**: `ElementoTexto` suma `w`, `h`, `tamanoFijo`, `conFondo`, `fondoColor`. La pieza central es
+`tamanoFijo`, que decide entre dos formas de ser bien distintas — pensado así para no arriesgar nada
+del texto de toda la vida, que es lo más probado y lo más delicado de todo el editor (entra en la
+redacción de PDFs ajenos, en texto vertical, en multilínea, en la paridad de métricas con pdf-lib):
 
-1. Mover el control de Alineación para que quede debajo del tilde "Varias líneas" (`campoTexto()` en
-   `panelPropiedades.ts` — es reordenar HTML, no toca lógica).
-2. **Tilde "el tamaño de fuente no cambia al redimensionar"**, antes del control Tamaño. Con la caja
-   agregada (punto anterior de esta lista), redimensionar el objeto hoy solo puede leerse como "subir
-   el cuerpo de la fuente" (así se resolvió cuando se agregó `w`/`h` a otros tipos). Este tilde le
-   da un segundo sentido: la caja crece pero el texto adentro se queda del mismo tamaño, alineado
-   como diga `align` dentro de esa caja más grande — que es, como bien dice Germán, lo único que le
-   da sentido real a la alineación (con el texto ocupando siempre el 100% del ancho, alinear a la
-   izquierda o al centro no se nota).
-3. Color de fondo del recuadro de texto, con opción "Ninguno" (transparente, como es hoy). Mismo
-   patrón que `conFondo`/`fondoColor` de campo/firma/imagen — no hay nada nuevo que inventar, es
-   copiar el patrón ya usado tres veces.
-4. **"La separación funciona distinto en vertical que en horizontal."** Confirmado en el modelo: un
-   solo campo `separacion` cubre dos casos con semántica distinta —"entre las letras si es vertical,
-   entre las líneas si es horizontal" (comentario en `elemento.ts`, campo `ElementoTexto.separacion`).
-   Falta escuchar a Germán en qué anda mal exactamente: ¿la etiqueta del control no aclara cuál de
-   las dos cosas está cambiando, o el número se comporta distinto de lo esperado en algún caso
-   puntual (por ejemplo, con `multilinea` Y `vertical` prendidos los dos a la vez)? Probar ese
-   combo antes de tocar nada — puede que el bug esté justo ahí, en la intersección de los dos.
-5. Controles numéricos de Ancho/Alto del objeto texto en Propiedades — depende directo de agregar
-   `w`/`h` al modelo (punto de arriba de esta lista): una vez que existan, es el mismo `seccionPosicion`
-   genérico que ya usan línea/recuadro/forma/imagen/campo/firma/QR, sacando a `texto` de la
-   exclusión de `conTamano`.
+- **`tamanoFijo: false` (default, como siempre fue)**: el objeto de Fabric sigue siendo el mismo
+  `FabricText` de antes, con el mismo código de construcción, la misma exportación
+  (`case 'texto'` en `exportarPdf.ts`, sin ninguna rama nueva activa) y el mismo comportamiento al
+  redimensionar (`sincronizarGeometria` sube o baja `size`). `w`/`h` son **de solo lectura, en la
+  práctica**: se recalculan solos después de cada cambio (`redibujar()`/`objeto.width` en
+  `panelPropiedades.ts`) para llevar la cuenta de lo último dibujado, no para mandar sobre nada. El
+  fondo (`conFondo`) usa la misma propiedad `backgroundColor` nativa que ya lleva Imagen — ningún
+  Group nuevo hace falta acá tampoco.
+- **`tamanoFijo: true` (nuevo, opt-in)**: recién acá el texto deja de ser el objeto y pasa a ser un
+  hijo de un `Group` (fondo + texto), exactamente el mismo molde que ya usa 'campo'. `w`/`h` mandan
+  de verdad, el texto se posiciona adentro según `align` (horizontal, siempre centrado en vertical) y
+  redimensionar cambia la caja sin tocar el cuerpo de la fuente (reconstruye con `reemplazarObjeto`,
+  no hay un ajuste en su lugar como el de 'campo' — para esta primera versión no valía la pena).
+  Cualquier edición que pueda afectar tamaño o posición (texto, tamaño, alineación, tipografía)
+  reconstruye entero; el color no, porque no cambia nada de eso.
+
+1. ~~Mover el control de Alineación debajo de "Varias líneas".~~ — **hecho**: `bloqueTipografia()` se
+   partió en `bloqueFuente()` (familia + N/K/S) y `bloqueAlineacion()` (los tres botones), y
+   `campoTexto()` pone la alineación en la sección de contenido, debajo del tilde, sin tocar cómo se
+   arma el panel de 'campo' (que sigue usando las dos juntas, en el mismo orden de siempre).
+2. ~~Tilde "el tamaño de fuente no cambia al redimensionar".~~ — **hecho**: es `tamanoFijo`, descrito
+   arriba. Con la caja apagada (de toda la vida) el tilde de alineación sigue sin notarse — es
+   exactamente lo que señalaba Germán, y ahora tiene una salida real.
+3. ~~Color de fondo, con "Ninguno".~~ — **hecho**, `backgroundColor` nativo si no hay caja fija, un
+   `Rect` en el grupo si la hay.
+4. **"La separación funciona distinto en vertical que en horizontal."** — **sigue sin tocar**. Sigue
+   haciendo falta que Germán cuente qué es lo que anda mal exactamente (¿la etiqueta no aclara cuál
+   de las dos cosas cambia, o el número se comporta raro en algún combo puntual como
+   `multilinea` + `vertical` juntos?) — no es algo que se pueda adivinar mirando el código, como sí
+   lo fueron los otros cuatro puntos de esta lista.
+5. ~~Controles numéricos de Ancho/Alto en Propiedades.~~ — **hecho, pero solo quedan visibles con
+   `tamanoFijo` prendido** (sin caja fija no hay nada que el usuario pueda mandar: se decidió
+   ocultarlos en vez de mostrarlos deshabilitados, mismo criterio que QR con "Tamaño"). No se tocó
+   `seccionPosicion()` para esto — los inputs de ancho/alto de texto viven en `campoTexto()`, aparte
+   del bloque genérico que sigue excluyendo a `'texto'` como siempre.
+
+**Probado con los arneses** (`verificar-export`, `verificar-pdf`, `verificar-campos`, `verificar-hojas`,
+`verificar-objetos`, todos verdes con la misma base de siempre —los 4 "problemas" conocidos de fuente
+sustituta, nada nuevo—) y un caso nuevo en `verificar-objetos` para el redimensionado con caja fija.
+**Falta la prueba visual de Germán**, sobre todo: texto con `tamanoFijo` y alineación centro/derecha
+(en pantalla y en el PDF exportado), y que el texto de toda la vida (`tamanoFijo` apagado) seguga
+viéndose exactamente igual que antes en todos los casos ya probados (vertical, multilínea, redacción
+de un PDF ajeno).
+
+**Hallazgo al costado, no corregido**: la exportación de un texto sin caja fija **nunca usó `align`**
+— cada renglón se dibuja siempre pegado a `x=0` (`exportarPdf.ts`, caso `'texto'`), mientras que en
+pantalla Fabric sí reparte los renglones más cortos según `textAlign` cuando hay varios de distinto
+ancho (multilínea o vertical). Es un desvío preexistente entre lienzo y PDF, más angosto que este
+pedido y fuera de su alcance — se aplicó el offset de alineación solo a la rama nueva
+(`tamanoFijo: true`), sin tocar el camino de siempre. Vale la pena una tarea aparte el día que a
+alguien le importe.
 
 ### TABLA — ver arriba (puntos 1 a 4 de esta sección)
 

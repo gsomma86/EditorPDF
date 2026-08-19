@@ -1,4 +1,4 @@
-import type { Canvas, FabricObject } from 'fabric';
+import type { Canvas, FabricObject, FabricText } from 'fabric';
 import { FabricImage } from 'fabric';
 import { aplicarMarcas, elementoDe, moverEnLaPila, ordenarPila, reemplazarObjeto, agregarAlLienzo, generarQr, prepararFuente, sincronizarGeometria, textoParaDibujar } from '../editor/objetosFabric';
 import { capaDe, capasDelDocumento } from '../editor/documento';
@@ -65,7 +65,7 @@ inputReemplazoImagen.addEventListener('change', async () => {
   }
 });
 
-function bloqueTipografia(elemento: { familia: string; negrita: boolean; cursiva: boolean; subrayado: boolean; align: 'left' | 'center' | 'right' }): string {
+function bloqueFuente(elemento: { familia: string; negrita: boolean; cursiva: boolean; subrayado: boolean }): string {
   return `
     <div><label class="ed-lbl" data-i18n="props.familia"></label><select id="ed-p-familia">
       <optgroup data-i18n-label="props.familiaEstandar">
@@ -79,13 +79,21 @@ function bloqueTipografia(elemento: { familia: string; negrita: boolean; cursiva
       <button type="button" class="ed-toggle ${elemento.negrita ? 'activo' : ''}" id="ed-p-negrita" data-i18n-title="props.negritaTt"><b>N</b></button>
       <button type="button" class="ed-toggle ${elemento.cursiva ? 'activo' : ''}" id="ed-p-cursiva" data-i18n-title="props.cursivaTt"><i>K</i></button>
       <button type="button" class="ed-toggle ${elemento.subrayado ? 'activo' : ''}" id="ed-p-subrayado" data-i18n-title="props.subrayadoTt"><u>S</u></button>
-    </div>
+    </div>`;
+}
+
+function bloqueAlineacion(elemento: { align: 'left' | 'center' | 'right' }): string {
+  return `
     <label class="ed-lbl" style="margin-top:8px;" data-i18n="props.alineacion"></label>
     <div class="ed-fila-toggle">
       <button type="button" class="ed-toggle ${elemento.align === 'left' ? 'activo' : ''}" id="ed-p-al-izq" data-i18n-title="props.alIzqTt">⇤</button>
       <button type="button" class="ed-toggle ${elemento.align === 'center' ? 'activo' : ''}" id="ed-p-al-centro" data-i18n-title="props.alCentroTt">≡</button>
       <button type="button" class="ed-toggle ${elemento.align === 'right' ? 'activo' : ''}" id="ed-p-al-der" data-i18n-title="props.alDerTt">⇥</button>
     </div>`;
+}
+
+function bloqueTipografia(elemento: { familia: string; negrita: boolean; cursiva: boolean; subrayado: boolean; align: 'left' | 'center' | 'right' }): string {
+  return bloqueFuente(elemento) + bloqueAlineacion(elemento);
 }
 
 function wireTipografia(
@@ -359,17 +367,30 @@ function campoTexto(elemento: Elemento & { clase: 'texto' }): string {
           ? `<textarea id="ed-p-texto" rows="3">${escapeHtml(elemento.text)}</textarea>`
           : `<input type="text" id="ed-p-texto" value="${escapeHtml(elemento.text)}">`
       }</div>
-      <label class="ed-check"><input type="checkbox" id="ed-p-multilinea" ${elemento.multilinea ? 'checked' : ''}> <span data-i18n="props.variasLineas"></span></label>`
+      <label class="ed-check"><input type="checkbox" id="ed-p-multilinea" ${elemento.multilinea ? 'checked' : ''}> <span data-i18n="props.variasLineas"></span></label>
+      ${bloqueAlineacion(elemento)}`
     ) +
     seccion(
       'comun.formato',
-      `<div class="ed-row2">
+      `<label class="ed-check"><input type="checkbox" id="ed-p-tamanofijo" ${elemento.tamanoFijo ? 'checked' : ''}> <span data-i18n="props.texto.tamanoFijo"></span></label>
+      <p class="nota" style="margin:2px 0 8px;" data-i18n="props.texto.tamanoFijoNota"></p>
+      <div class="ed-row2">
         <div><label class="ed-lbl" data-i18n="comun.tamano"></label><input type="number" id="ed-p-size" class="mono" value="${elemento.size}" min="5" max="72"></div>
         <div><label class="ed-lbl" data-i18n="comun.color"></label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
       </div>
-      ${bloqueTipografia(elemento)}
+      ${
+        elemento.tamanoFijo
+          ? `<div class="ed-row2">
+               <div><label class="ed-lbl" data-i18n="props.lbl.ancho"></label><input type="number" id="ed-p-w" class="mono" value="${elemento.w}" min="10"></div>
+               <div><label class="ed-lbl" data-i18n="props.lbl.alto"></label><input type="number" id="ed-p-h" class="mono" value="${elemento.h}" min="10"></div>
+             </div>`
+          : ''
+      }
+      ${bloqueFuente(elemento)}
       <label class="ed-check"><input type="checkbox" id="ed-p-vertical" ${elemento.vertical ? 'checked' : ''}> <span data-i18n="props.textoVertical"></span></label>
-      <div><label class="ed-lbl" data-i18n="props.separacionPt"></label><input type="number" id="ed-p-separacion" class="mono" value="${elemento.separacion}" step="0.5"></div>`
+      <div><label class="ed-lbl" data-i18n="props.separacionPt"></label><input type="number" id="ed-p-separacion" class="mono" value="${elemento.separacion}" step="0.5"></div>
+      <label class="ed-check" style="margin-top:8px;"><input type="checkbox" id="ed-p-texto-fondo" ${elemento.conFondo ? 'checked' : ''}> <span data-i18n="comun.conFondo"></span></label>
+      <div><label class="ed-lbl" data-i18n="comun.colorFondo"></label><input type="color" id="ed-p-texto-fondocolor" value="${elemento.fondoColor}"></div>`
     )
   );
 }
@@ -681,23 +702,39 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
   });
 
   if (elemento.clase === 'texto') {
-    const redibujarTexto = () => {
-      (objeto as any).set({ text: textoParaDibujar(elemento), lineHeight: alturaRenglonFabric(elemento) });
+    // Dos modos, según `tamanoFijo`. Sin caja fija (de toda la vida) el objeto sigue siendo el
+    // mismo `FabricText`: liviano, sin rehacerlo. Con caja fija el objeto es un grupo (fondo +
+    // texto posicionado según `align`) armado en `construirObjeto`, así que cualquier cambio que
+    // pueda afectar tamaño o posición del contenido reconstruye entero — no hay un ajuste en su
+    // lugar para esto, como si lo hay para 'campo' (`reajustarCampo`).
+    const redibujar = () => {
+      (objeto as FabricText).set({ text: textoParaDibujar(elemento), lineHeight: alturaRenglonFabric(elemento) });
       objeto.setCoords();
+      elemento.w = Math.round((objeto as FabricText).width);
+      elemento.h = Math.round((objeto as FabricText).height);
       repintar();
     };
-    $('#ed-p-texto')!.addEventListener('input', (e) => {
+    const reconstruir = async () => {
+      const nuevo = await reemplazarObjeto(lienzo, objeto, elemento);
+      mostrarPropiedades(panel, lienzo, nuevo);
+    };
+    const actualizar = () => (elemento.tamanoFijo ? reconstruir() : redibujar());
+    // Reconstruir rearma el panel (`mostrarPropiedades`) y con 'input' eso pasaría en cada tecla
+    // — lección 66 de CLAUDE.md. Sin caja fija el objeto no se toca, así que 'input' es seguro.
+    const eventoVivo = elemento.tamanoFijo ? 'change' : 'input';
+
+    $('#ed-p-texto')!.addEventListener(eventoVivo, (e) => {
       elemento.text = (e.target as HTMLInputElement).value;
-      redibujarTexto();
+      actualizar();
     });
     $('#ed-p-vertical')!.addEventListener('change', (e) => {
       elemento.vertical = (e.target as HTMLInputElement).checked;
-      redibujarTexto();
+      actualizar();
       registrarSnapshot(lienzo);
     });
-    $('#ed-p-separacion')!.addEventListener('input', (e) => {
+    $('#ed-p-separacion')!.addEventListener(eventoVivo, (e) => {
       elemento.separacion = Number((e.target as HTMLInputElement).value) || 0;
-      redibujarTexto();
+      actualizar();
     });
     $('#ed-p-multilinea')!.addEventListener('change', (e) => {
       elemento.multilinea = (e.target as HTMLInputElement).checked;
@@ -705,17 +742,76 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
       mostrarPropiedades(panel, lienzo, objeto);
       registrarSnapshot(lienzo);
     });
-    $('#ed-p-size')!.addEventListener('input', (e) => {
+    $('#ed-p-tamanofijo')!.addEventListener('change', (e) => {
+      elemento.tamanoFijo = (e.target as HTMLInputElement).checked;
+      // Al prenderlo, la caja arranca del tamaño que el texto ya tenía (lo que `redibujar` viene
+      // siguiendo en `elemento.w`/`h` todo este tiempo, aunque no se mostrara en el panel).
+      if (elemento.tamanoFijo) {
+        elemento.w = Math.max(10, elemento.w);
+        elemento.h = Math.max(10, elemento.h);
+      }
+      registrarSnapshot(lienzo);
+      reconstruir();
+    });
+    $('#ed-p-size')!.addEventListener(eventoVivo, (e) => {
       elemento.size = Number((e.target as HTMLInputElement).value);
+      if (elemento.tamanoFijo) {
+        reconstruir();
+        return;
+      }
       objeto.set({ fontSize: elemento.size } as any);
+      elemento.w = Math.round((objeto as FabricText).width);
+      elemento.h = Math.round((objeto as FabricText).height);
       repintar();
     });
-    $('#ed-p-color')!.addEventListener('input', (e) => {
+    $('#ed-p-color')!.addEventListener(eventoVivo, (e) => {
       elemento.color = (e.target as HTMLInputElement).value;
+      if (elemento.tamanoFijo) {
+        reconstruir();
+        return;
+      }
       objeto.set({ fill: elemento.color });
       repintar();
     });
-    wireTipografia($, elemento, (props) => objeto.set(props as any), repintar);
+    $('#ed-p-w')?.addEventListener('change', (e) => {
+      elemento.w = Math.max(10, Number((e.target as HTMLInputElement).value) || elemento.w);
+      reconstruir();
+    });
+    $('#ed-p-h')?.addEventListener('change', (e) => {
+      elemento.h = Math.max(10, Number((e.target as HTMLInputElement).value) || elemento.h);
+      reconstruir();
+    });
+    $('#ed-p-texto-fondo')!.addEventListener('change', (e) => {
+      elemento.conFondo = (e.target as HTMLInputElement).checked;
+      if (elemento.tamanoFijo) {
+        reconstruir();
+        return;
+      }
+      (objeto as FabricText).set({ backgroundColor: elemento.conFondo ? elemento.fondoColor : '' });
+      repintar();
+    });
+    $('#ed-p-texto-fondocolor')!.addEventListener('change', (e) => {
+      elemento.fondoColor = (e.target as HTMLInputElement).value;
+      if (!elemento.conFondo) return;
+      if (elemento.tamanoFijo) {
+        reconstruir();
+        return;
+      }
+      (objeto as FabricText).set({ backgroundColor: elemento.fondoColor });
+      repintar();
+    });
+    wireTipografia(
+      $,
+      elemento,
+      (props) => {
+        if (elemento.tamanoFijo) {
+          reconstruir();
+          return;
+        }
+        objeto.set(props as any);
+      },
+      repintar
+    );
     return;
   }
 

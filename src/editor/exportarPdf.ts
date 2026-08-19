@@ -323,15 +323,25 @@ async function dibujarHoja(
         const renglones = el.vertical ? [...el.text] : el.text.split('\n');
         const paso = pasoDeRenglon(el);
 
+        if (el.conFondo) {
+          dibujarRectangulo(pagina, ubi, 0, 0, el.w, el.h, { color: el.fondoColor, estilo: 'solido', grosor: 0, conRelleno: true, rellenoColor: el.fondoColor });
+        }
+
+        // Con la caja fija el bloque se centra verticalmente y cada renglón se alinea dentro del
+        // ancho de la caja; sin ella (de toda la vida) arranca pegado a la esquina, sin cambios —
+        // ahí la caja es la del propio contenido, así que "centrarlo" sería lo mismo que nada.
+        const offsetY = el.tamanoFijo ? Math.max(0, (el.h - renglones.length * paso) / 2) : 0;
+
         renglones.forEach((renglon, i) => {
-          const base = ubi.punto(0, ascendente + i * paso);
+          const anchoRenglon = fuente.widthOfTextAtSize(renglon, el.size);
+          const offsetX = el.tamanoFijo ? (el.align === 'right' ? el.w - anchoRenglon : el.align === 'center' ? (el.w - anchoRenglon) / 2 : 0) : 0;
+          const base = ubi.punto(offsetX, offsetY + ascendente + i * paso);
           pagina.drawText(renglon, { ...base, size: el.size, font: fuente, color: color(el.color), rotate: ubi.grados });
           if (el.subrayado) {
-            const anchoRenglon = fuente.widthOfTextAtSize(renglon, el.size);
-            const ySub = ascendente + i * paso + el.size * 0.12;
+            const ySub = offsetY + ascendente + i * paso + el.size * 0.12;
             pagina.drawLine({
-              start: ubi.punto(0, ySub),
-              end: ubi.punto(anchoRenglon, ySub),
+              start: ubi.punto(offsetX, ySub),
+              end: ubi.punto(offsetX + anchoRenglon, ySub),
               thickness: Math.max(0.5, el.size * 0.05),
               color: color(el.color),
             });

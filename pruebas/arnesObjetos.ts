@@ -102,6 +102,18 @@ function nuevoLienzo(): any {
   comprobar('texto', 'cambia el cuerpo', elementoDe(objTexto)!.clase === 'texto' && (elementoDe(objTexto) as any).size, 20);
   comprobar('texto', 'sin escala pegada', { x: objTexto.scaleX, y: objTexto.scaleY }, { x: 1, y: 1 });
 
+  // Con la caja fija es al revés: redimensionar cambia w/h y no el cuerpo de la fuente.
+  const textoFijo = crearElemento('texto') as any;
+  textoFijo.size = 10;
+  textoFijo.tamanoFijo = true;
+  textoFijo.w = 100;
+  textoFijo.h = 20;
+  const objTextoFijo = await agregarAlLienzo(lienzo, textoFijo);
+  objTextoFijo.set({ scaleX: 2, scaleY: 1.5 });
+  const devueltoTexto = await sincronizarGeometria(lienzo, objTextoFijo);
+  comprobar('texto, caja fija', 'cambia w/h y no el cuerpo', { w: textoFijo.w, h: textoFijo.h, size: textoFijo.size }, { w: 200, h: 30, size: 10 });
+  comprobar('texto, caja fija', 'sin escala pegada', { x: devueltoTexto.scaleX, y: devueltoTexto.scaleY }, { x: 1, y: 1 });
+
   const tabla = crearElementoTabla(2, 2);
   const objTabla = await agregarAlLienzo(lienzo, tabla);
   const anchoCol = tabla.cols[0];

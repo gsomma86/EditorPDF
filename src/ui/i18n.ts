@@ -340,6 +340,8 @@ const ES = {
   'props.lbl.texto': 'Texto',
   'props.variasLineas': 'Varias líneas',
   'props.textoVertical': 'Texto vertical (una letra por renglón)',
+  'props.texto.tamanoFijo': 'El tamaño de fuente no cambia al redimensionar',
+  'props.texto.tamanoFijoNota': 'Con esto apagado (de siempre), la caja siempre es la del contenido y la alineación no se nota. Prendido, se puede agrandar la caja sin tocar la letra.',
   'props.separacionPt': 'Separación (pt)',
 
   'props.campo.id': 'Campo (ID)',
@@ -748,6 +750,8 @@ const EN: Record<ClaveI18n, string> = {
   'props.lbl.texto': 'Text',
   'props.variasLineas': 'Multiple lines',
   'props.textoVertical': 'Vertical text (one letter per line)',
+  'props.texto.tamanoFijo': "Font size doesn't change when resizing",
+  'props.texto.tamanoFijoNota': "With this off (the default), the box always matches the content and alignment doesn't show. On, you can make the box bigger without touching the letter size.",
   'props.separacionPt': 'Spacing (pt)',
 
   'props.campo.id': 'Field (ID)',
@@ -1154,6 +1158,8 @@ const PT: Record<ClaveI18n, string> = {
   'props.lbl.texto': 'Texto',
   'props.variasLineas': 'Várias linhas',
   'props.textoVertical': 'Texto vertical (uma letra por linha)',
+  'props.texto.tamanoFijo': 'O tamanho da fonte não muda ao redimensionar',
+  'props.texto.tamanoFijoNota': 'Com isso desligado (padrão), a caixa sempre acompanha o conteúdo e o alinhamento não se nota. Ligado, dá para aumentar a caixa sem mudar o tamanho da letra.',
   'props.separacionPt': 'Espaçamento (pt)',
 
   'props.campo.id': 'Campo (ID)',
