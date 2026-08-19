@@ -284,17 +284,16 @@ sospechar del código. En la práctica, **lo de escritorio lo prueba Germán**.
 Tres pedidos sobre la tabla, para cuando haya crédito fresco. **No arrancar sin releer el código
 actual de `tablaObjeto.ts` y `figuras.ts`** — puede haber cambiado.
 
-1. **Cambiar la cantidad de filas/columnas desde Propiedades.** Hoy, con una tabla seleccionada,
-   `campoTabla()` en `panelPropiedades.ts` (línea ~508) solo muestra un resumen de solo lectura
-   ("N filas × M columnas") — la cantidad se fija una sola vez, en el modal al insertarla
-   (`pedirFilasColumnas`), y no se puede tocar después. Falta agregar ahí un control (dos números,
-   o reabrir el mismo modal) que permita cambiarla con la tabla ya puesta en la hoja.
-   **Decisión de diseño que falta tomar al implementarlo**: al subir la cantidad, ¿la fila/columna
-   nueva se agrega al final con un tamaño por defecto (60pt/24pt, como al crearla), o se reparte el
-   espacio existente entre todas? Al bajarla, ¿se descarta la última o la que esté vacía/más chica?
-   El editor público no resuelve esto (no dejaba cambiar la cantidad después de puesta), así que no
-   hay una referencia a copiar — es una decisión nueva, más simple: agregar/quitar al final con el
-   tamaño por defecto, sin redistribuir las demás.
+1. ~~Cambiar la cantidad de filas/columnas desde Propiedades.~~ — **hecho (19/08/2026)**, con la
+   decisión simple que ya se había anotado: agregar/quitar al final con el tamaño por defecto
+   (60pt/24pt), sin redistribuir las demás. Dos inputs numéricos nuevos en `campoTabla()`, arriba de
+   Ancho/Alto. A diferencia de esos —que solo reparten el cambio entre filas/columnas ya existentes—
+   cambiar la CANTIDAD reconstruye el objeto entero con `reemplazarObjeto` (como campo/firma): la
+   tabla tiene un control de Fabric por columna y por fila, armados una sola vez en el constructor
+   (`construirControles`), y `refrescarDesdeDatos` solo reubica los que ya existen — no crea ni saca
+   ninguno. Registra un paso de historial (a diferencia de los demás campos de este panel, que no lo
+   hacen): agregar o sacar una fila/columna entera se sintió más parecido a duplicar o borrar un
+   elemento que a cambiar un color.
 
 2. ~~Las dimensiones externas de la tabla tienen que quedar fijas al mover una línea interna.~~ —
    **hecho (19/08/2026).** `accionRedimensionar` en `tablaObjeto.ts` ahora distingue: para toda

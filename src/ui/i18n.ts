@@ -361,7 +361,7 @@ const ES = {
   'props.qr.tamanoPt': 'Tamaño (pt)',
   'props.qr.contraste': 'Un QR necesita buen contraste entre el color y el fondo para poder leerse.',
 
-  'props.tabla.resumen': '{filas} filas × {cols} columnas. Arrastrá una línea interna para ajustar esa fila/columna, o la esquina para redimensionar todo.',
+  'props.tabla.resumen': 'Arrastrá una línea interna para ajustar esa fila/columna, o la esquina para redimensionar todo.',
   'props.tabla.colorContorno': 'Color del contorno',
   'props.tabla.colorInterno': 'Color interno',
   'props.tabla.estiloContorno': 'Estilo del contorno',
@@ -768,7 +768,7 @@ const EN: Record<ClaveI18n, string> = {
   'props.qr.tamanoPt': 'Size (pt)',
   'props.qr.contraste': 'A QR code needs good contrast between its color and background to be readable.',
 
-  'props.tabla.resumen': '{filas} rows × {cols} columns. Drag an inner line to resize that row/column, or the corner to resize the whole table.',
+  'props.tabla.resumen': 'Drag an inner line to resize that row/column, or the corner to resize the whole table.',
   'props.tabla.colorContorno': 'Outline color',
   'props.tabla.colorInterno': 'Inner color',
   'props.tabla.estiloContorno': 'Outline style',
@@ -1173,7 +1173,7 @@ const PT: Record<ClaveI18n, string> = {
   'props.qr.tamanoPt': 'Tamanho (pt)',
   'props.qr.contraste': 'Um QR precisa de bom contraste entre a cor e o fundo para poder ser lido.',
 
-  'props.tabla.resumen': '{filas} linhas × {cols} colunas. Arraste uma linha interna para ajustar essa linha/coluna, ou o canto para redimensionar tudo.',
+  'props.tabla.resumen': 'Arraste uma linha interna para ajustar essa linha/coluna, ou o canto para redimensionar tudo.',
   'props.tabla.colorContorno': 'Cor do contorno',
   'props.tabla.colorInterno': 'Cor interna',
   'props.tabla.estiloContorno': 'Estilo do contorno',

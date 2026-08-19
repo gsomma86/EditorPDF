@@ -528,7 +528,11 @@ function campoQr(elemento: Elemento & { clase: 'qr' }): string {
 function campoTabla(elemento: Elemento & { clase: 'tabla' }): string {
   return seccion(
     'comun.formato',
-    `<div class="nota" style="margin-bottom:8px;">${t('props.tabla.resumen', { filas: elemento.rows.length, cols: elemento.cols.length })}</div>
+    `<div class="ed-row2">
+      <div><label class="ed-lbl" data-i18n="modal.tabla.filas"></label><input type="number" id="ed-p-tabla-filas" class="mono" value="${elemento.rows.length}" min="1" max="20"></div>
+      <div><label class="ed-lbl" data-i18n="modal.tabla.columnas"></label><input type="number" id="ed-p-tabla-cols" class="mono" value="${elemento.cols.length}" min="1" max="10"></div>
+    </div>
+    <p class="nota" style="margin:-4px 0 8px;" data-i18n="props.tabla.resumen"></p>
     <div class="ed-row2">
       <div><label class="ed-lbl" data-i18n="props.lbl.ancho"></label><input type="number" id="ed-p-w" class="mono" value="${Math.round(anchoTotalTabla(elemento))}" min="${elemento.cols.length * 8}"></div>
       <div><label class="ed-lbl" data-i18n="props.lbl.alto"></label><input type="number" id="ed-p-h" class="mono" value="${Math.round(altoTotalTabla(elemento))}" min="${elemento.rows.length * 6}"></div>
@@ -909,6 +913,28 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
       (objeto as TablaObjeto).refrescarDesdeDatos();
       repintar();
     };
+    // Cambiar la CANTIDAD de filas/columnas sí reconstruye: `refrescarDesdeDatos` solo reubica los
+    // controles que ya existen, no crea ni saca ninguno (`construirControles` corre una sola vez,
+    // en el constructor). Se agrega/saca del final con el tamaño por defecto, sin redistribuir las
+    // demás — la misma decisión, más simple, que ya se había dejado anotada acá.
+    const reconstruirTabla = async () => {
+      const nuevo = await reemplazarObjeto(lienzo, objeto, elemento);
+      mostrarPropiedades(panel, lienzo, nuevo);
+    };
+    $('#ed-p-tabla-filas')!.addEventListener('change', (e) => {
+      const n = Math.max(1, Math.min(20, Math.round(Number((e.target as HTMLInputElement).value)) || elemento.rows.length));
+      if (n > elemento.rows.length) elemento.rows.push(...Array(n - elemento.rows.length).fill(24));
+      else elemento.rows.length = n;
+      registrarSnapshot(lienzo);
+      reconstruirTabla();
+    });
+    $('#ed-p-tabla-cols')!.addEventListener('change', (e) => {
+      const n = Math.max(1, Math.min(10, Math.round(Number((e.target as HTMLInputElement).value)) || elemento.cols.length));
+      if (n > elemento.cols.length) elemento.cols.push(...Array(n - elemento.cols.length).fill(60));
+      else elemento.cols.length = n;
+      registrarSnapshot(lienzo);
+      reconstruirTabla();
+    });
     // Igual que escalar desde una esquina: reparte el cambio entre todas las columnas o filas,
     // proporcional a como estaban, y no dispara ningún control por separado.
     $('#ed-p-w')!.addEventListener('input', (e) => {
