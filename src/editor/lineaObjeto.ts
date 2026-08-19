@@ -3,6 +3,35 @@ import type { ElementoLinea } from './elemento';
 import { guionDe } from './trazos';
 
 /**
+ * Cuánto se corre `left` (línea vertical) o `top` (horizontal) para agrandar la caja hacia el
+ * lado del bulto sin mover el eje recto de lugar. Se usa tanto acá como en `objetosFabric.ts`
+ * (al volcar un arrastre de redimensión al modelo), así que vive exportada y no duplicada.
+ */
+export function corrimientoPorCurvatura(curvatura: number): number {
+  return Math.min(curvatura || 0, 0);
+}
+
+/**
+ * El ancho/alto y la posición que le corresponden a la línea en el lienzo, ya con la curvatura
+ * adentro. Sin curvatura da lo mismo que `datos.w`/`h`/`x`/`y` de siempre.
+ *
+ * La curvatura agranda la caja de selección hacia el lado del bulto: sin esto, el pico de una
+ * curva pronunciada queda visualmente fuera del rectángulo de selección y no se puede clickear
+ * ahí. `left`/`top` se corren lo mismo que crece la caja, así el eje recto de la línea —lo que
+ * `x`/`y` señalan siempre— no se mueve de lugar al agrandarla.
+ */
+export function cajaDeLinea(datos: ElementoLinea): { left: number; top: number; width: number; height: number } {
+  const horizontal = datos.w >= datos.h;
+  const grosor = Math.max(0.5, horizontal ? datos.h : datos.w);
+  const extra = Math.abs(datos.curvatura || 0);
+  const corrimiento = corrimientoPorCurvatura(datos.curvatura);
+
+  return horizontal
+    ? { left: datos.x, top: datos.y + corrimiento, width: datos.w, height: grosor + extra }
+    : { left: datos.x + corrimiento, top: datos.y, width: grosor + extra, height: datos.h };
+}
+
+/**
  * La línea es un objeto propio en vez de un rectángulo relleno. Como rectángulo, el estilo
  * (punteado / doble) no se podía aplicar: `strokeDashArray` solo afecta al contorno, y la línea
  * se dibujaba con relleno, así que siempre se veía sólida.
@@ -15,10 +44,7 @@ export class LineaObjeto extends FabricObject {
 
   constructor(datos: ElementoLinea) {
     super({
-      left: datos.x,
-      top: datos.y,
-      width: datos.w,
-      height: datos.h,
+      ...cajaDeLinea(datos),
       angle: datos.angulo,
       strokeWidth: 0,
       objectCaching: false,
@@ -27,7 +53,7 @@ export class LineaObjeto extends FabricObject {
   }
 
   refrescarDesdeDatos(): void {
-    this.set({ width: this.datos.w, height: this.datos.h, angle: this.datos.angulo });
+    this.set({ ...cajaDeLinea(this.datos), angle: this.datos.angulo });
     this.setCoords();
     this.dirty = true;
   }
@@ -49,17 +75,20 @@ export class LineaObjeto extends FabricObject {
     // El punto de control del cuadrático no es directamente la curvatura pedida: para que el punto
     // medio de la curva (que es lo que realmente se ve) caiga exacto en `desplazamiento + curva`,
     // el control tiene que ir al doble de esa distancia (matemática del bezier cuadrático en t=0.5).
+    // `origen` resta la mitad de la curvatura porque la caja del objeto (`cajaDeLinea`) creció
+    // hacia el lado del bulto: sin este corrimiento, agrandarla movería el eje recto de lugar.
     const segmento = (desplazamiento: number, ancho: number) => {
+      const origen = desplazamiento - curva / 2;
       ctx.lineWidth = ancho;
       ctx.beginPath();
       if (horizontal) {
-        ctx.moveTo(-largo / 2, desplazamiento);
-        if (curva) ctx.quadraticCurveTo(0, desplazamiento + curva * 2, largo / 2, desplazamiento);
-        else ctx.lineTo(largo / 2, desplazamiento);
+        ctx.moveTo(-largo / 2, origen);
+        if (curva) ctx.quadraticCurveTo(0, origen + curva * 2, largo / 2, origen);
+        else ctx.lineTo(largo / 2, origen);
       } else {
-        ctx.moveTo(desplazamiento, -largo / 2);
-        if (curva) ctx.quadraticCurveTo(desplazamiento + curva * 2, 0, desplazamiento, largo / 2);
-        else ctx.lineTo(desplazamiento, largo / 2);
+        ctx.moveTo(origen, -largo / 2);
+        if (curva) ctx.quadraticCurveTo(origen + curva * 2, 0, origen, largo / 2);
+        else ctx.lineTo(origen, largo / 2);
       }
       ctx.stroke();
     };

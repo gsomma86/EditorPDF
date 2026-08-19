@@ -636,6 +636,16 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
     paridad de métricas con pdf-lib); bifurcar así deja **cero riesgo** de romper ese camino por una
     función que ni se usa. Confirmado con los seis arneses después del cambio: mismo resultado que
     antes, ni un delta nuevo.
+68. **Si la caja de un objeto de Fabric deja de ser un espejo de `w`/`h` del modelo (por un relleno,
+    un margen, lo que sea), `sincronizarGeometria` no puede seguir leyendo `objeto.width`/`height`
+    para ese tipo.** Al agrandar la caja de `LineaObjeto` para que la curvatura entre en el
+    rectángulo de selección, la rama compartida de rect/forma/línea (que escala
+    `objeto.width * scaleX`) empezó a inflar `elemento.w`/`h` con el relleno en cada arrastre —un
+    bug silencioso, sin error, que solo se nota redimensionando dos veces seguidas. Hizo falta un
+    caso propio para 'linea' que escala **el `w`/`h` del modelo de antes del arrastre**, no el de la
+    caja de Fabric. Regla general: cuando la caja de un objeto lleva algo que el modelo no tiene
+    (relleno, padding), cualquier código que la use como base para volcar una escala tiene que
+    tratarlo aparte.
 
 ## Cómo verificar cambios
 

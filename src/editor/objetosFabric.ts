@@ -11,7 +11,7 @@ import {
 } from './documento';
 import { asegurarFuenteCargada } from './fuentes';
 import { TablaObjeto } from './tablaObjeto';
-import { LineaObjeto } from './lineaObjeto';
+import { corrimientoPorCurvatura, LineaObjeto } from './lineaObjeto';
 import { FormaObjeto } from './formaObjeto';
 import { RectObjeto } from './rectObjeto';
 
@@ -689,17 +689,32 @@ export async function sincronizarGeometria(lienzo: import('fabric').Canvas, obje
     return objeto;
   }
 
+  if (elemento.clase === 'linea') {
+    // `objeto.width`/`height` no sirven de base acá: con curvatura, `cajaDeLinea` los agranda
+    // para que el pico de la curva entre en el rectángulo de selección, y esa caja agrandada no
+    // es el tamaño real de la línea. Se escala `elemento.w`/`h` directamente (lo que valían antes
+    // de este arrastre), y la curvatura no se toca —queda en puntos absolutos, no proporcional—.
+    const escalaX = objeto.scaleX ?? 1;
+    const escalaY = objeto.scaleY ?? 1;
+    elemento.w = Math.max(1, Math.round(elemento.w * escalaX));
+    elemento.h = Math.max(1, Math.round(elemento.h * escalaY));
+    // El corrimiento por curvatura sigue siendo el mismo (no cambió la curvatura): se le resta a
+    // left/top para recuperar la esquina de la línea recta, que es lo que x/y siempre significaron.
+    const horizontal = elemento.w >= elemento.h;
+    const corrimiento = corrimientoPorCurvatura(elemento.curvatura);
+    elemento.x = Math.round((objeto.left ?? elemento.x) - (horizontal ? 0 : corrimiento));
+    elemento.y = Math.round((objeto.top ?? elemento.y) - (horizontal ? corrimiento : 0));
+    objeto.set({ scaleX: 1, scaleY: 1 });
+    (objeto as LineaObjeto).refrescarDesdeDatos();
+    return objeto;
+  }
+
   elemento.x = Math.round(objeto.left ?? elemento.x);
   elemento.y = Math.round(objeto.top ?? elemento.y);
   const anchoVisible = Math.round((objeto.width ?? elemento.w) * (objeto.scaleX ?? 1));
   const altoVisible = Math.round((objeto.height ?? elemento.h) * (objeto.scaleY ?? 1));
 
-  if (elemento.clase === 'linea') {
-    elemento.w = anchoVisible;
-    elemento.h = altoVisible;
-    objeto.set({ scaleX: 1, scaleY: 1 });
-    (objeto as LineaObjeto).refrescarDesdeDatos();
-  } else if (elemento.clase === 'rect') {
+  if (elemento.clase === 'rect') {
     elemento.w = anchoVisible;
     elemento.h = altoVisible;
     objeto.set({ scaleX: 1, scaleY: 1 });

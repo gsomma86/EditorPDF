@@ -449,20 +449,34 @@ hundido, vértice, asta/cabeza), todos numéricos — un radio de 2-3 opciones f
 y no aportaba nada a cambio. **Si a Germán no le convence, es un cambio chico** (cambiar el
 `<input type="number">` por un grupo de radios con 2-3 valores preseteados de curvatura).
 
-**Deliberadamente no se tocó la caja de selección**: `width`/`height` del objeto de Fabric siguen
-siendo el largo y el grosor de la línea recta, igual que antes — no crecen para "abrazar" el bulto
-de la curva. Con una curvatura grande, el pico de la curva puede quedar visualmente por fuera del
-rectángulo de selección (se ve bien, pero clickear justo en la punta del bulto podría no
-seleccionarla). Se aceptó el compromiso a propósito: la alternativa —recalcular `width`/`height` y
-recentrar el objeto según la curvatura— tocaba la posición (`x`/`y`) de una manera que se mete con
-todo lo que ya asume que el objeto de Fabric es exactamente la caja recta (mover, redimensionar,
-duplicar, deshacer), y no se veía que valiera el riesgo para un caso de uso (curvaturas grandes) que
-Germán no pidió específicamente.
+**La caja de selección crece con la curvatura (19/08/2026, a pedido de Germán tras probarlo).**
+Primera versión: se dejó `width`/`height` sin tocar a propósito, por el riesgo de meterse con
+`x`/`y`. Germán probó una curvatura grande y confirmó que el pico quedaba fuera del rectángulo de
+selección, y pidió que lo abrace. Se implementó: `cajaDeLinea()` (nueva, en `lineaObjeto.ts`) calcula
+`left`/`top`/`width`/`height` agrandando el eje corto en `|curvatura|` puntos, **corriendo `left` o
+`top` según haga falta** para que el eje recto de la línea —lo que `x`/`y` siempre significaron— no
+se mueva de lugar; solo se corre hacia el lado del bulto (si la curvatura hace crecer hacia abajo, el
+tope no se toca; si crece hacia arriba, el tope se corre). `_render` compensa ese mismo corrimiento
+al dibujar (resta `curvatura/2` a las coordenadas), así que el resultado visual no cambia, solo la
+caja que lo rodea. **`sincronizarGeometria` necesitó su propio caso para 'linea'** (antes cerraba con
+rect/forma en una rama compartida): la caja de Fabric ya no es un espejo directo de `w`/`h`, así que
+al arrastrar un control de esquina la escala se aplica a `elemento.w`/`h` guardados (no a
+`objeto.width`/`height`, que ahora traen el relleno de la curvatura), y la curvatura **no escala** —
+queda fija en puntos absolutos, no proporcional al tamaño. Dos casos nuevos en `verificar-objetos`
+(curvatura positiva y negativa) confirman la caja y la recuperación de `x`/`y` tras un arrastre.
+
+**Control del panel: numérico, no "tipo radio" como pedía el mensaje original.** Se decidió así para
+quedar consistente con el resto de los controles de geometría agregados en este mismo lote (puntas,
+hundido, vértice, asta/cabeza), todos numéricos — un radio de 2-3 opciones fijas daba menos control
+y no aportaba nada a cambio. **Si a Germán no le convence, es un cambio chico** (cambiar el
+`<input type="number">` por un grupo de radios con 2-3 valores preseteados de curvatura).
 
 **Exportación**: `exportarPdf.ts` dibuja la misma curva como un path SVG (`pathLineaCurva`, nueva)
 cuando hay curvatura, con el mismo cálculo del punto de control; sin curvatura sigue usando
-`drawLine` recto, sin cambios. **Falta que Germán lo pruebe en el navegador** — no hay arnés
-automático para esto (es geometría de trazo, no hay con qué compararla headless).
+`drawLine` recto, sin cambios. El exportador nunca supo nada de la caja agrandada —trabaja siempre
+con `el.x`/`el.y`/`el.w`/`el.h` del modelo, ajenos a esto— así que no hizo falta tocarlo de nuevo.
+**Falta que Germán confirme en el navegador** que la caja se ve bien con distintas curvaturas
+(positiva, negativa, chica, grande) y que moverla/duplicarla/deshacerla no la desubica.
 
 ### ELIPSE
 

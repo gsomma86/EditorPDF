@@ -1,6 +1,6 @@
 [package]
 name = "editorpdf"
-version = "1.0.14"
+version = "1.0.15"
 description = "Editor de PDF que corre en tu computadora"
 authors = ["German Ezequiel Somma <sommagerman@gmail.com>"]
 license = "AGPL-3.0"

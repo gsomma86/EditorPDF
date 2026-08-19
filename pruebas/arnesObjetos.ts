@@ -143,6 +143,40 @@ function nuevoLienzo(): any {
   objRect.set({ scaleX: 3, scaleY: 1 });
   await sincronizarGeometria(lienzo, objRect);
   comprobar('recuadro', 'toma el ancho nuevo', rect.w, anchoRect * 3);
+
+  // La curvatura agranda la caja de selección hacia el lado del bulto, sin mover el eje recto.
+  const linea = crearElemento('linea') as any;
+  linea.w = 100;
+  linea.h = 1;
+  linea.curvatura = 20; // positiva: el bulto crece hacia abajo (Y crece hacia abajo)
+  const xAntes = linea.x;
+  const yAntes = linea.y;
+  const objLinea = await agregarAlLienzo(lienzo, linea);
+  comprobar(
+    'línea curva',
+    'la caja creció hacia el bulto sin mover el tope',
+    { left: objLinea.left, top: objLinea.top, w: objLinea.width, h: objLinea.height },
+    { left: xAntes, top: yAntes, w: 100, h: 21 }
+  );
+
+  objLinea.set({ scaleX: 1.5, scaleY: 2 });
+  await sincronizarGeometria(lienzo, objLinea);
+  comprobar('línea curva', 'escala el largo y el grosor, no la curvatura', { w: linea.w, h: linea.h, curvatura: linea.curvatura }, { w: 150, h: 2, curvatura: 20 });
+  comprobar('línea curva', 'el eje recto no se corrió de lugar', { x: linea.x, y: linea.y }, { x: xAntes, y: yAntes });
+
+  // Curvatura negativa: el bulto va para arriba, así que ahí sí tiene que correrse el tope.
+  const lineaArriba = crearElemento('linea') as any;
+  lineaArriba.w = 100;
+  lineaArriba.h = 1;
+  lineaArriba.curvatura = -20;
+  const yAntesArriba = lineaArriba.y;
+  const objLineaArriba = await agregarAlLienzo(lienzo, lineaArriba);
+  comprobar(
+    'línea curva (arriba)',
+    'el tope se corre para arriba y el fondo queda donde estaba',
+    { top: objLineaArriba.top, bottom: (objLineaArriba.top ?? 0) + (objLineaArriba.height ?? 0), h: objLineaArriba.height },
+    { top: yAntesArriba - 20, bottom: yAntesArriba + 1, h: 21 }
+  );
 }
 
 console.log(
