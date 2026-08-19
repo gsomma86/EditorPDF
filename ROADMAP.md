@@ -686,3 +686,45 @@ a `formasPdf.ts` (`elementoDesdeForma`), que es donde vive el resto del conocimi
       Al llevarlo del mockup al sistema aparecieron **colores fijos en el CSS** que no seguían al
       tema (el degradado de la barra superior, los menús flotantes, los selectores, el resaltado de
       la capa destino y del objeto seleccionado): en oscuro habrían quedado blancos. Ver lección 55.
+
+## Fase 6 — Refinamientos post-v1 (completa, 19/08/2026)
+
+Con las cinco fases anteriores cerradas, este lote fue una tanda grande de pedidos puntuales de
+Germán sobre lo que ya estaba funcionando — bugs reales y controles que faltaban, no funciones
+nuevas. El detalle técnico de cada uno (archivos, decisiones de diseño, bugs encontrados al probar)
+quedó en el historial de git de cada commit; acá solo el resumen de qué cambió y por qué.
+
+- [x] **Tabla**: cantidad de filas/columnas editable desde Propiedades (agrega/quita al final, sin
+      redistribuir); redimensionar una división interna ya no cambia el ancho/alto total (solo el
+      control de la última fila/columna sí, a propósito); controles numéricos de ancho/alto total;
+      y **combinar celdas** (Shift + arrastrar sobre una tabla seleccionada, botón "Combinar" con
+      toggle para separar) — la interacción de mouse más grande de todo el proyecto, resuelta sin
+      DOM flotando sobre el canvas (lección 1), con la matriz propia del objeto para saber en qué
+      celda cae un clic (lección 69).
+- [x] **Texto**: caja opcional de tamaño fijo (`tamanoFijo`) — apagada (de toda la vida) el texto
+      sigue siendo el mismo `FabricText` autoajustado de siempre, sin ningún camino nuevo activo;
+      prendida, pasa a ser un grupo (fondo + texto) como 'campo', con la caja mandando y la
+      alineación por fin con sentido. Más: color de fondo, y el control de alineación reubicado
+      debajo de "Varias líneas". Bifurcar en vez de generalizar (lección 67) dejó en cero el riesgo
+      sobre el texto de toda la vida, que es lo más probado de todo el editor (redacción de PDFs
+      ajenos, vertical, multilínea). Sigue sin resolver el reporte de "la separación funciona
+      distinto en vertical que en horizontal" — falta que Germán precise qué es lo que anda mal.
+- [x] **Línea**: curvatura numérica, siempre centrada, con la caja de selección creciendo hacia el
+      lado del bulto sin desplazar el eje recto (`x`/`y` no se mueven de lugar).
+- [x] **Formas**: vértice asimétrico del triángulo, asta y cabeza de la flecha por separado, filo de
+      la estrella, y el estilo "doble" habilitado en elipse/triángulo/flecha/estrella (exacto en la
+      elipse, aproximado por escalado en las otras tres — se había descartado antes por el costo de
+      un offset real de polígono).
+- [x] **Imagen**: color de fondo (con `backgroundColor` nativo, sin convertirla en grupo).
+- [x] **Cuatro bugs ya diagnosticados de una pasada anterior, resueltos de una vez**: el panel de
+      Firma no tenía ni un control cableado; el QR mostraba Ancho/Alto duplicando a "Tamaño"; "Ocultar
+      campos" no ocultaba las filas fantasma de un campo repetible; y abrir/insertar un PDF pesado se
+      veía colgado sin ningún aviso de carga.
+- [x] **Dos bugs de foco/interacción encontrados probando lo de arriba**: escribir en un campo de
+      texto del panel (Nombre de campo/firma) podía borrar el objeto entero al apretar Supr —un
+      control que reconstruye el panel no puede escuchar `'input'` (lección 66)—; y el Shift +
+      arrastrar de combinar celdas no hacía nada al principio, porque Fabric arma una `transform`
+      propia para cualquier clic sobre el cuerpo de un objeto ya seleccionado, no solo al agarrar un
+      control (lección 70).
+
+Detalle completo, decisiones de diseño y qué falta probar a mano: ver TRASPASO.md.
