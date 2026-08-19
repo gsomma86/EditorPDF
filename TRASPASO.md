@@ -407,6 +407,12 @@ obligatorio (este no reconstruye, solo registra el snapshot: no cambia nada visu
 grosor y color de borde, con fondo y color de fondo, y ancho/alto. Con esto los cuatro reportes de
 Germán quedan resueltos sin tocar el exportador.
 
+**Bug encontrado al probarlo (19/08/2026) y ya resuelto**: escribir en Nombre borraba el campo al
+apretar Supr/Backspace. Era `'input'` en un control que reconstruye el objeto (rearma el panel
+entero y el `<input>` enfocado se destruye, el foco se va al body, y la tecla siguiente la agarra el
+atajo global de borrar). Pasaba también en 'campo' (Nombre, Tamaño, Color, grosor de borde), que ya
+tenía el mismo patrón desde antes. Cambiados todos a `'change'`. Ver lección 66 de CLAUDE.md.
+
 ### LÍNEA
 
 **Curvatura, centrada siempre.** Es el pedido más grande de esta lista en términos de arquitectura:

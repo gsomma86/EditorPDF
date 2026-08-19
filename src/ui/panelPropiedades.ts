@@ -972,11 +972,15 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
       const nuevo = await reemplazarObjeto(lienzo, objeto, elemento);
       mostrarPropiedades(panel, lienzo, nuevo);
     };
-    $('#ed-p-nombre')!.addEventListener('input', (e) => {
+    // 'change' y no 'input': reconstruir() rearma el panel entero (`mostrarPropiedades`), y con
+    // 'input' eso pasaba en cada tecla — el <input> enfocado se destruye y se crea uno nuevo, el
+    // foco se va al body, y la tecla siguiente (típicamente Supr/Backspace, tipeando) la agarra el
+    // atajo global de "borrar el objeto seleccionado" en vez de llegar al campo de texto.
+    $('#ed-p-nombre')!.addEventListener('change', (e) => {
       elemento.name = (e.target as HTMLInputElement).value;
       reconstruir();
     });
-    $('#ed-p-leyenda')!.addEventListener('input', (e) => {
+    $('#ed-p-leyenda')!.addEventListener('change', (e) => {
       elemento.leyenda = (e.target as HTMLInputElement).value;
       reconstruir();
     });
@@ -984,11 +988,11 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
       elemento.obligatorio = (e.target as HTMLInputElement).checked;
       registrarSnapshot(lienzo);
     });
-    $('#ed-p-bordegrosor')!.addEventListener('input', (e) => {
+    $('#ed-p-bordegrosor')!.addEventListener('change', (e) => {
       elemento.bordeGrosor = Number((e.target as HTMLInputElement).value);
       reconstruir();
     });
-    $('#ed-p-bordecolor')!.addEventListener('input', (e) => {
+    $('#ed-p-bordecolor')!.addEventListener('change', (e) => {
       elemento.bordeColor = (e.target as HTMLInputElement).value;
       reconstruir();
     });
@@ -996,7 +1000,7 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
       elemento.conFondo = (e.target as HTMLInputElement).checked;
       reconstruir();
     });
-    $('#ed-p-fondocolor')!.addEventListener('input', (e) => {
+    $('#ed-p-fondocolor')!.addEventListener('change', (e) => {
       elemento.fondoColor = (e.target as HTMLInputElement).value;
       reconstruir();
     });
@@ -1011,11 +1015,15 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
   }
 
   if (elemento.clase === 'campo') {
+    // 'change' y no 'input' en los campos que reconstruyen: `mostrarPropiedades` rearma el panel
+    // entero, y con 'input' eso pasaba en cada tecla — el <input> enfocado se destruye, el foco se
+    // va al body, y la tecla siguiente (Supr/Backspace, tipeando) la agarra el atajo global de
+    // "borrar el objeto seleccionado" en vez de llegar al campo de texto.
     const reconstruir = async () => {
       const nuevo = await reemplazarObjeto(lienzo, objeto, elemento);
       mostrarPropiedades(panel, lienzo, nuevo);
     };
-    $('#ed-p-nombre')!.addEventListener('input', (e) => {
+    $('#ed-p-nombre')!.addEventListener('change', (e) => {
       elemento.name = (e.target as HTMLInputElement).value;
       reconstruir();
     });
@@ -1047,11 +1055,11 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
     $('#ed-p-readonly')!.addEventListener('change', (e) => {
       elemento.readonly = (e.target as HTMLInputElement).checked;
     });
-    $('#ed-p-size')!.addEventListener('input', (e) => {
+    $('#ed-p-size')!.addEventListener('change', (e) => {
       elemento.size = Number((e.target as HTMLInputElement).value);
       reconstruir();
     });
-    $('#ed-p-color')!.addEventListener('input', (e) => {
+    $('#ed-p-color')!.addEventListener('change', (e) => {
       elemento.color = (e.target as HTMLInputElement).value;
       reconstruir();
     });
@@ -1059,7 +1067,7 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
       elemento.bordeColor = (e.target as HTMLInputElement).value;
       reconstruir();
     });
-    $('#ed-p-campo-bordegrosor')!.addEventListener('input', (e) => {
+    $('#ed-p-campo-bordegrosor')!.addEventListener('change', (e) => {
       elemento.bordeGrosor = Number((e.target as HTMLInputElement).value);
       reconstruir();
     });

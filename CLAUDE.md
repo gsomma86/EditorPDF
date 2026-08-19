@@ -617,6 +617,15 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
     compitiendo), pero la guía se marca igual cuando la posición ya cuadriculada coincide con una
     referencia — son dos cosas distintas (dónde cae el objeto vs. qué se le muestra al usuario) y
     conviene no fusionarlas en un solo `if`/`return`.
+66. **Un control del panel que reconstruye el objeto (`reemplazarObjeto` + `mostrarPropiedades`) no
+    puede escuchar `'input'`, tiene que ser `'change'`.** `mostrarPropiedades` rearma el panel entero
+    con `panel.innerHTML = ...`; con `'input'` eso pasaba en cada tecla, y al destruirse el `<input>`
+    enfocado el foco saltaba al `body`. La tecla siguiente —tipeando, típicamente Supr o Backspace—
+    ya no la agarraba el campo de texto sino el atajo global de "borrar el objeto seleccionado" en
+    `main.ts` (que solo mira si `e.target` es INPUT/TEXTAREA/SELECT). Pasaba en 'campo' (Nombre,
+    Tamaño, Color, grosor de borde) y de arranque en 'firma' (todos sus campos, que se agregaron con
+    el mismo patrón). Los controles que solo llaman `refrescar()`/`repintar()` —sin tocar
+    `panel.innerHTML`— no tienen este problema y pueden seguir en `'input'`.
 
 ## Cómo verificar cambios
 
