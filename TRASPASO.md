@@ -332,12 +332,11 @@ actual de `tablaObjeto.ts` y `figuras.ts`** — puede haber cambiado.
    - Falta pensar también, al implementarlo: cómo se **deshace** una combinación ya hecha (¿un botón
      al seleccionar la zona combinada, o basta con volver a seleccionarla y "Combinar" hace toggle?).
 
-4. **Controles numéricos para el tamaño total de la tabla.** Hoy `campoTabla()` no muestra ni
-   Ancho ni Alto (la sección "Posición y tamaño" se salta la tabla a propósito, igual que el texto:
-   `seccionPosicion` tiene `conTamano = elemento.clase !== 'texto' && elemento.clase !== 'tabla'`).
-   Al agregarlos, tienen que repartir el cambio entre todas las columnas/filas proporcionalmente —
-   es lo mismo que ya hace arrastrar una esquina (`accionEscalar`/los controles por defecto en
-   `tablaObjeto.ts`), así que la cuenta ya existe; falta nomás el input numérico que la dispare.
+4. ~~Controles numéricos para el tamaño total de la tabla.~~ — **hecho (19/08/2026).** Ancho y Alto
+   se agregaron arriba de `campoTabla()` (no en `seccionPosicion`, que sigue saltando a la tabla) y
+   reparten el cambio proporcionalmente entre `cols`/`rows`, la misma cuenta que ya hacía escalar
+   desde una esquina (con el mínimo de 8pt/6pt de siempre). No dispara `registrarSnapshot` en cada
+   tecla, igual que el resto de los campos numéricos en vivo.
 
 ### TEXTO
 

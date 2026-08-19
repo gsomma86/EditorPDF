@@ -2,7 +2,7 @@ import type { Canvas, FabricObject } from 'fabric';
 import { FabricImage } from 'fabric';
 import { aplicarMarcas, elementoDe, moverEnLaPila, ordenarPila, reemplazarObjeto, agregarAlLienzo, generarQr, prepararFuente, sincronizarGeometria, textoParaDibujar } from '../editor/objetosFabric';
 import { capaDe, capasDelDocumento } from '../editor/documento';
-import { alturaRenglonFabric, duplicarElemento, type Elemento } from '../editor/elemento';
+import { altoTotalTabla, alturaRenglonFabric, anchoTotalTabla, duplicarElemento, type Elemento } from '../editor/elemento';
 import { FAMILIAS_BASE, FAMILIAS_WEB } from '../editor/fuentes';
 import { registrarSnapshot } from '../editor/historial';
 import type { TablaObjeto } from '../editor/tablaObjeto';
@@ -510,6 +510,10 @@ function campoTabla(elemento: Elemento & { clase: 'tabla' }): string {
     'comun.formato',
     `<div class="nota" style="margin-bottom:8px;">${t('props.tabla.resumen', { filas: elemento.rows.length, cols: elemento.cols.length })}</div>
     <div class="ed-row2">
+      <div><label class="ed-lbl" data-i18n="props.lbl.ancho"></label><input type="number" id="ed-p-w" class="mono" value="${Math.round(anchoTotalTabla(elemento))}" min="${elemento.cols.length * 8}"></div>
+      <div><label class="ed-lbl" data-i18n="props.lbl.alto"></label><input type="number" id="ed-p-h" class="mono" value="${Math.round(altoTotalTabla(elemento))}" min="${elemento.rows.length * 6}"></div>
+    </div>
+    <div class="ed-row2">
       <div><label class="ed-lbl" data-i18n="props.tabla.colorContorno"></label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
       <div><label class="ed-lbl" data-i18n="props.tabla.colorInterno"></label><input type="color" id="ed-p-color-interno" value="${elemento.colorInterno}"></div>
     </div>
@@ -874,6 +878,20 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
       (objeto as TablaObjeto).refrescarDesdeDatos();
       repintar();
     };
+    // Igual que escalar desde una esquina: reparte el cambio entre todas las columnas o filas,
+    // proporcional a como estaban, y no dispara ningún control por separado.
+    $('#ed-p-w')!.addEventListener('input', (e) => {
+      const nuevo = Number((e.target as HTMLInputElement).value) || 1;
+      const escala = nuevo / anchoTotalTabla(elemento);
+      elemento.cols = elemento.cols.map((c) => Math.max(8, Math.round(c * escala)));
+      refrescar();
+    });
+    $('#ed-p-h')!.addEventListener('input', (e) => {
+      const nuevo = Number((e.target as HTMLInputElement).value) || 1;
+      const escala = nuevo / altoTotalTabla(elemento);
+      elemento.rows = elemento.rows.map((r) => Math.max(6, Math.round(r * escala)));
+      refrescar();
+    });
     $('#ed-p-color')!.addEventListener('input', (e) => {
       elemento.color = (e.target as HTMLInputElement).value;
       refrescar();
