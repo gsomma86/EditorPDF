@@ -392,30 +392,20 @@ al ser siempre cuadrado) y no hay dos controles para lo mismo, o se los cablea i
 `imagen`/`campo` y se saca el campo "Tamaño" — mejor lo primero, es menos código y evita el
 control duplicado que generó la confusión.
 
-### FIRMA — bug grande confirmado (el panel entero no hace nada)
+### FIRMA — hecho (19/08/2026)
 
-**Confirmado en el código**: `campoFirma()` en `panelPropiedades.ts` (línea ~379) arma el HTML del
-panel completo —Nombre, Leyenda, Obligatorio, y en Formato: grosor de borde, color de borde, con
-fondo, color de fondo, más Ancho/Alto de la sección genérica— pero **`wireCampos` no tiene ningún
-bloque `if (elemento.clase === 'firma')`** (se puede confirmar: `'firma'` no aparece ni una vez en
-esa función, solo en la que arma el HTML). Ni un solo control del panel de firma está escuchado.
-Por eso:
-- **Leyenda** no aparece en el PDF: si tenía, no es porque no se dibuje (sí lo hace —
-  `exportarPdf.ts` línea ~351, la escribe centrada en el recuadro con la fuente Helvetica— es
-  porque lo que se tipea en el panel nunca llega a `elemento.leyenda`, que se queda en el valor con
-  el que se creó el campo, string vacío por defecto).
-- **Obligatorio** no hace nada porque el tilde no está escuchado — nunca cambia
-  `elemento.obligatorio` (que además, revisando `exportarPdf.ts`, tampoco se usa todavía en la
-  exportación: ni siquiera está enganchado del otro lado).
-- Los cuatro controles de "Formato" (grosor, color de borde, con fondo, color de fondo) no hacen
-  nada por la misma razón: nunca escuchados.
-- Ancho/Alto: mismo bug exacto que en QR, pero sin ningún control alternativo que sí funcione — acá
-  no hay ni un "Tamaño" que compense, el objeto de firma no se puede redimensionar desde el panel
-  de ninguna manera hoy.
-**Arreglo**: escribir el bloque `if (elemento.clase === 'firma')` en `wireCampos` entero, siguiendo
-el mismo patrón que `campo`/`imagen` (que ya cablean bordeGrosor/bordeColor/conFondo/fondoColor/w/h).
-Es la sección con más trabajo de todo este lote, pero también la de diagnóstico más simple: no hay
-ninguna decisión de diseño por tomar, es cablear lo que el HTML ya ofrece.
+**Era solo el panel: la exportación ya estaba bien.** Al revisar `exportarPdf.ts` para el arreglo,
+`el.leyenda` ya se dibujaba (línea ~351) y `el.obligatorio` ya ponía el bit `Ff: 2` del widget
+(línea ~379) — el diagnóstico anterior de que la exportación tampoco los usaba estaba desactualizado
+(quedó resuelto en algún commit anterior sin que TRASPASO se actualizara). Lo único roto de verdad
+era que **`wireCampos` no tenía ningún bloque `if (elemento.clase === 'firma')`**, así que nada de
+lo que se tipeaba en el panel llegaba al modelo.
+**Arreglo**: se agregó el bloque completo en `panelPropiedades.ts`, mismo patrón que `campo` —el
+grupo de Fabric se reconstruye entero en cada cambio con `reemplazarObjeto` (no tiene una clase
+propia con `refrescarDesdeDatos`, como sí tienen tabla/línea/recuadro/forma)—: nombre, leyenda,
+obligatorio (este no reconstruye, solo registra el snapshot: no cambia nada visual en el lienzo),
+grosor y color de borde, con fondo y color de fondo, y ancho/alto. Con esto los cuatro reportes de
+Germán quedan resueltos sin tocar el exportador.
 
 ### LÍNEA
 

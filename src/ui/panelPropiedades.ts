@@ -964,6 +964,52 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
     });
   }
 
+  if (elemento.clase === 'firma') {
+    // Es un Group armado a mano (recuadro + leyenda), sin una clase propia como campo/tabla: se
+    // reconstruye entero en cada cambio, igual que 'campo' antes de que existiera el ajuste en su
+    // lugar. Nada de esto pasaba por el modelo hasta ahora: el panel entero estaba sin cablear.
+    const reconstruir = async () => {
+      const nuevo = await reemplazarObjeto(lienzo, objeto, elemento);
+      mostrarPropiedades(panel, lienzo, nuevo);
+    };
+    $('#ed-p-nombre')!.addEventListener('input', (e) => {
+      elemento.name = (e.target as HTMLInputElement).value;
+      reconstruir();
+    });
+    $('#ed-p-leyenda')!.addEventListener('input', (e) => {
+      elemento.leyenda = (e.target as HTMLInputElement).value;
+      reconstruir();
+    });
+    $('#ed-p-obligatorio')!.addEventListener('change', (e) => {
+      elemento.obligatorio = (e.target as HTMLInputElement).checked;
+      registrarSnapshot(lienzo);
+    });
+    $('#ed-p-bordegrosor')!.addEventListener('input', (e) => {
+      elemento.bordeGrosor = Number((e.target as HTMLInputElement).value);
+      reconstruir();
+    });
+    $('#ed-p-bordecolor')!.addEventListener('input', (e) => {
+      elemento.bordeColor = (e.target as HTMLInputElement).value;
+      reconstruir();
+    });
+    $('#ed-p-confondo')!.addEventListener('change', (e) => {
+      elemento.conFondo = (e.target as HTMLInputElement).checked;
+      reconstruir();
+    });
+    $('#ed-p-fondocolor')!.addEventListener('input', (e) => {
+      elemento.fondoColor = (e.target as HTMLInputElement).value;
+      reconstruir();
+    });
+    $('#ed-p-w')?.addEventListener('change', (e) => {
+      elemento.w = Number((e.target as HTMLInputElement).value);
+      reconstruir();
+    });
+    $('#ed-p-h')?.addEventListener('change', (e) => {
+      elemento.h = Number((e.target as HTMLInputElement).value);
+      reconstruir();
+    });
+  }
+
   if (elemento.clase === 'campo') {
     const reconstruir = async () => {
       const nuevo = await reemplazarObjeto(lienzo, objeto, elemento);
