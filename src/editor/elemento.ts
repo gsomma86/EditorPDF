@@ -50,6 +50,12 @@ export interface ElementoLinea {
   color: string;
   estilo: EstiloLinea;
   /**
+   * Cuánto se desvía del centro de la línea hacia el eje corto (el del grosor), en puntos. En 0 es
+   * recta; positivo o negativo la curva hacia un lado u otro. Siempre en el medio del largo, nunca
+   * corrida: no hay dónde anclarla salvo el centro.
+   */
+  curvatura: number;
+  /**
    * Se dibuja *debajo* de la página del PDF, no encima. Lo llevan las formas que se sacan de un
    * PDF abierto: allá estaban debajo del texto, y si se dibujaran como un elemento común lo
    * taparían. Vive en el modelo y no solo en el objeto de Fabric porque si no se pierde al
@@ -329,7 +335,7 @@ export function crearElemento(clase: ClaseSimple): Elemento {
     }
     case 'linea': {
       const { x, y } = nuevaPosicion(200, 1);
-      return { clase, id, x, y, w: 200, h: 1, angulo: 0, color: '#111111', estilo: 'solido' };
+      return { clase, id, x, y, w: 200, h: 1, angulo: 0, color: '#111111', estilo: 'solido', curvatura: 0 };
     }
     case 'rect': {
       const { x, y } = nuevaPosicion(180, 60);

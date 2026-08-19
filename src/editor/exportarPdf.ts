@@ -262,6 +262,22 @@ function extremosLinea(el: ElementoLinea, ubi: Ubicador, desplazamientoPerp: num
     : { start: ubi.punto(el.w / 2 + desplazamientoPerp, 0), end: ubi.punto(el.w / 2 + desplazamientoPerp, el.h) };
 }
 
+/**
+ * El mismo camino curvo que dibuja `LineaObjeto` en el lienzo, como comando SVG para pdf-lib.
+ * El punto de control va al doble de la curvatura pedida por la misma razón que en el lienzo: es
+ * lo que hace que el punto medio de la curva —lo que realmente se ve— caiga justo ahí.
+ */
+function pathLineaCurva(el: ElementoLinea, desplazamientoPerp: number): string {
+  const horizontal = el.w >= el.h;
+  const curva = el.curvatura || 0;
+  if (horizontal) {
+    const y = el.h / 2 + desplazamientoPerp;
+    return `M 0 ${y} Q ${el.w / 2} ${y + curva * 2} ${el.w} ${y}`;
+  }
+  const x = el.w / 2 + desplazamientoPerp;
+  return `M ${x} 0 Q ${x + curva * 2} ${el.h / 2} ${x} ${el.h}`;
+}
+
 async function dibujarImagen(doc: PDFDocument, pagina: PDFPage, dataUrl: string, ubi: Ubicador, ancho: number, alto: number, opacidad = 1): Promise<void> {
   const bytes = await fetch(dataUrl).then((r) => r.arrayBuffer());
   const esPng = dataUrl.startsWith('data:image/png');
@@ -329,13 +345,30 @@ async function dibujarHoja(
         const trazos = el.estilo === 'doble' ? [-grosor / 3, grosor / 3] : [0];
         const anchoTrazo = el.estilo === 'doble' ? Math.max(0.5, grosor / 3) : grosor;
 
-        for (const d of trazos) {
-          pagina.drawLine({
-            ...extremosLinea(el, ubi, d),
-            thickness: anchoTrazo,
-            color: color(el.color),
-            dashArray: guion(el.estilo, grosor),
-          });
+        if (el.curvatura) {
+          // Curva: un `drawLine` recto no sirve, hace falta un camino SVG con el mismo cuadrático
+          // que dibuja el lienzo.
+          const esquina = ubi.punto(0, 0);
+          for (const d of trazos) {
+            pagina.drawSvgPath(pathLineaCurva(el, d), {
+              x: esquina.x,
+              y: esquina.y,
+              rotate: ubi.grados,
+              borderColor: color(el.color),
+              borderWidth: anchoTrazo,
+              borderDashArray: guion(el.estilo, grosor),
+              opacity: 0,
+            });
+          }
+        } else {
+          for (const d of trazos) {
+            pagina.drawLine({
+              ...extremosLinea(el, ubi, d),
+              thickness: anchoTrazo,
+              color: color(el.color),
+              dashArray: guion(el.estilo, grosor),
+            });
+          }
         }
         break;
       }

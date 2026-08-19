@@ -405,18 +405,35 @@ entero y el `<input>` enfocado se destruye, el foco se va al body, y la tecla si
 atajo global de borrar). Pasaba también en 'campo' (Nombre, Tamaño, Color, grosor de borde), que ya
 tenía el mismo patrón desde antes. Cambiados todos a `'change'`. Ver lección 66 de CLAUDE.md.
 
-### LÍNEA
+### LÍNEA — hecho (19/08/2026)
 
-**Curvatura, centrada siempre.** Es el pedido más grande de esta lista en términos de arquitectura:
-hoy `LineaObjeto` (`editor/lineaObjeto.ts`) dibuja un segmento recto — un rectángulo angosto, no un
-trazo curvo — y su `width`/`height` son directamente su caja de selección. Agregar curvatura no es
-prender una opción: cambia la forma de dibujarla (de rectángulo relleno a trazo con
-`ctx.quadraticCurveTo`, grosor puesto con `lineWidth`) y probablemente la caja de selección (una
-línea curva ocupa más espacio perpendicular a su eje que una recta del mismo largo). También hace
-falta un camino nuevo en `exportarPdf.ts` (pdf-lib puede dibujar un path SVG con curva, hoy ahí se
-usa `drawLine` derecho). Guardar como campo nuevo `curvatura: number` (el desplazamiento del punto
-medio, perpendicular al eje de la línea) alcanza para el modelo; lo que lleva tiempo es la parte de
-dibujo y exportación, no el dato en sí.
+**Curvatura, centrada siempre.** Nuevo campo `ElementoLinea.curvatura` (puntos, default 0 = recta;
+positivo o negativo curva hacia un lado u otro). `LineaObjeto._render` usa `ctx.quadraticCurveTo` en
+vez de `ctx.lineTo` cuando `curvatura !== 0`, reutilizando el mismo cierre `segmento()` que ya
+armaba el trazo sólido/punteado/doble — el control del cuadrático va al **doble** de la curvatura
+pedida, porque en un bezier cuadrático el punto medio real (lo que se ve) cae en la mitad de la
+distancia al punto de control, no en el punto de control mismo.
+
+**Control del panel: numérico, no "tipo radio" como pedía el mensaje original.** Se decidió así para
+quedar consistente con el resto de los controles de geometría agregados en este mismo lote (puntas,
+hundido, vértice, asta/cabeza), todos numéricos — un radio de 2-3 opciones fijas daba menos control
+y no aportaba nada a cambio. **Si a Germán no le convence, es un cambio chico** (cambiar el
+`<input type="number">` por un grupo de radios con 2-3 valores preseteados de curvatura).
+
+**Deliberadamente no se tocó la caja de selección**: `width`/`height` del objeto de Fabric siguen
+siendo el largo y el grosor de la línea recta, igual que antes — no crecen para "abrazar" el bulto
+de la curva. Con una curvatura grande, el pico de la curva puede quedar visualmente por fuera del
+rectángulo de selección (se ve bien, pero clickear justo en la punta del bulto podría no
+seleccionarla). Se aceptó el compromiso a propósito: la alternativa —recalcular `width`/`height` y
+recentrar el objeto según la curvatura— tocaba la posición (`x`/`y`) de una manera que se mete con
+todo lo que ya asume que el objeto de Fabric es exactamente la caja recta (mover, redimensionar,
+duplicar, deshacer), y no se veía que valiera el riesgo para un caso de uso (curvaturas grandes) que
+Germán no pidió específicamente.
+
+**Exportación**: `exportarPdf.ts` dibuja la misma curva como un path SVG (`pathLineaCurva`, nueva)
+cuando hay curvatura, con el mismo cálculo del punto de control; sin curvatura sigue usando
+`drawLine` recto, sin cambios. **Falta que Germán lo pruebe en el navegador** — no hay arnés
+automático para esto (es geometría de trazo, no hay con qué compararla headless).
 
 ### ELIPSE
 

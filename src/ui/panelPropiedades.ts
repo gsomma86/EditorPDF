@@ -445,7 +445,8 @@ function campoLinea(elemento: Elemento & { clase: 'linea' }): string {
     `<div><label class="ed-lbl" data-i18n="comun.color"></label><input type="color" id="ed-p-color" value="${elemento.color}"></div>
     <div><label class="ed-lbl" data-i18n="comun.estilo"></label><select id="ed-p-estilo">
       ${opcionesEstilo(elemento.estilo)}
-    </select></div>`
+    </select></div>
+    <div><label class="ed-lbl" data-i18n="props.linea.curvatura"></label><input type="number" id="ed-p-curvatura" class="mono" value="${elemento.curvatura}" step="1"></div>`
   );
 }
 
@@ -750,6 +751,10 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
           if (campo) campo.value = String(GROSOR_MINIMO_DOBLE);
         }
       }
+      refrescar();
+    });
+    $('#ed-p-curvatura')!.addEventListener('input', (e) => {
+      elemento.curvatura = Number((e.target as HTMLInputElement).value) || 0;
       refrescar();
     });
   }
