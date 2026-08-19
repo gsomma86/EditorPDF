@@ -348,6 +348,15 @@ headless puede cubrir.
      (Shift + arrastrar sobre una tabla real, que el rectángulo de selección se vea bien, que el botón
      aparezca deshabilitado o con la nota correcta) — hace falta que Germán la pruebe a mano antes de
      confiar en ella, más que cualquier otra cosa de este lote.
+   - **Bug real encontrado al probarlo (19/08/2026) y ya resuelto**: el Shift + arrastrar no hacía
+     nada. La causa: Fabric arma una `transform` propia con `action: 'drag'` para **cualquier** clic
+     sobre el cuerpo de un objeto ya seleccionado —no solo al agarrar un control—, así que
+     `!opt.transform` (el chequeo original para "no es un control") daba `false` siempre y el
+     `mouse:down` se descartaba de entrada. El arreglo compara `opt.transform.action === 'drag'` en
+     vez de la sola presencia de `opt.transform`, y **cancela** esa transform de Fabric
+     (`lienzo._currentTransform = null`, campo interno sin API pública, pero es como el propio
+     `_onMouseMove` de Fabric decide si mover el objeto) para que no compita moviendo la tabla al
+     mismo tiempo que se arrastra la selección de celdas. Ver la lección 70 de CLAUDE.md.
 
 4. ~~Controles numéricos para el tamaño total de la tabla.~~ — **hecho (19/08/2026).** Ancho y Alto
    se agregaron arriba de `campoTabla()` (no en `seccionPosicion`, que sigue saltando a la tabla) y

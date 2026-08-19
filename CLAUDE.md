@@ -655,6 +655,16 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
     (que ya se usa para los controles de fila/columna) no sirve acá — pide un `Transform` con
     `target`/`corner`, pensado para el arrastre de un control, no para un clic cualquiera sobre el
     cuerpo del objeto.
+70. **`opt.transform` en un evento `mouse:down` de Fabric NO significa "se agarró un control".**
+    Fabric arma una `transform` (con `action: 'drag'`) para cualquier clic sobre el **cuerpo** de un
+    objeto ya seleccionado, no solo al tocar un `Control` — es lo que le permite arrastrarlo para
+    moverlo. El chequeo correcto para "esto es un clic sobre el cuerpo, no un control" es
+    `!opt.transform || opt.transform.action === 'drag'`, no la sola ausencia de `opt.transform`.
+    Pasó armando el Shift+arrastrar de "combinar celdas": con el chequeo equivocado, el `mouse:down`
+    se descartaba siempre y el arrastre no hacía nada. Si además hay que **tomar** ese clic para algo
+    propio (no dejar que Fabric mueva el objeto al mismo tiempo), hay que cancelar la transform que
+    ya armó: `(canvas as any)._currentTransform = null` — sin API pública, pero es exactamente el
+    campo que mira `_onMouseMove` para decidir si mueve algo.
 
 ## Cómo verificar cambios
 

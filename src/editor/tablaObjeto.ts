@@ -132,8 +132,14 @@ function indiceDeCelda(medidas: number[], valor: number): number {
  * Escucha el lienzo para armar el arrastre de selección de celdas: mantener Shift y arrastrar
  * sobre el cuerpo de una tabla ya seleccionada marca un bloque para combinar. Sin Shift el
  * arrastre sigue siendo el de siempre (mover la tabla), y un clic sobre un control (redimensionar
- * columna/fila, o las esquinas) tampoco se toca: Fabric ya le asignó su propia `transform` antes
- * de que este handler se entere, y acá se lo deja pasar de largo.
+ * columna/fila, o las esquinas) tampoco se toca.
+ *
+ * Ojo con una trampa de Fabric: un clic sobre el **cuerpo** de un objeto ya seleccionado arma
+ * igual una `transform` (para poder arrastrarlo y moverlo), con `action: 'drag'` — `opt.transform`
+ * NO significa "agarró un control". Solo un clic sin transform, o con `action: 'drag'`, es "sobre
+ * el cuerpo"; cualquier otra acción es un control de verdad y se deja pasar de largo. Cuando sí es
+ * el arrastre de celdas, hay que **cancelar** esa transform (`lienzo._currentTransform = null`) o
+ * Fabric mueve la tabla al mismo tiempo que se arrastra la selección.
  *
  * Va aparte de `activarVista` porque es pura interacción de la tabla, no algo del lienzo en
  * general (cuadrícula, guías, reglas).
@@ -143,7 +149,8 @@ export function activarCombinarCeldas(lienzo: Canvas): void {
 
   lienzo.on('mouse:down', (opt) => {
     const activo = lienzo.getActiveObject();
-    const conShift = !!opt.e.shiftKey && !opt.transform;
+    const sobreElCuerpo = !opt.transform || opt.transform.action === 'drag';
+    const conShift = !!opt.e.shiftKey && sobreElCuerpo;
 
     if (!conShift || !(activo instanceof TablaObjeto)) {
       // No es el clic de "empezar a marcar celdas": moverla, redimensionarla, clickear otra cosa
@@ -162,6 +169,11 @@ export function activarCombinarCeldas(lienzo: Canvas): void {
 
     const celda = activo.celdaEnPunto(lienzo.getScenePoint(opt.e));
     if (!celda) return;
+
+    // Fabric ya armó una transform para mover la tabla (era un clic sobre su cuerpo, sin
+    // control): se cancela para que no compitan los dos arrastres a la vez.
+    (lienzo as unknown as { _currentTransform: Transform | null })._currentTransform = null;
+
     arrastre = { tabla: activo, inicio: celda };
     activo.celdaSeleccion = { filaDesde: celda.fila, filaHasta: celda.fila, colDesde: celda.col, colHasta: celda.col };
     activo.dirty = true;
