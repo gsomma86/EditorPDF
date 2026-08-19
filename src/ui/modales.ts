@@ -407,6 +407,25 @@ export function mostrarGuardando(): { cerrar(): void } {
  * La ruta es larga y seleccionarla a mano dentro de un cuadro que se va a cerrar es incómodo: el
  * botón existe para poder pegarla en el explorador y llegar al archivo de una.
  */
+/**
+ * Igual que `mostrarGuardando`, para la espera al abrir o insertar un PDF: con uno pesado (muchos
+ * campos u objetos) el análisis tarda varios segundos con la ventana sin responder a la vista, y
+ * sin ningún cartel se lee como que la app se colgó.
+ */
+export function mostrarCargando(): { cerrar(): void } {
+  const overlay = document.createElement('div');
+  overlay.className = 'ed-modal-overlay';
+  overlay.innerHTML = `<div class="ed-modal ed-modal-espera">
+    <div class="ed-espera-giro"></div>
+    <div>
+      <div class="ed-modal-tit">${t('carga.documentoTitulo')}</div>
+      <div class="ed-modal-sub">${t('carga.documentoMensaje')}</div>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  return { cerrar: () => overlay.remove() };
+}
+
 export function mostrarRutaGuardada(ruta: string): Promise<unknown> {
   return abrir(
     `<div class="ed-modal-tit">${t('cerrar.guardadoTitulo')}</div>

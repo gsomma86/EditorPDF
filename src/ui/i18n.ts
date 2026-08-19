@@ -196,6 +196,9 @@ const ES = {
   'cerrar.guardandoTitulo': 'Guardando…',
   'cerrar.guardandoMensaje': 'Esperando a que el archivo termine de escribirse.',
   'cerrar.copiar': 'Copiar',
+
+  'carga.documentoTitulo': 'Cargando documento…',
+  'carga.documentoMensaje': 'Con archivos grandes puede tardar unos segundos.',
   'cerrar.copiado': '¡Copiado!',
   'cerrar.guardadoTitulo': 'Proyecto guardado',
   'cerrar.guardadoMensaje': 'El archivo quedó en:',
@@ -596,6 +599,9 @@ const EN: Record<ClaveI18n, string> = {
   'cerrar.guardandoTitulo': 'Saving…',
   'cerrar.guardandoMensaje': 'Waiting for the file to finish writing.',
   'cerrar.copiar': 'Copy',
+
+  'carga.documentoTitulo': 'Loading document…',
+  'carga.documentoMensaje': 'Large files can take a few seconds.',
   'cerrar.copiado': 'Copied!',
   'cerrar.guardadoTitulo': 'Project saved',
   'cerrar.guardadoMensaje': 'The file was written to:',
@@ -994,6 +1000,9 @@ const PT: Record<ClaveI18n, string> = {
   'cerrar.guardandoTitulo': 'Salvando…',
   'cerrar.guardandoMensaje': 'Aguardando o arquivo terminar de ser gravado.',
   'cerrar.copiar': 'Copiar',
+
+  'carga.documentoTitulo': 'Carregando documento…',
+  'carga.documentoMensaje': 'Arquivos grandes podem demorar alguns segundos.',
   'cerrar.copiado': 'Copiado!',
   'cerrar.guardadoTitulo': 'Projeto salvo',
   'cerrar.guardadoMensaje': 'O arquivo ficou em:',

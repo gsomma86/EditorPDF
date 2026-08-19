@@ -7,7 +7,7 @@ import { escapeHtml, mostrarMultiSeleccion, mostrarPropiedades, mostrarSinSelecc
 import { ActiveSelection, type FabricObject } from 'fabric';
 import { borrarAutoguardado, hayAutoguardado, programarAutoguardado, restaurarAutoguardado } from './editor/autoguardado';
 import { camposDesdeCsv, csvDesdeCampos, descargarCsv } from './editor/csvCampos';
-import { confirmar, mostrarAyuda, mostrarPreflight, pedirExportarPdf, pedirFilasColumnas, pedirMargenes, pedirNombreArchivo, pedirNuevoProyecto, pedirTemaPersonalizado, mostrarGuardando, mostrarRutaGuardada } from './ui/modales';
+import { confirmar, mostrarAyuda, mostrarCargando, mostrarPreflight, pedirExportarPdf, pedirFilasColumnas, pedirMargenes, pedirNombreArchivo, pedirNuevoProyecto, pedirTemaPersonalizado, mostrarGuardando, mostrarRutaGuardada } from './ui/modales';
 import { formatearPeso, pesoDelPdf, verificarDiseno } from './editor/preflight';
 import { montarPanelCampos } from './ui/panelCampos';
 import { montarPanelCapas } from './ui/panelCapas';
@@ -1052,6 +1052,9 @@ inputInsertar.addEventListener('change', async () => {
   const archivo = inputInsertar.files?.[0];
   if (!archivo) return;
 
+  const cargando = mostrarCargando();
+  await new Promise((resolver) => requestAnimationFrame(resolver));
+
   try {
     const { insertarPdf } = await import('./editor/documento');
     const { camposDelPdf, textosDelPdf, usarPagina } = await import('./editor/pdfExistente');
@@ -1094,6 +1097,8 @@ inputInsertar.addEventListener('change', async () => {
     );
   } catch (error) {
     await mostrarAyuda(t('ayuda.pdfInsertado.titulo'), `<p>${escapeHtml(String((error as Error)?.message ?? error))}</p>`);
+  } finally {
+    cargando.cerrar();
   }
 });
 
@@ -1123,6 +1128,11 @@ document.getElementById('ed-abrir-pdf')!.addEventListener('click', async () => {
 inputPdf.addEventListener('change', async () => {
   const archivo = inputPdf.files?.[0];
   if (!archivo) return;
+
+  const cargando = mostrarCargando();
+  // Sin este respiro el overlay no llega a pintarse: el trabajo pesado de abajo arranca en la
+  // misma vuelta del hilo principal y el navegador nunca pinta antes de ponerse a bloquear.
+  await new Promise((resolver) => requestAnimationFrame(resolver));
 
   try {
     const { abrirPdf, textosDelPdf, camposDelPdf } = await import('./editor/pdfExistente');
@@ -1177,6 +1187,8 @@ inputPdf.addEventListener('change', async () => {
     );
   } catch (error) {
     await mostrarAyuda(t('ayuda.pdfError.titulo'), `<p>${(error as Error).message}</p><p>${t('ayuda.pdfError.cuerpo')}</p>`);
+  } finally {
+    cargando.cerrar();
   }
 });
 

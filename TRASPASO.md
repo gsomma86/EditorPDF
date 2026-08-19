@@ -491,26 +491,18 @@ ningún lado**, así que dibuja las fantasmas sin fijarse si "Ocultar campos" es
 principio del bloque que dibuja las fantasmas en `vista.ts`, importando `camposEstanOcultos` de
 `objetosFabric.ts`. Un cambio de una línea, ya diagnosticado del todo.
 
-### CARGA DE PDF — sin indicador de progreso, parece colgada
+### CARGA DE PDF — hecho (19/08/2026)
 
-**Confirmado en el código.** El handler de `input#change` en `main.ts` (línea ~1123, "Abrir un PDF
-existente") corre todo de un tirón, sin ningún aviso en pantalla entre elegir el archivo y el diálogo
-final "PDF abierto": `abrirPdf()` → `hojasDesdePdf()` → `camposDelPdf()` →
-`colocarCamposImportados()` → recién ahí `mostrarAyuda(...)`. Con un PDF liviano no se nota; con uno
-pesado (muchos objetos y/o campos AcroForm) esos pasos tardan varios segundos con la ventana sin
-responder a la vista, y sin ningún cartel se lee como que la app se colgó. Germán lo reprodujo con
-`Template recibo Argentina Napsis 2.pdf` (adjuntado 17/08/2026) y ya antes con
-`Template recibo Argentina Napsis.pdf` (punto 3 más arriba, 556 rectángulos).
-**Arreglo**: mostrar un overlay tipo "Cargando documento…" apenas se elige el archivo (antes de
-`abrirPdf()`) y sacarlo recién después de `mostrarAyuda`. Ya existe el patrón de modal a reutilizar
-—`.ed-modal-overlay` en `style.css` y el módulo `ui/modales.ts`—, alcanza con un overlay simple (sin
-botones, solo texto o un spinner) en vez de inventar una pantalla nueva como el splash de Tauri. Ojo
-con un detalle real: como todo corre en el hilo principal sin ningún `await` que ceda el control antes
-de que empiece el trabajo pesado, el overlay puede no llegar a pintarse antes de que el navegador se
-ponga a bloquear con el parseo — probablemente haga falta un `await new Promise(r => requestAnimationFrame(r))`
-(o un `setTimeout(0)`) entre mostrar el overlay y llamar a `abrirPdf()`, para que el navegador tenga
-la changa de pintarlo primero. Mismo problema aplica a "Insertar PDF" (`inputInsertar`, línea ~1051),
-que hace el mismo tipo de trabajo.
+`mostrarCargando()`, nueva en `ui/modales.ts` (mismo patrón que `mostrarGuardando`: overlay sin
+botones, lo cierra quien lo abrió), se muestra apenas se elige el archivo tanto en "Abrir PDF" como
+en "Insertar PDF" (`main.ts`), y se cierra en un `finally` para que quede sacado también si el
+`try` corta antes (el `return` temprano de "Insertar PDF" cuando el PDF no trae páginas, o cualquier
+error). Como todo el trabajo pesado corre en el hilo principal sin ningún `await` que ceda el
+control, hacía falta un `await new Promise((r) => requestAnimationFrame(r))` entre mostrar el
+overlay y arrancar `abrirPdf()`/`insertarPdf()` — si no, el navegador nunca llegaba a pintarlo antes
+de ponerse a bloquear con el parseo. Sin arnés propio (es puramente de UI, no hay forma de medirlo
+sin abrir el navegador); probado por Germán con `Template recibo Argentina Napsis 2.pdf`, el mismo
+PDF pesado que reprodujo el bug.
 
 ## Fuera del código
 
@@ -533,17 +525,15 @@ escritorio, todo commiteado y pusheado en `main` (versión 1.0.1), sin cambios s
 de trabajo. Lo que queda abierto, en orden de lo que vale la pena:
 
 1. **La lista grande de pedidos pendientes** (sección de arriba, "Pedidos pendientes de Germán"):
-   tabla (4 puntos), texto, imagen, QR, firma, línea, elipse, triángulo, flecha, estrella, campos
-   AcroForm y carga de PDF sin indicador. Adentro hay bugs ya diagnosticados del todo, sin nada de
-   diseño por pensar — **empezar por esos, son los más baratos y los que más se nota que están rotos**:
-   - El panel de Propiedades de **Firma no tiene ni un solo control cableado** (ni Leyenda, ni
-     Obligatorio, ni Formato, ni Ancho/Alto). Sección "FIRMA" de arriba.
-   - **QR** tiene Ancho/Alto sin cablear también, más un control "Tamaño" que no les actualiza el
-     valor mostrado. Sección "QR" de arriba.
+   tabla (2 puntos: combinar celdas y cantidad de filas/columnas), texto, imagen, QR, línea, elipse,
+   triángulo, flecha, estrella y campos AcroForm — tabla (redimensionar y tamaño total) y firma ya
+   se hicieron el 19/08/2026, y de paso se resolvió un bug de foco real (lección 66 de CLAUDE.md).
+   Adentro hay bugs ya diagnosticados del todo, sin nada de diseño por pensar — **empezar por esos,
+   son los más baratos y los que más se nota que están rotos**:
+   - **QR** tiene Ancho/Alto sin cablear, más un control "Tamaño" que no les actualiza el valor
+     mostrado. Sección "QR" de arriba.
    - **"Ocultar campos"** no oculta las filas fantasma de un campo repetible — un `if` de una línea
      en `vista.ts`. Sección "CAMPOS ACROFORM" de arriba.
-   - **Abrir/insertar un PDF pesado se ve colgado**, sin ningún indicador de carga entre elegir el
-     archivo y el diálogo final. Sección "CARGA DE PDF" de arriba.
    El resto son pedidos de diseño (algunos chicos, como mover un control o agregar un color de
    fondo; otros grandes, como la curvatura de línea o separar el asta de la cabeza de la flecha).
 2. **Esperar a SignPath** (punto 14). Es lo único con una fecha ajena: si aprueban, hay que agregar
