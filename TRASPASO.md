@@ -279,10 +279,13 @@ sospechar del código. En la práctica, **lo de escritorio lo prueba Germán**.
 - ~~El QR se regenera en cada tecla~~ — **resuelto (16/08/2026)**: el texto lleva un respiro de
   250 ms. Los colores y el fondo siguen inmediatos, que ahí cada cambio es uno solo.
 
-## Pedidos pendientes de Germán (anotados el 17/08/2026, sin empezar)
+## Pedidos pendientes de Germán (anotados el 17/08/2026)
 
-Tres pedidos sobre la tabla, para cuando haya crédito fresco. **No arrancar sin releer el código
-actual de `tablaObjeto.ts` y `figuras.ts`** — puede haber cambiado.
+Los cuatro pedidos sobre la tabla (incluido "combinar celdas", el más grande de todo este lote) se
+hicieron el 19/08/2026 y están detallados abajo. Lo único que sigue realmente pendiente en toda esta
+sección es el punto 4 de TEXTO (separación vertical/horizontal), que necesita más detalle de
+Germán, y la revisión visual de "combinar celdas" y de la curvatura de línea, que ningún arnés
+headless puede cubrir.
 
 1. ~~Cambiar la cantidad de filas/columnas desde Propiedades.~~ — **hecho (19/08/2026)**, con la
    decisión simple que ya se había anotado: agregar/quitar al final con el tamaño por defecto
@@ -305,31 +308,46 @@ actual de `tablaObjeto.ts` y `figuras.ts`** — puede haber cambiado.
    una columna que no es la última (confirma que el total no se mueve) y la última (confirma que sí
    cambia).
 
-3. **Combinar celdas.** Es más manejable de lo que parece: **no hace falta tocar `cols`/`rows` ni
-   los controles de arrastre para nada**, porque hoy las líneas internas se dibujan como líneas
-   rectas de punta a punta (`internasDeTabla` en `figuras.ts`, compartido por pantalla y PDF) — combinar
-   es, en el fondo, dejar de dibujar los tramos que caen dentro de la zona combinada. La grilla de
-   abajo no cambia.
-   - **Modelo**: sumar a `ElementoTabla` una lista de rangos combinados, algo como
-     `combinadas: { filaDesde, filaHasta, colDesde, colHasta }[]`. Como el historial y Duplicar
-     clonan el elemento entero (`JSON.parse(JSON.stringify(...))`), no hace falta tocar nada de eso.
-   - **Dibujo**: `internasDeTabla` pasa de "una línea completa por división" a "un tramo por celda",
-     salteando los tramos que caen dentro de un rango combinado. Como ya es el módulo que comparten
-     `tablaObjeto.ts` (pantalla) y `exportarPdf.ts` (PDF), arreglándolo una vez alcanza para los dos.
-   - **Selección (decidido con Germán, 17/08/2026): arrastrar sobre la tabla.** Con la tabla
-     seleccionada, arrastrar el mouse sobre un bloque de celdas lo marca, y aparece un botón
-     "Combinar". Se descartó la alternativa de números en el panel de Propiedades (fila/columna
-     desde-hasta) por menos natural, aunque más simple de programar.
-     **Ojo con la lección 1 de CLAUDE.md** (no repetirla): esto es una interacción nueva de mouse
-     sobre el lienzo, y ya se intentó una vez resolver algo parecido (las guías de redimensionar
-     fila/columna) con capas de HTML flotando sobre el canvas, y falló tres veces porque se
-     desincronizaba con mover/zoom/escalar la tabla. La resolución que sí funcionó fue un `Control`
-     nativo de Fabric — acá el arrastre no sale de un punto fijo como un `Control` normal, así que
-     probablemente convenga escuchar `mouse:down`/`mouse:move`/`mouse:up` del lienzo, filtrando por
-     si el clic cayó dentro del área de esta tabla (sin pisar los controles de redimensionar que ya
-     existen) y dibujando la selección en el propio `_render` del objeto, no con DOM aparte.
-   - Falta pensar también, al implementarlo: cómo se **deshace** una combinación ya hecha (¿un botón
-     al seleccionar la zona combinada, o basta con volver a seleccionarla y "Combinar" hace toggle?).
+3. ~~Combinar celdas.~~ — **hecho (19/08/2026)**, siguiendo el plan que ya estaba anotado acá, con
+   la selección decidida con Germán el 17/08/2026 (arrastrar sobre la tabla, no números en el panel):
+   - **Modelo**: `ElementoTabla.combinadas: CeldaCombinada[]` (`{filaDesde, filaHasta, colDesde,
+     colHasta}`, índices de celda inclusive en los dos extremos). `combinarCeldas(tabla, seleccion)`
+     en `elemento.ts` hace **toggle**: si la selección coincide exacto con un bloque ya combinado, lo
+     separa; si se solapa a medias con uno existente, lo reemplaza entero (la grilla no admite
+     bloques superpuestos); una selección de una sola celda no hace nada. `cols`/`rows` no se tocan
+     para nada, como estaba previsto.
+   - **Dibujo**: `internasDeTabla()` en `figuras.ts` pasa de "una línea por división" a "un tramo por
+     celda" (con sumas parciales de `cols`/`rows`), salteando los tramos que caen adentro de un
+     bloque combinado. Un solo cambio, compartido por `tablaObjeto.ts` y `exportarPdf.ts`, como ya
+     pasaba con el resto de la geometría de la tabla.
+   - **Selección — sin repetir la lección 1 de CLAUDE.md**: nada de DOM flotando sobre el canvas.
+     `activarCombinarCeldas(lienzo)` (nueva, en `tablaObjeto.ts`, llamada una vez desde `main.ts`
+     junto a `activarVista`) escucha `mouse:down`/`mouse:move`/`mouse:up` del lienzo entero — hace
+     falta a ese nivel y no como evento propio del objeto porque un `FabricObject` común no dispara
+     `mousedown`/`mouseup` sobre sí mismo (eso es algo que arma cada mixin que lo necesita, como el
+     texto editable; no es gratis para cualquier subclase). **Mantener Shift** mientras se arrastra
+     sobre el cuerpo de una tabla ya seleccionada arma la selección; sin Shift el arrastre sigue
+     siendo el de mover la tabla, de siempre, sin ningún cambio — y un clic que ya iba a redimensionar
+     una columna/fila (`opt.transform` ya seteado por Fabric) se deja pasar de largo. La selección
+     vive en `TablaObjeto.celdaSeleccion` (transitoria, no en el modelo) y se dibuja en el propio
+     `_render` del objeto — se abandona (vuelve a `null`) con cualquier clic sin Shift, incluida la
+     confirmación del botón "Combinar" en el panel.
+   - **De un clic a "qué celda es"**: `TablaObjeto.celdaEnPunto()`, nuevo, convierte el punto de la
+     escena a coordenadas locales con `fabric.util.transformPoint` + `invertTransform` +
+     `calcTransformMatrix()` del propio objeto — sigue funcionando con zoom, pan y rotación sin
+     recalcular nada a mano. Ver la lección 69 de CLAUDE.md, que documenta esta receta para la
+     próxima vez que haga falta.
+   - **Deshacer una combinación**: quedó resuelto solo, era la alternativa más simple que se había
+     dejado anotada — volver a marcar el mismo bloque exacto y tocar "Combinar" de nuevo lo separa
+     (toggle), sin un botón aparte.
+   - Botón "Combinar celdas" siempre visible en el panel de la tabla (con una nota explicando Shift
+     + arrastrar); al tocarlo sin ninguna selección activa no hace nada.
+   - **Probado con `verificar-objetos`** (`combinarCeldas` — toggle, solape, celda única — e
+     `internasDeTabla` con un bloque combinado, todo lógica pura sin Fabric) y con el resto de los
+     arneses, sin regresiones. **Lo que ningún arnés puede probar es la interacción de mouse en sí**
+     (Shift + arrastrar sobre una tabla real, que el rectángulo de selección se vea bien, que el botón
+     aparezca deshabilitado o con la nota correcta) — hace falta que Germán la pruebe a mano antes de
+     confiar en ella, más que cualquier otra cosa de este lote.
 
 4. ~~Controles numéricos para el tamaño total de la tabla.~~ — **hecho (19/08/2026).** Ancho y Alto
    se agregaron arriba de `campoTabla()` (no en `seccionPosicion`, que sigue saltando a la tabla) y
@@ -554,27 +572,34 @@ pushea como hasta ahora.
 
 **Empezá por acá si sos el agente que retoma.** El trabajo es de a uno por vez, en relevo: `git pull`
 antes de tocar nada y releer CLAUDE.md, que es donde están la regla de alcance, las convenciones y
-las 65 lecciones de bugs ya resueltos — y ahora también la regla de correr
+las 69 lecciones de bugs ya resueltos — y ahora también la regla de correr
 `node scripts/subirVersion.cjs` antes de commitear una corrección.
 
-Al 17/08/2026 **no hay nada funcional a medias**: el editor está completo en navegador y en
-escritorio, todo commiteado y pusheado en `main` (versión 1.0.1), sin cambios sueltos en el árbol
-de trabajo. Lo que queda abierto, en orden de lo que vale la pena:
+Al 19/08/2026 **no hay nada funcional a medias**: el editor está completo en navegador y en
+escritorio, todo commiteado y pusheado en `main`, sin cambios sueltos en el árbol de trabajo. Lo que
+queda abierto, en orden de lo que vale la pena:
 
-1. **La lista grande de pedidos pendientes** (sección de arriba, "Pedidos pendientes de Germán"):
-   tabla (2 puntos: combinar celdas y cantidad de filas/columnas), texto, imagen, línea, elipse,
-   triángulo, flecha y estrella — todos son pedidos de diseño (algunos chicos, como mover un control
-   o agregar un color de fondo; otros grandes, como la curvatura de línea o separar el asta de la
-   cabeza de la flecha). Los bugs ya diagnosticados de este lote (tabla, firma, QR, carga de PDF y
-   campos AcroForm) se resolvieron todos el 19/08/2026, y de paso se encontró y resolvió un bug de
-   foco real (lección 66 de CLAUDE.md).
-2. **Esperar a SignPath** (punto 14). Es lo único con una fecha ajena: si aprueban, hay que agregar
+1. **Confirmación visual de Germán sobre lo hecho el 19/08/2026** — nada de esto tiene arnés
+   headless posible, así que es lo más importante para cerrar de verdad este lote:
+   - **Combinar celdas** de la tabla (Shift + arrastrar sobre una tabla seleccionada, botón
+     "Combinar" en el panel) — es la interacción de mouse más nueva y grande de todo el proyecto.
+   - **Curvatura de línea**, sobre todo con la caja de selección agrandada (pedido después de que
+     Germán viera el primer resultado): que no se desubique al mover/duplicar/deshacer.
+   - **Texto con `tamanoFijo`**, en particular alineación centro/derecha, en pantalla y en el PDF
+     exportado — y que el texto de toda la vida (`tamanoFijo` apagado) siga viéndose exactamente
+     igual que antes en los casos ya probados (vertical, multilínea, redacción de un PDF ajeno).
+   - El resto de los controles de forma agregados (vértice del triángulo, asta/cabeza de la flecha,
+     filo de la estrella, "doble" en las cuatro figuras).
+2. **El punto 4 de TEXTO** ("la separación funciona distinto en vertical que en horizontal") sigue
+   sin tocar — hace falta que Germán cuente qué anda mal exactamente, no es algo que se pueda
+   adivinar mirando el código.
+3. **Esperar a SignPath** (punto 14). Es lo único con una fecha ajena: si aprueban, hay que agregar
    el paso de firma a `.github/workflows/build-windows.yml` —eso sí lo puede hacer un agente— y con
    eso se va el aviso de SmartScreen al instalar. Si rechazan, no hay nada que tocar en el código.
-3. **Las fuentes sin subsetear** (deudas técnicas). ~38 KB por familia, medido. **No lo intentes sin
+4. **Las fuentes sin subsetear** (deudas técnicas). ~38 KB por familia, medido. **No lo intentes sin
    correr antes `npm run medir-fuentes`**, que deja la línea base: el arreglo obvio (`subset: true`)
    ya se probó y rompe.
-4. **Usar la aplicación con archivos de verdad.** Es lo que más bugs encontró en todo el proyecto,
+5. **Usar la aplicación con archivos de verdad.** Es lo que más bugs encontró en todo el proyecto,
    muy por encima de las auditorías y de los arneses (ver el punto 12 y la lección 32). Para PDFs
    ajenos está `npm run inspeccionar -- archivo.pdf`.
 

@@ -365,6 +365,8 @@ const ES = {
   'props.qr.contraste': 'Un QR necesita buen contraste entre el color y el fondo para poder leerse.',
 
   'props.tabla.resumen': 'Arrastrá una línea interna para ajustar esa fila/columna, o la esquina para redimensionar todo.',
+  'props.tabla.combinar': 'Combinar celdas',
+  'props.tabla.combinarNota': 'Mantené Shift y arrastrá sobre la tabla para marcar un bloque de celdas, después tocá este botón. Volver a marcar el mismo bloque y tocarlo de nuevo lo separa.',
   'props.tabla.colorContorno': 'Color del contorno',
   'props.tabla.colorInterno': 'Color interno',
   'props.tabla.estiloContorno': 'Estilo del contorno',
@@ -775,6 +777,8 @@ const EN: Record<ClaveI18n, string> = {
   'props.qr.contraste': 'A QR code needs good contrast between its color and background to be readable.',
 
   'props.tabla.resumen': 'Drag an inner line to resize that row/column, or the corner to resize the whole table.',
+  'props.tabla.combinar': 'Merge cells',
+  'props.tabla.combinarNota': 'Hold Shift and drag over the table to mark a block of cells, then tap this button. Marking the same block again and tapping it splits it back apart.',
   'props.tabla.colorContorno': 'Outline color',
   'props.tabla.colorInterno': 'Inner color',
   'props.tabla.estiloContorno': 'Outline style',
@@ -1183,6 +1187,8 @@ const PT: Record<ClaveI18n, string> = {
   'props.qr.contraste': 'Um QR precisa de bom contraste entre a cor e o fundo para poder ser lido.',
 
   'props.tabla.resumen': 'Arraste uma linha interna para ajustar essa linha/coluna, ou o canto para redimensionar tudo.',
+  'props.tabla.combinar': 'Combinar células',
+  'props.tabla.combinarNota': 'Mantenha Shift e arraste sobre a tabela para marcar um bloco de células, depois toque neste botão. Marcar o mesmo bloco de novo e tocar separa de novo.',
   'props.tabla.colorContorno': 'Cor do contorno',
   'props.tabla.colorInterno': 'Cor interna',
   'props.tabla.estiloContorno': 'Estilo do contorno',

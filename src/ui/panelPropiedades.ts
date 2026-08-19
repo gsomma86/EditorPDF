@@ -2,7 +2,7 @@ import type { Canvas, FabricObject, FabricText } from 'fabric';
 import { FabricImage } from 'fabric';
 import { aplicarMarcas, elementoDe, moverEnLaPila, ordenarPila, reemplazarObjeto, agregarAlLienzo, generarQr, prepararFuente, sincronizarGeometria, textoParaDibujar } from '../editor/objetosFabric';
 import { capaDe, capasDelDocumento } from '../editor/documento';
-import { altoTotalTabla, alturaRenglonFabric, anchoTotalTabla, duplicarElemento, type Elemento } from '../editor/elemento';
+import { altoTotalTabla, alturaRenglonFabric, anchoTotalTabla, combinarCeldas, duplicarElemento, type Elemento } from '../editor/elemento';
 import { FAMILIAS_BASE, FAMILIAS_WEB } from '../editor/fuentes';
 import { registrarSnapshot } from '../editor/historial';
 import type { TablaObjeto } from '../editor/tablaObjeto';
@@ -574,7 +574,9 @@ function campoTabla(elemento: Elemento & { clase: 'tabla' }): string {
     <div class="ed-row2">
       <div><label class="ed-lbl" data-i18n="props.tabla.grosorLineaPt"></label><input type="number" id="ed-p-grosor" class="mono" value="${elemento.grosor}" min="0.5" step="0.5"></div>
       <div><label class="ed-lbl" data-i18n="comun.radioEsquinaPt"></label><input type="number" id="ed-p-radio" class="mono" value="${elemento.radio}" min="0"></div>
-    </div>`
+    </div>
+    <button type="button" id="ed-p-tabla-combinar" class="ed-toggle" style="width:100%;margin-top:10px;" data-i18n="props.tabla.combinar"></button>
+    <p class="nota" style="margin-top:6px;" data-i18n="props.tabla.combinarNota"></p>`
   );
 }
 
@@ -1083,6 +1085,14 @@ function wireCampos(panel: HTMLElement, lienzo: Canvas, objeto: FabricObject, el
     });
     $('#ed-p-radio')!.addEventListener('input', (e) => {
       elemento.radio = Number((e.target as HTMLInputElement).value);
+      refrescar();
+    });
+    $('#ed-p-tabla-combinar')!.addEventListener('click', () => {
+      const tabla = objeto as TablaObjeto;
+      if (!tabla.celdaSeleccion) return;
+      combinarCeldas(elemento, tabla.celdaSeleccion);
+      tabla.celdaSeleccion = null;
+      registrarSnapshot(lienzo);
       refrescar();
     });
   }

@@ -10,7 +10,7 @@
  * Los puntos vienen en coordenadas locales de la caja: (0,0) es su esquina superior izquierda y la
  * Y crece hacia abajo, como en pantalla. Quien dibuje se encarga de llevarlos a donde van.
  */
-import { altoTotalTabla, anchoTotalTabla, type ElementoForma, type ElementoTabla } from './elemento';
+import type { ElementoForma, ElementoTabla } from './elemento';
 
 export interface Punto {
   x: number;
@@ -187,6 +187,14 @@ export interface TrazoTabla {
   y2: number;
 }
 
+/** Sumas parciales de una lista de medidas: `[0, cols[0], cols[0]+cols[1], ...]`. Sirve para saber
+ *  dónde cae el borde de cada celda sin recalcularlo cada vez. */
+function prefijos(medidas: number[]): number[] {
+  const acumulado = [0];
+  for (const m of medidas) acumulado.push(acumulado[acumulado.length - 1] + m);
+  return acumulado;
+}
+
 /**
  * Las líneas que dividen la tabla por dentro, con el grosor que le toca a cada una.
  *
@@ -196,28 +204,38 @@ export interface TrazoTabla {
  *
  * "Doble" son dos trazos finos separados que en conjunto suman el grosor pedido, igual que el
  * contorno: por eso el grosor devuelto no siempre es el del modelo.
+ *
+ * Con celdas combinadas (`el.combinadas`), cada divisoria se corta en un tramo por celda en vez de
+ * ir de punta a punta: así alcanza con saltear los tramos que caen adentro de un bloque combinado,
+ * sin tocar `cols`/`rows` ni los controles de arrastre para nada.
  */
 export function internasDeTabla(el: ElementoTabla): { grosor: number; trazos: TrazoTabla[] } {
-  const ancho = anchoTotalTabla(el);
-  const alto = altoTotalTabla(el);
-
   const doble = el.estiloInterno === 'doble';
   const grosor = doble ? Math.max(0.5, el.grosor / 3) : el.grosor;
   const desplazamientos = doble ? [-grosor, grosor] : [0];
+  const combinadas = el.combinadas ?? [];
 
+  const colX = prefijos(el.cols);
+  const rowY = prefijos(el.rows);
   const trazos: TrazoTabla[] = [];
 
-  // Las divisorias van entre columna y columna: la última no lleva, que es el borde de la tabla.
-  let acumX = 0;
+  // Verticales: una por columna interna (la última no lleva, es el borde de la tabla), cortada
+  // en un tramo por fila para poder saltear los que caen en un bloque combinado.
   for (let i = 0; i < el.cols.length - 1; i++) {
-    acumX += el.cols[i];
-    for (const d of desplazamientos) trazos.push({ x1: acumX + d, y1: 0, x2: acumX + d, y2: alto });
+    for (let fila = 0; fila < el.rows.length; fila++) {
+      const tapado = combinadas.some((c) => i >= c.colDesde && i < c.colHasta && fila >= c.filaDesde && fila <= c.filaHasta);
+      if (tapado) continue;
+      for (const d of desplazamientos) trazos.push({ x1: colX[i + 1] + d, y1: rowY[fila], x2: colX[i + 1] + d, y2: rowY[fila + 1] });
+    }
   }
 
-  let acumY = 0;
-  for (let i = 0; i < el.rows.length - 1; i++) {
-    acumY += el.rows[i];
-    for (const d of desplazamientos) trazos.push({ x1: 0, y1: acumY + d, x2: ancho, y2: acumY + d });
+  // Horizontales: lo mismo, cortadas por columna.
+  for (let fila = 0; fila < el.rows.length - 1; fila++) {
+    for (let col = 0; col < el.cols.length; col++) {
+      const tapado = combinadas.some((c) => fila >= c.filaDesde && fila < c.filaHasta && col >= c.colDesde && col <= c.colHasta);
+      if (tapado) continue;
+      for (const d of desplazamientos) trazos.push({ x1: colX[col], y1: rowY[fila + 1] + d, x2: colX[col + 1], y2: rowY[fila + 1] + d });
+    }
   }
 
   return { grosor, trazos };

@@ -13,7 +13,8 @@
  */
 import { StaticCanvas, Group } from 'fabric';
 import { agregarAlLienzo, elementoDe, sincronizarGeometria } from '../src/editor/objetosFabric';
-import { anchoTotalTabla, crearElemento, crearElementoCampo, crearElementoTabla } from '../src/editor/elemento';
+import { anchoTotalTabla, combinarCeldas, crearElemento, crearElementoCampo, crearElementoTabla } from '../src/editor/elemento';
+import { internasDeTabla } from '../src/editor/figuras';
 
 (globalThis as any).document ??= { fonts: { load: async () => [] } };
 
@@ -177,6 +178,35 @@ function nuevoLienzo(): any {
     { top: objLineaArriba.top, bottom: (objLineaArriba.top ?? 0) + (objLineaArriba.height ?? 0), h: objLineaArriba.height },
     { top: yAntesArriba - 20, bottom: yAntesArriba + 1, h: 21 }
   );
+}
+
+// ---------- Combinar celdas: no toca cols/rows, solo qué líneas internas se saltean ----------
+{
+  const tabla = crearElementoTabla(3, 3); // 3 filas, 3 columnas, todas de 24x60
+  combinarCeldas(tabla, { filaDesde: 0, filaHasta: 1, colDesde: 0, colHasta: 0 });
+  comprobar('combinar', 'no toca cols/rows', { cols: tabla.cols, rows: tabla.rows }, { cols: [60, 60, 60], rows: [24, 24, 24] });
+
+  const { trazos } = internasDeTabla(tabla);
+  // La divisoria horizontal entre fila 0 y 1 tenía un tramo por columna (3); el de la columna 0
+  // cae adentro del bloque combinado y no debería estar.
+  const tramoTapado = trazos.some((t) => t.y1 === 24 && t.y2 === 24 && t.x1 === 0 && t.x2 === 60);
+  const tramoVecino = trazos.some((t) => t.y1 === 24 && t.y2 === 24 && t.x1 === 60 && t.x2 === 120);
+  comprobar('combinar', 'salta el tramo adentro del bloque', tramoTapado, false);
+  comprobar('combinar', 'no toca los tramos de al lado', tramoVecino, true);
+
+  // Volver a marcar el mismo bloque y combinar de nuevo lo separa (toggle).
+  combinarCeldas(tabla, { filaDesde: 0, filaHasta: 1, colDesde: 0, colHasta: 0 });
+  comprobar('combinar', 'combinar el mismo bloque lo separa', tabla.combinadas, []);
+
+  // Un bloque nuevo que se solapa con uno existente lo reemplaza entero, no se acumulan.
+  combinarCeldas(tabla, { filaDesde: 0, filaHasta: 0, colDesde: 0, colHasta: 1 });
+  combinarCeldas(tabla, { filaDesde: 0, filaHasta: 1, colDesde: 0, colHasta: 0 });
+  comprobar('combinar', 'un bloque que se solapa reemplaza al viejo', tabla.combinadas, [{ filaDesde: 0, filaHasta: 1, colDesde: 0, colHasta: 0 }]);
+
+  // Una sola celda "combinada" (mismo desde y hasta) no hace nada: no hay nada que combinar.
+  const tablaVacia = crearElementoTabla(2, 2);
+  combinarCeldas(tablaVacia, { filaDesde: 0, filaHasta: 0, colDesde: 0, colHasta: 0 });
+  comprobar('combinar', 'una sola celda no hace nada', tablaVacia.combinadas, []);
 }
 
 console.log(

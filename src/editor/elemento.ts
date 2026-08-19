@@ -191,6 +191,20 @@ export interface ElementoTabla {
   radio: number;
   cols: number[];
   rows: number[];
+  /**
+   * Bloques de celdas fusionados en uno. Los índices son de celda (0-based) e inclusive en los dos
+   * extremos: `{filaDesde:0, filaHasta:1, colDesde:0, colHasta:0}` combina las dos primeras filas
+   * de la primera columna. No se tocan `cols`/`rows` para nada — combinar es, en el fondo, dejar
+   * de dibujar las líneas internas que caen adentro del bloque.
+   */
+  combinadas: CeldaCombinada[];
+}
+
+export interface CeldaCombinada {
+  filaDesde: number;
+  filaHasta: number;
+  colDesde: number;
+  colHasta: number;
 }
 
 export interface ElementoImagen {
@@ -440,6 +454,7 @@ export function crearElementoTabla(filas: number, columnas: number): ElementoTab
     radio: 0,
     cols: new Array(nc).fill(60),
     rows: new Array(nf).fill(24),
+    combinadas: [],
   };
 }
 
@@ -562,4 +577,30 @@ export function anchoTotalTabla(tabla: ElementoTabla): number {
 
 export function altoTotalTabla(tabla: ElementoTabla): number {
   return tabla.rows.reduce((a, b) => a + b, 0);
+}
+
+function seSolapan(a: CeldaCombinada, b: CeldaCombinada): boolean {
+  return a.filaDesde <= b.filaHasta && b.filaDesde <= a.filaHasta && a.colDesde <= b.colHasta && b.colDesde <= a.colHasta;
+}
+
+function mismoRango(a: CeldaCombinada, b: CeldaCombinada): boolean {
+  return a.filaDesde === b.filaDesde && a.filaHasta === b.filaHasta && a.colDesde === b.colDesde && a.colHasta === b.colHasta;
+}
+
+/**
+ * Combina el bloque de celdas marcado, o lo deshace si ya era exactamente un bloque combinado
+ * (toggle). Un bloque nuevo que se solape a medias con uno existente reemplaza al viejo entero —la
+ * grilla de abajo no admite bloques superpuestos, cada línea interna es de una sola celda—.
+ * Un bloque de una sola celda no hace nada: no hay nada que combinar.
+ */
+export function combinarCeldas(tabla: ElementoTabla, seleccion: CeldaCombinada): void {
+  if (seleccion.filaDesde === seleccion.filaHasta && seleccion.colDesde === seleccion.colHasta) return;
+
+  const existente = tabla.combinadas.findIndex((c) => mismoRango(c, seleccion));
+  if (existente !== -1) {
+    tabla.combinadas.splice(existente, 1);
+    return;
+  }
+  tabla.combinadas = tabla.combinadas.filter((c) => !seSolapan(c, seleccion));
+  tabla.combinadas.push(seleccion);
 }

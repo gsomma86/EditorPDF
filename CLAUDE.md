@@ -646,6 +646,15 @@ Regla general: validar UX/UI con mockups antes de codear cualquier pantalla nuev
     caja de Fabric. Regla general: cuando la caja de un objeto lleva algo que el modelo no tiene
     (relleno, padding), cualquier código que la use como base para volcar una escala tiene que
     tratarlo aparte.
+69. **De un punto de la escena (`canvas.getScenePoint(e)`) a coordenadas locales de un objeto
+    puntual, sin pasar por un `Control`:** `fabric.util.transformPoint(punto,
+    fabric.util.invertTransform(objeto.calcTransformMatrix()))`. Da el punto en el mismo sistema
+    centrado que usa `_render` ((0,0) es el centro del objeto); sumarle `w/2` y `h/2` lo lleva a
+    coordenadas de esquina superior izquierda. Hizo falta para "combinar celdas" de la tabla: saber
+    en qué celda cayó un clic con Shift arrastrando sobre el lienzo. `controlsUtils.getLocalPoint`
+    (que ya se usa para los controles de fila/columna) no sirve acá — pide un `Transform` con
+    `target`/`corner`, pensado para el arrastre de un control, no para un clic cualquiera sobre el
+    cuerpo del objeto.
 
 ## Cómo verificar cambios
 

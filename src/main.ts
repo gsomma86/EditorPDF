@@ -17,6 +17,7 @@ import { deshacer, inicializarHistorial, puedeDeshacer, puedeRehacer, registrarS
 import { alCambiarIdioma, aplicarIdioma, t, type ClaveI18n } from './ui/i18n';
 import { agregarHoja, aplicarConfigPagina, aplicarFondo, cantidadDeHojas, capturarMiniatura, configActual, eliminarHoja, establecerCapas, establecerCapasSobreElFondo, establecerFondoDeLaHoja, fondoDeLaHoja, establecerHojas, hojaActual, hojaEnBlanco, hojasDesdePdf, irAHoja, medidasDeLaHoja, miniaturaDeHoja, moverHoja, olvidarPaginasDibujadas, paginaDeLaHoja, refrescarPaginaDibujada } from './editor/documento';
 import { activarVista, configurarVista, establecerZoom, vistaActual } from './editor/vista';
+import { activarCombinarCeldas } from './editor/tablaObjeto';
 import { configPorDefecto, type Orientacion, type TamanoPagina } from './editor/pagina';
 import { GRUPOS, TEMAS, aplicarTema, establecerCustom, iniciarTema, paletaActual, previsualizar, repintar, temaActual, type NombreTema, type Paleta } from './ui/temas';
 import { cablearCierre, editorListo, enEscritorio, guardarEnDisco, marcarCambios, marcarGuardado, pasoDeArranque, type ResultadoGuardado } from './ui/bienvenida';
@@ -77,6 +78,7 @@ document.getElementById('ed-tema-personalizar')!.addEventListener('click', async
   }
 });
 activarVista(lienzo);
+activarCombinarCeldas(lienzo);
 aplicarConfigPagina(lienzo, configPorDefecto());
 inicializarHistorial(lienzo);
 
