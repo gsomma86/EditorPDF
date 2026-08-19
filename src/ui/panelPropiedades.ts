@@ -317,7 +317,9 @@ function seccion(claveTitulo: Parameters<typeof t>[0], contenido: string): strin
 }
 
 function seccionPosicion(elemento: Elemento): string {
-  const conTamano = elemento.clase !== 'texto' && elemento.clase !== 'tabla';
+  // El QR es siempre cuadrado y ya tiene su propio control "Tamaño" en campoQr(): mostrar acá
+  // Ancho/Alto por separado era un segundo control para lo mismo, sin cablear y desactualizado.
+  const conTamano = elemento.clase !== 'texto' && elemento.clase !== 'tabla' && elemento.clase !== 'qr';
   return seccion(
     'props.posicionTitulo',
     `<div class="ed-grid2">

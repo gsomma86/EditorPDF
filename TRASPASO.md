@@ -375,22 +375,12 @@ estos pedidos dependen de esa caja existiendo.
 1. Color de fondo del recuadro de imagen, con opción "Ninguno" (transparente, como es hoy). Mismo
    comentario que en texto: patrón ya usado en campo/firma, copiarlo tal cual.
 
-### QR — bug confirmado
+### QR — hecho (19/08/2026)
 
-**Confirmado en el código** (`panelPropiedades.ts`): el campo "Tamaño" (`#ed-p-size`, línea ~857)
-sí escribe `elemento.w`/`elemento.h` y repinta el QR — funciona. El problema es que la sección
-genérica "Posición y tamaño" **también** muestra Ancho y Alto por separado (`seccionPosicion`, ya
-que QR no está en la lista de exclusión), pero **no existe ningún `$('#ed-p-w')`/`$('#ed-p-h')`
-para `elemento.clase === 'qr'`** en toda la función `wireCampos` — se puede confirmar buscando
-`'qr'` ahí: no aparece ningún wiring de esos dos ids. Por eso:
-- Tipear en Ancho/Alto no hace nada (no están escuchados).
-- Cambiar Tamaño sí cambia la figura, pero como no toca el `.value` de esos dos inputs (que están
-  ahí, mostrando el número viejo), se ven desactualizados hasta reseleccionar (ahí sí se
-  reconstruye el panel entero desde el modelo y muestran el valor correcto).
-**Arreglo**: o se sacan Ancho/Alto de la sección genérica para QR (ya que "Tamaño" los reemplaza,
-al ser siempre cuadrado) y no hay dos controles para lo mismo, o se los cablea igual que en
-`imagen`/`campo` y se saca el campo "Tamaño" — mejor lo primero, es menos código y evita el
-control duplicado que generó la confusión.
+Era justo lo que decía el diagnóstico anterior: dos controles para lo mismo. `seccionPosicion()`
+ahora excluye a `'qr'` de `conTamano` (como ya hacía con texto y tabla), así que Ancho/Alto genéricos
+dejaron de mostrarse — el campo "Tamaño" de `campoQr()`, que ya estaba cableado y funcionando, queda
+como el único control de tamaño. No hizo falta tocar `wireCampos` para nada.
 
 ### FIRMA — hecho (19/08/2026)
 
@@ -525,13 +515,11 @@ escritorio, todo commiteado y pusheado en `main` (versión 1.0.1), sin cambios s
 de trabajo. Lo que queda abierto, en orden de lo que vale la pena:
 
 1. **La lista grande de pedidos pendientes** (sección de arriba, "Pedidos pendientes de Germán"):
-   tabla (2 puntos: combinar celdas y cantidad de filas/columnas), texto, imagen, QR, línea, elipse,
-   triángulo, flecha, estrella y campos AcroForm — tabla (redimensionar y tamaño total) y firma ya
-   se hicieron el 19/08/2026, y de paso se resolvió un bug de foco real (lección 66 de CLAUDE.md).
-   Adentro hay bugs ya diagnosticados del todo, sin nada de diseño por pensar — **empezar por esos,
-   son los más baratos y los que más se nota que están rotos**:
-   - **QR** tiene Ancho/Alto sin cablear, más un control "Tamaño" que no les actualiza el valor
-     mostrado. Sección "QR" de arriba.
+   tabla (2 puntos: combinar celdas y cantidad de filas/columnas), texto, imagen, línea, elipse,
+   triángulo, flecha, estrella y campos AcroForm — tabla (redimensionar y tamaño total), firma y QR
+   ya se hicieron el 19/08/2026, y de paso se resolvió un bug de foco real (lección 66 de CLAUDE.md).
+   Adentro hay un bug ya diagnosticado del todo, sin nada de diseño por pensar — **empezar por ese,
+   es el más barato y el que más se nota que está roto**:
    - **"Ocultar campos"** no oculta las filas fantasma de un campo repetible — un `if` de una línea
      en `vista.ts`. Sección "CAMPOS ACROFORM" de arriba.
    El resto son pedidos de diseño (algunos chicos, como mover un control o agregar un color de
